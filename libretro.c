@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <libspectrum.h>
 
