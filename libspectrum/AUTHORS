@@ -1,0 +1,18 @@
+libspectrum is brought to you by:
+
+* Stuart Brady: Scorpion ZS 256 support.
+
+* Bjoern Giesler: Wii port
+
+* Garry Lancaster: IDE hard disk image support.
+
+* Fredrick Meunier: Spectrum SE support and more.
+
+* Darren Salt: SLT support, TZX raw data blocks, RZX embedded snapshots,
+               RZX compression, Spectrum SE support.
+
+* Matan Ziv-Av: The singly-linked list code.
+
+* Philip Kendall: everything else.
+
+$Id: AUTHORS 3947 2009-01-11 14:35:45Z pak21 $
