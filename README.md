@@ -27,7 +27,7 @@ There are seven types of joysticks emulated:
 6. Timex 2
 7. Fuller Joystick
 
-Fuse allows for two joysticks only so it only users one and two can choose their joystick types via the input configuration on the frontend. Actually all users can choose their joystick types, but only users one and two can use theirs in the emulation.
+Fuse allows for two joysticks at maximum so only users one and two can choose their joystick types via the input configuration on the frontend. Actually all users can choose their joystick types, but only users one and two can use theirs in the emulation.
 
 ## Keyboard
 
@@ -35,7 +35,7 @@ Keyboard is **not** being emulated right now, but it's on my TODO list. If you n
 
 ## Supported Formats
 
-Fuse can load a number of different file formats. Fro now, **fuse-libretro** only loads `tzx`, `tap`, and `z80` files. This decision is arbitrary, so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
+Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, and `z80` files. This decision is arbitrary, so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
 
 ## Save States
 
