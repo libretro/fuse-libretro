@@ -7,7 +7,10 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include <libspectrum.h>
+
 #include <fuse/settings.h>
+#include <fuse/utils.h>
 #include <fuse/ui/ui.h>
 #include <fuse/keyboard.h>
 
@@ -235,6 +238,16 @@ static const uint16_t greys[16] = {
 #define RETRO_PERFORMANCE_STOP(name)
 #endif
 
+static void update_string(const char **string, const char *value)
+{
+   if (*string)
+   {
+      libspectrum_free(*string);
+   }
+   
+   *string = utils_safe_strdup(value);
+}
+
 static void update_variables()
 {
    struct retro_variable var;
@@ -295,7 +308,7 @@ static void update_variables()
             log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_speaker_type: %s\n", var.value);
       }
       
-      settings_current.speaker_type = value;
+      update_string(&settings_current.speaker_type, value);
       log_cb(RETRO_LOG_INFO, "fuse_speaker_type set to %s\n", value);
    }
    
@@ -316,7 +329,7 @@ static void update_variables()
             log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_ay_stereo_separation: %s\n", var.value);
       }
       
-      settings_current.stereo_ay = value;
+      update_string(&settings_current.stereo_ay, value);
       log_cb(RETRO_LOG_INFO, "fuse_ay_stereo_separation set to %s\n", value);
    }
    
