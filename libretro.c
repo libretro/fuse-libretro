@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -14,41 +13,10 @@
 
 #include <keyboverlay.h>
 
-/*
-retro_get_system_info
-retro_set_environment
-retro_get_system_info
-retro_api_version
-retro_init
-retro_load_game
-retro_get_memory_size
-retro_get_memory_data
-retro_get_memory_size
-retro_get_memory_data
-retro_set_video_refresh
-retro_set_audio_sample
-retro_set_audio_sample_batch
-retro_set_input_state
-retro_set_input_poll
-retro_get_system_av_info
-retro_get_system_info
-retro_run
-*/
-
-static void stderr_log(enum retro_log_level level, const char *fmt, ...)
+static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 {
-   switch (level)
-   {
-   case RETRO_LOG_DEBUG: fprintf(stderr, "[DEBUG] "); break;
-   case RETRO_LOG_INFO:  fprintf(stderr, "[INFO ] "); break;
-   case RETRO_LOG_WARN:  fprintf(stderr, "[WARN ] "); break;
-   case RETRO_LOG_ERROR: fprintf(stderr, "[ERROR] "); break;
-   }
-   
-   va_list args;
-   va_start(args, fmt);
-   vfprintf(stderr, fmt, args);
-   va_end(args);
+   (void)level;
+   (void)fmt;
 }
 
 #define RETRO_DEVICE_CURSOR_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 0)
@@ -59,7 +27,7 @@ static void stderr_log(enum retro_log_level level, const char *fmt, ...)
 #define RETRO_DEVICE_TIMEX2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 5)
 #define RETRO_DEVICE_FULLER_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 6)
 
-static retro_log_printf_t log_cb = stderr_log;
+static retro_log_printf_t log_cb = dummy_log;
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_batch_t audio_cb;
 static retro_input_poll_t input_poll_cb;
@@ -508,8 +476,10 @@ void retro_init(void)
 {
    struct retro_log_callback log;
 
-   //if (env_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
-   //   log_cb = log.log;
+   if (env_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
+   {
+      log_cb = log.log;
+   }
 
    // Always get the perf interface because we need it in compat_timer_get_time
    // and compat_timer_sleep.
