@@ -8,6 +8,8 @@ SOURCES_C += $(CORE_DIR)/libretro.c
 SOURCES_C += $(CORE_DIR)/scalers16.c
 SOURCES_C += $(CORE_DIR)/scalers32.c
 
+SOURCES_C += $(CORE_DIR)/fuse/compat/getopt.c
+SOURCES_C += $(CORE_DIR)/fuse/compat/getopt1.c
 SOURCES_C += $(CORE_DIR)/fuse/compat/unix/dir.c
 SOURCES_C += $(CORE_DIR)/fuse/compat/unix/file.c
 
