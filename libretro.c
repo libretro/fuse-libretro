@@ -490,6 +490,11 @@ void retro_set_environment(retro_environment_t cb)
       { 0 }
    };
 
+   // This seem to be broken right now, as info is NULL in retro_load_game
+   // even when we load a game via the frontend after booting to BASIC.
+   //bool _true = true;
+   //cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, (void*)&_true);
+   
    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
@@ -530,23 +535,33 @@ bool retro_load_game(const struct retro_game_info *info)
       return false;
    }
    
-   log_cb(RETRO_LOG_INFO, "Loading %s\n", info->path);
-   
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(input_state, 0, sizeof(input_state));
    select_pressed = keyb_overlay = false;
    keyb_x = keyb_y = 0;
    keyb_send = 0;
    
-   char tape[PATH_MAX];
-   snprintf(tape, sizeof(tape), "-t%s", info->path);
-   tape[sizeof(tape) - 1] = 0;
+   if (info != NULL)
+   {
+      char tape[PATH_MAX];
+      snprintf(tape, sizeof(tape), "-t%s", info->path);
+      tape[sizeof(tape) - 1] = 0;
+      
+      char *argv[] = {
+         "fuse",
+         tape
+      };
+      
+      log_cb(RETRO_LOG_INFO, "Loading %s\n", info->path);
+      return fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0;
+   }
    
+   // Boots the emulation into BASIC
    char *argv[] = {
-      "fuse",
-      tape
+      "fuse"
    };
    
+   log_cb(RETRO_LOG_INFO, "Booting into BASIC\n");
    return fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0;
 }
 
