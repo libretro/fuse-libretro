@@ -355,7 +355,7 @@ static void update_variables()
    {
       var.key = "fuse_key_hold_time";
       var.value = NULL;
-      int64_t value = 500000;
+      int64_t value = 500;
       
       if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
       {
@@ -372,7 +372,7 @@ static void update_variables()
          }
       }
       
-      keyb_hold_time = value;
+      keyb_hold_time = value * 1000;
       log_cb(RETRO_LOG_INFO, "fuse_key_hold_time set to %lld\n", value);
    }
 }
