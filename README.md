@@ -65,11 +65,7 @@ Versions that are being used to build and test **fuse-libretro**:
 
 ## TODO
 
-* Handle a real keyboard
-* Support save states
-* Emulate other machines
-* Have an option to hide the video border so the game can occupy the entire screen
-* Open up issues to add other items to this list
+See the open issues.
 
 ## Bugs
 
