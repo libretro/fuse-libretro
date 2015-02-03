@@ -43,15 +43,14 @@ Not working yet.
 
 ## Setup
 
-After compiling and copying `fuse_libretro.(dll|so)` to the correct place in you frontend folder hierarchy:
-
-1. Compile **fuse-libretro**
+1. Compile **fuse-libretro** with `make -f Makefile.libretro`
 1. Copy the resulting `fuse_libretro.dll` (or `fuse_libretro.so` if you manage to compile it under Linux) into the `cores` folder of your libretro frontend
 1. Copy the `fuse_libretro.info` file into the same folder as the previous step
 1. Create a `fuse` folder under the `system` folder
 1. Create `lib` and `roms` subfolders inside `fuse`
 1. In `lib`, copy all the `szx` files found in the `lib` folder from a Fuse distribution
 1. In `roms`, copy all the files found in the `roms` folder from a Fuse distribution
+> If you're getting files from a source Fuse distribution, the lib files will be in `fuse-x.x.x/lib/compressed.`
 1. Copy your games into the `contents` folder
 1. Profit!
 
