@@ -292,13 +292,19 @@ else
 	$(CXX) -o $@ $(SHARED) $(OBJS) $(LDFLAGS) $(LIBS)
 endif
 
-$(OBJS): fuse/config.h libspectrum/config.h
+$(OBJS): fuse/config.h libspectrum/config.h fuse/roms/48.rom.h fuse/lib/compressed/tape_48.szx.h
 
 fuse/config.h:
 	cp config_fuse.h fuse/config.h
 
 libspectrum/config.h:
 	cp config_libspectrum.h libspectrum/config.h
+
+fuse/roms/48.rom.h: fuse/roms/48.rom
+	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+
+fuse/lib/compressed/tape_48.szx.h: fuse/lib/compressed/tape_48.szx
+	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
 
 clean-objs:
 	rm -f $(OBJS)
@@ -307,6 +313,7 @@ clean:
 	rm -f $(OBJS)
 	rm -f $(TARGET)
 	rm -f fuse/config.h libspectrum/config.h
+	rm -f fuse/roms/48.rom.h fuse/lib/compressed/tape_48.szx.h
 
 .PHONY: $(TARGET) clean clean-objs
 endif

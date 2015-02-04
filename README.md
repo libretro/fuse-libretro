@@ -1,6 +1,6 @@
 # fuse-libretro
 
-**fuse-libretro** is an *work in progress* port of the [Fuse Unix Spectrum Emulator](http://fuse-emulator.sourceforge.net/) to [libretro](http://www.libretro.com/). It's being developed on Windows with MinGW (32 bits) and tested on RetroArch 1.0.0.3 frontend.
+**fuse-libretro** is an *work in progress* port of the [Fuse Unix Spectrum Emulator](http://fuse-emulator.sourceforge.net/) to [libretro](http://www.libretro.com/). It's being developed on Windows with MinGW (32 bits) and tested on RetroArch 1.0.0.3-beta frontend, but it's known to compile and run at least on Linux 64-bits.
 
 The only emulated machine for now is the ZX Spectrum 48K. The port correctly loads and runs some games I have around.
 
@@ -44,15 +44,10 @@ Not working yet.
 ## Setup
 
 1. Compile **fuse-libretro** with `make -f Makefile.libretro`
-1. Copy the resulting `fuse_libretro.dll` (or `fuse_libretro.so` if you manage to compile it under Linux) into the `cores` folder of your libretro frontend
-1. Copy the `fuse_libretro.info` file into the same folder as the previous step
-1. Create a `fuse` folder under the `system` folder
-1. Create `lib` and `roms` subfolders inside `fuse`
-1. In `lib`, copy all the `szx` files found in the `lib` folder from a Fuse distribution
-1. In `roms`, copy all the files found in the `roms` folder from a Fuse distribution
-> If you're getting files from a source Fuse distribution, the lib files will be in `fuse-x.x.x/lib/compressed.`
-1. Copy your games into the `contents` folder
+1. Copy the resulting `fuse_libretro.dll` or `fuse_libretro.so` into the `cores` folder of your libretro frontend
 1. Profit!
+
+> It's *not* necessary to copy files to the `system` folder of your libretro frontend anymore!
 
 ## Versions
 

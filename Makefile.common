@@ -13,7 +13,7 @@ SOURCES_C += $(CORE_DIR)/scalers32.c
 #SOURCES_C += $(CORE_DIR)/fuse/compat/getopt.c
 #SOURCES_C += $(CORE_DIR)/fuse/compat/getopt1.c
 SOURCES_C += $(CORE_DIR)/fuse/compat/unix/dir.c
-SOURCES_C += $(CORE_DIR)/fuse/compat/unix/file.c
+#SOURCES_C += $(CORE_DIR)/fuse/compat/unix/file.c
 
 SOURCES_C += $(CORE_DIR)/fuse/debugger/breakpoint.c
 SOURCES_C += $(CORE_DIR)/fuse/debugger/command.c
@@ -136,7 +136,7 @@ SOURCES_C += $(CORE_DIR)/fuse/spectrum.c
 SOURCES_C += $(CORE_DIR)/fuse/tape.c
 #SOURCES_C += $(CORE_DIR)/fuse/ui.c
 SOURCES_C += $(CORE_DIR)/fuse/uidisplay.c
-SOURCES_C += $(CORE_DIR)/fuse/utils.c
+#SOURCES_C += $(CORE_DIR)/fuse/utils.c
 
 SOURCES_C += $(CORE_DIR)/libspectrum/bzip2.c
 SOURCES_C += $(CORE_DIR)/libspectrum/creator.c
