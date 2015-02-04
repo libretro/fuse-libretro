@@ -52,6 +52,8 @@ static bool some_audio, show_frame, select_pressed, keyb_overlay, keyb_transpare
 static unsigned keyb_x, keyb_y;
 static int64_t keyb_send, keyb_hold_time;
 static input_event_t keyb_event;
+static void*  snapshot_buffer;
+static size_t snapshot_size;
 
 static const struct { unsigned x; unsigned y; } keyb_positions[4] = {
    { 32, 40 }, { 40, 88 }, { 48, 136 }, { 32, 184 }
@@ -428,6 +430,28 @@ int settings_init(int *first_arg, int argc, char **argv)
    return res;
 }
 
+// This is an ugly hack so that we can have the frontend manage snapshots for us
+int fuse_write_snapshot(const char *filename, const unsigned char *buffer, size_t length)
+{
+   log_cb(RETRO_LOG_DEBUG, "%s(\"%s\", %p, %lu)\n", __FUNCTION__, filename, buffer, length);
+   
+   if (snapshot_buffer)
+   {
+      free(snapshot_buffer);
+   }
+   
+   snapshot_buffer = malloc(length);
+   
+   if (snapshot_buffer)
+   {
+      memcpy(snapshot_buffer, buffer, length);
+      snapshot_size = length;
+      return 0;
+   }
+   
+   return 1;
+}
+
 void retro_get_system_info(struct retro_system_info *info)
 {
    info->library_name = PACKAGE_NAME;
@@ -524,6 +548,7 @@ bool retro_load_game(const struct retro_game_info *info)
    select_pressed = keyb_overlay = false;
    keyb_x = keyb_y = 0;
    keyb_send = 0;
+   snapshot_buffer = NULL;
    
    if (info != NULL)
    {
@@ -774,21 +799,35 @@ void retro_reset(void)
 
 size_t retro_serialize_size(void)
 {
-   return 0;
+   log_cb(RETRO_LOG_DEBUG, "%s()\n", __FUNCTION__);
+   fuse_emulation_pause();
+   snapshot_write("dummy.szx"); // filename is only used to get the snapshot type
+   fuse_emulation_unpause();
+   return snapshot_size;
 }
 
 bool retro_serialize(void *data, size_t size)
 {
-   (void)data;
-   (void)size;
-   return false;
+   log_cb(RETRO_LOG_DEBUG, "%s(%p, %lu)\n", __FUNCTION__, data, size);
+   bool res = false;
+   
+   if (size >= snapshot_size)
+   {
+      memcpy(data, snapshot_buffer, snapshot_size);
+      res = true;
+   }
+   else
+   {
+      log_cb(RETRO_LOG_ERROR, "Provided buffer size of %lu is less than the required size of %lu\n", size, snapshot_size);
+   }
+
+   return res;
 }
 
 bool retro_unserialize(const void *data, size_t size)
 {
-   (void)data;
-   (void)size;
-   return false;
+   log_cb(RETRO_LOG_DEBUG, "%s(%p, %lu)\n", __FUNCTION__, data, size);
+   return snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
 }
 
 void retro_cheat_reset(void)
@@ -812,6 +851,10 @@ bool retro_load_game_special(unsigned a, const struct retro_game_info *b, size_t
 
 void retro_unload_game(void)
 {
+   if (snapshot_buffer)
+   {
+      free(snapshot_buffer);
+   }
 }
 
 unsigned retro_get_region(void)
@@ -1606,3 +1649,9 @@ static int print_error_to_stderr(ui_error_level severity, const char *message)
 #define stat(a, b) (!compat_file_exists(a))
 #include <fuse/utils.c>
 #undef stat
+
+// Change the call to utils_write_file in snapshot_write so we can trap the write and use libretro to save it for us
+
+#define utils_write_file fuse_write_snapshot
+#include <fuse/snapshot.c>
+#undef utils_write_file

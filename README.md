@@ -39,7 +39,7 @@ Fuse can load a number of different file formats. For now, **fuse-libretro** onl
 
 ## Save States
 
-Not working yet.
+Supported.
 
 ## Setup
 
