@@ -31,6 +31,9 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 #define RETRO_DEVICE_TIMEX2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 5)
 #define RETRO_DEVICE_FULLER_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 6)
 
+#define MAX_WIDTH  320
+#define MAX_HEIGHT 240
+
 static retro_log_printf_t log_cb = dummy_log;
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_batch_t audio_cb;
@@ -44,10 +47,12 @@ static struct retro_perf_callback perf_cb;
 #define MAX_PADS 7
 static unsigned input_devices[MAX_PADS];
 
-static uint16_t image_buffer[640 * 480];
-static uint16_t image_buffer_2[640 * 480];
-static unsigned image_buffer_width;
-static unsigned image_buffer_height;
+static uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
+static uint16_t image_buffer_2[MAX_WIDTH * MAX_HEIGHT];
+static unsigned first_pixel;
+static unsigned soft_width, soft_height;
+static unsigned hard_width, hard_height;
+static int hide_border, change_geometry;
 static bool some_audio, show_frame, select_pressed, keyb_overlay;
 static int keyb_transparent;
 static unsigned keyb_x, keyb_y;
@@ -347,6 +352,39 @@ static void update_long_list(const char* key, long* value, long values[], unsign
 
 static void update_variables()
 {
+   {
+      // Change this when we're emulating Timex. The MAX_[WIDTH|HEIGHT] macros must be changed also.
+      hard_width = 320;
+      hard_height = 240;
+      
+      soft_width = hard_width;
+      soft_height = hard_height;
+      first_pixel = 0;
+      
+      change_geometry = true;
+      
+      log_cb(RETRO_LOG_INFO, "Hard resolution set to %ux%u\n", hard_width, hard_height);
+      log_cb(RETRO_LOG_INFO, "Soft resolution set to %ux%u\n", soft_width, soft_height);
+   }
+   
+   {
+      int value;
+      update_bool("fuse_hide_border", &value, 0);
+      
+      if (value != hide_border)
+      {
+         hide_border = value;
+         
+         soft_width = hide_border ? 256 : 320;
+         soft_height = hide_border ? 192 : 240;
+         first_pixel = ( hard_height - soft_height ) / 2 * hard_width + ( hard_width - soft_width ) / 2;
+         
+         change_geometry = true;
+         
+         log_cb(RETRO_LOG_INFO, "Soft resolution set to %ux%u\n", soft_width, soft_height);
+      }
+   }
+   
    update_bool("fuse_fast_load", &settings_current.accelerate_loader, 1);
    settings_current.fastload = settings_current.accelerate_loader;
 
@@ -460,6 +498,7 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_variable vars[] = {
+      { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
       { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
       { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
       { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
@@ -605,20 +644,58 @@ void retro_set_input_poll(retro_input_poll_t cb)
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-   info->geometry.base_width = image_buffer_width;
-   info->geometry.base_height = image_buffer_height;
-   info->geometry.max_width = 320;
-   info->geometry.max_height = 240;
-   info->geometry.aspect_ratio = 0;
+   log_cb(RETRO_LOG_DEBUG, "%s(%p)\n", __FUNCTION__, info);
+   
+   // Here we always use the "hard" resolution to accomodate output with *and*
+   // without the video border
+   info->geometry.base_width = hard_width;
+   info->geometry.base_height = hard_height;
+   
+   info->geometry.max_width = MAX_WIDTH;
+   info->geometry.max_height = MAX_HEIGHT;
+   info->geometry.aspect_ratio = 0.0f;
    info->timing.fps = 50.0;
    info->timing.sample_rate = 44100.0;
+   
+   log_cb(RETRO_LOG_INFO, "Set retro_system_av_info to:\n");
+   log_cb(RETRO_LOG_INFO, "  base_width   = %u\n", info->geometry.base_width);
+   log_cb(RETRO_LOG_INFO, "  base_height  = %u\n", info->geometry.base_height);
+   log_cb(RETRO_LOG_INFO, "  max_width    = %u\n", info->geometry.max_width);
+   log_cb(RETRO_LOG_INFO, "  max_height   = %u\n", info->geometry.max_height);
+   log_cb(RETRO_LOG_INFO, "  aspect_ratio = %f\n", info->geometry.max_height);
+   log_cb(RETRO_LOG_INFO, "  fps          = %f\n", info->timing.fps);
+   log_cb(RETRO_LOG_INFO, "  sample_rate  = %f\n", info->timing.sample_rate);
 }
 
 static void render_video(void)
 {
+   if (change_geometry)
+   {
+      struct retro_game_geometry geometry;
+      
+      // Here we use the "soft" resolution that is changed according to the
+      // fuse_hide_border variable
+      geometry.base_width = soft_width;
+      geometry.base_height = soft_height;
+      
+      geometry.max_width = MAX_WIDTH;
+      geometry.max_height = MAX_HEIGHT;
+      geometry.aspect_ratio = 0.0f;
+      
+      env_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
+      change_geometry = false;
+      
+      log_cb(RETRO_LOG_INFO, "Set retro_game_geometry to:\n");
+      log_cb(RETRO_LOG_INFO, "  base_width   = %u\n", geometry.base_width);
+      log_cb(RETRO_LOG_INFO, "  base_height  = %u\n", geometry.base_height);
+      log_cb(RETRO_LOG_INFO, "  max_width    = %u\n", geometry.max_width);
+      log_cb(RETRO_LOG_INFO, "  max_height   = %u\n", geometry.max_height);
+      log_cb(RETRO_LOG_INFO, "  aspect_ratio = %f\n", geometry.max_height);
+   }
+   
    if (!keyb_overlay)
    {
-      video_cb(show_frame ? image_buffer : NULL, image_buffer_width, image_buffer_height, image_buffer_width * sizeof(uint16_t));
+      video_cb(show_frame ? image_buffer + first_pixel : NULL, soft_width, soft_height, hard_width * sizeof(uint16_t));
    }
    else
    {
@@ -690,11 +767,11 @@ static void render_video(void)
             *pixel = ~*pixel;
          }
          
-         video_cb(image_buffer_2, image_buffer_width, image_buffer_height, image_buffer_width * sizeof(uint16_t));
+         video_cb(image_buffer_2 + first_pixel, soft_width, soft_height, hard_width * sizeof(uint16_t));
       }
       else
       {
-         video_cb(NULL, image_buffer_width, image_buffer_height, image_buffer_width * sizeof(uint16_t));
+         video_cb(NULL, soft_width, soft_height, hard_width * sizeof(uint16_t));
       }
    }
 }
@@ -1104,22 +1181,25 @@ int ui_end(void)
 
 int uidisplay_init(int width, int height)
 {
-   if (width != 320 && width != 640)
+   log_cb(RETRO_LOG_DEBUG, "%s(%d, %d)\n", __FUNCTION__, width, height);
+   
+   if (width != 320)
    {
       log_cb(RETRO_LOG_ERROR, "Invalid value for the display width: %d\n", width);
       width = 320;
    }
    
-   if (height != 240 && height != 480)
+   if (height != 240)
    {
       log_cb(RETRO_LOG_ERROR, "Invalid value for the display height: %d\n", height);
       height = 240;
    }
    
-   image_buffer_width = (unsigned)width;
-   image_buffer_height = (unsigned)height;
+   //soft_width = (unsigned)width;
+   //soft_height = (unsigned)height;
+   //change_geometry = true;
+   //log_cb(RETRO_LOG_INFO, "Display set to %dx%d\n", width, height);
    
-   log_cb(RETRO_LOG_INFO, "Display set to %dx%d\n", width, height);
    return 0;
 }
 
@@ -1153,19 +1233,19 @@ void uidisplay_putpixel(int x, int y, int color)
    if (machine_current->timex)
    {
       x <<= 1; y <<= 1;
-      uint16_t* image_buffer_pos = image_buffer + (y * image_buffer_width + x);
+      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
       
       *image_buffer_pos++ = palette_color;
       *image_buffer_pos   = palette_color;
       
-      image_buffer_pos += image_buffer_width - 1;
+      image_buffer_pos += hard_width - 1;
       
       *image_buffer_pos++ = palette_color;
       *image_buffer_pos   = palette_color;
    }
    else
    {
-      uint16_t* image_buffer_pos = image_buffer + (y * image_buffer_width + x);
+      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
       *image_buffer_pos = palette_color;
    }
 }
@@ -1183,7 +1263,8 @@ void uidisplay_plot8(int x, int y, libspectrum_byte data, libspectrum_byte ink, 
       int i;
 
       x <<= 1; y <<= 1;
-      uint16_t* image_buffer_pos = image_buffer + (y * image_buffer_width + x);
+      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
+      
       uint16_t data_80 = data & 0x80 ? palette_ink : palette_paper;
       uint16_t data_40 = data & 0x40 ? palette_ink : palette_paper;
       uint16_t data_20 = data & 0x20 ? palette_ink : palette_paper;
@@ -1210,7 +1291,7 @@ void uidisplay_plot8(int x, int y, libspectrum_byte data, libspectrum_byte ink, 
       *image_buffer_pos++ = data_01;
       *image_buffer_pos   = data_01;
     
-      image_buffer_pos += image_buffer_width - 15;
+      image_buffer_pos += hard_width - 15;
 
       *image_buffer_pos++ = data_80;
       *image_buffer_pos++ = data_80;
@@ -1231,7 +1312,7 @@ void uidisplay_plot8(int x, int y, libspectrum_byte data, libspectrum_byte ink, 
    }
    else
    {
-      uint16_t* image_buffer_pos = image_buffer + (y * image_buffer_width + x);
+      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
       
       *image_buffer_pos++ = data & 0x80 ? palette_ink : palette_paper;
       *image_buffer_pos++ = data & 0x40 ? palette_ink : palette_paper;
@@ -1250,7 +1331,8 @@ void uidisplay_plot16(int x, int y, libspectrum_word data, libspectrum_byte ink,
    uint16_t palette_ink = palette[ink];
    uint16_t palette_paper = palette[paper];
    x <<= 4; y <<= 1;
-   uint16_t* image_buffer_pos = image_buffer + (y * image_buffer_width + x);
+   uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
+   
    uint16_t data_8000 = data & 0x8000 ? palette_ink : palette_paper;
    uint16_t data_4000 = data & 0x4000 ? palette_ink : palette_paper;
    uint16_t data_2000 = data & 0x2000 ? palette_ink : palette_paper;
@@ -1285,7 +1367,7 @@ void uidisplay_plot16(int x, int y, libspectrum_word data, libspectrum_byte ink,
    *image_buffer_pos++ = data_0002;
    *image_buffer_pos   = data_0001;
   
-   image_buffer_pos += image_buffer_width - 15;
+   image_buffer_pos += hard_width - 15;
 
    *image_buffer_pos++ = data_8000;
    *image_buffer_pos++ = data_4000;
