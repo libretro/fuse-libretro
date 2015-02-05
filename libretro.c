@@ -48,7 +48,8 @@ static uint16_t image_buffer[640 * 480];
 static uint16_t image_buffer_2[640 * 480];
 static unsigned image_buffer_width;
 static unsigned image_buffer_height;
-static bool some_audio, show_frame, select_pressed, keyb_overlay, keyb_transparent;
+static bool some_audio, show_frame, select_pressed, keyb_overlay;
+static int keyb_transparent;
 static unsigned keyb_x, keyb_y;
 static int64_t keyb_send, keyb_hold_time;
 static input_event_t keyb_event;
@@ -241,142 +242,135 @@ static const uint16_t greys[16] = {
 #define RETRO_PERFORMANCE_STOP(name)
 #endif
 
-static void update_string(const char **string, const char *value)
+static void update_bool(const char* key, int* value, int def)
 {
-   if (*string)
+   struct retro_variable var;
+  
+   var.key = key;
+   var.value = NULL;
+   int x = def;
+   
+   if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
    {
-      libspectrum_free(*string);
+      if (!strcmp(var.value, "enabled"))
+         x = 1;
+      else if (!strcmp(var.value, "disabled"))
+         x = 0;
+      else
+         log_cb(RETRO_LOG_ERROR, "Invalid value for %s: %s\n", key, var.value);
    }
    
-   *string = utils_safe_strdup(value);
+   *value = x;
+   log_cb(RETRO_LOG_INFO, "%s set to %d\n", key, x);
+}
+
+static void update_string_list(const char* key, const char** value, const char* options[], const char* values[], unsigned count)
+{
+   struct retro_variable var;
+  
+   var.key = key;
+   var.value = NULL;
+   const char* x = values[0];
+   
+   if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      unsigned i;
+      bool found = false;
+      
+      for (i = 0; i < count; i++)
+      {
+         if (!strcmp(var.value, options[i]))
+         {
+            x = values[i];
+            found = true;
+            break;
+         }
+      }
+      
+      if (!found)
+      {
+         log_cb(RETRO_LOG_ERROR, "Invalid value for %s: \"%s\"\n", key, var.value);
+      }
+   }
+   
+   if (*value)
+   {
+      libspectrum_free(*value);
+   }
+   
+   *value = utils_safe_strdup(x);
+   log_cb(RETRO_LOG_INFO, "%s set to \"%s\"\n", key, x);
+}
+
+static void update_long_list(const char* key, long* value, long values[], unsigned count)
+{
+   struct retro_variable var;
+  
+   var.key = key;
+   var.value = NULL;
+   long x = values[0];
+   
+   if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      char *endptr;
+      long y = strtol(var.value, &endptr, 10);
+      
+      if (*endptr != 0 || errno == ERANGE)
+      {
+         log_cb(RETRO_LOG_ERROR, "Invalid value for %s: %s\n", key, var.value);
+      }
+      else
+      {
+         unsigned i;
+         bool found = false;
+         
+         for (i = 0; i < count; i++)
+         {
+            if (y == values[i])
+            {
+               x = y;
+               found = true;
+               break;
+            }
+         }
+         
+         if (!found)
+         {
+            log_cb(RETRO_LOG_ERROR, "Invalid value for %s: %s\n", key, var.value);
+         }
+      }
+   }
+   
+   *value = x;
+   log_cb(RETRO_LOG_INFO, "%s set to %ld\n", key, x);
 }
 
 static void update_variables()
 {
-   struct retro_variable var;
-   
-   {
-      var.key = "fuse_fast_load";
-      var.value = NULL;
-      int value = 1;
-      
-      if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         if (!strcmp(var.value, "enabled"))
-            value = 1;
-         else if (!strcmp(var.value, "disabled"))
-            value = 0;
-         else
-            log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_fast_load: %s\n", var.value);
-      }
+   update_bool("fuse_fast_load", &settings_current.accelerate_loader, 1);
+   settings_current.fastload = settings_current.accelerate_loader;
 
-      settings_current.accelerate_loader = value;
-      settings_current.fastload = value;
-      log_cb(RETRO_LOG_INFO, "fuse_fast_load set to %d\n", value);
-   }
-   
+   update_bool("fuse_load_sound", &settings_current.sound_load, 1);
+
    {
-      var.key = "fuse_load_sound";
-      var.value = NULL;
-      int value = 1;
-      
-      if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         if (!strcmp(var.value, "enabled"))
-            value = 1;
-         else if (!strcmp(var.value, "disabled"))
-            value = 0;
-         else
-            log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_load_sound: %s\n", var.value);
-      }
-      
-      settings_current.sound_load = value;
-      log_cb(RETRO_LOG_INFO, "fuse_load_sound set to %d\n", value);
+      static const char* options[] = { "tv speaker", "beeper", "unfiltered" };
+      static const char* values[]  = { "TV speaker", "Beeper", "Unfiltered" };
+      update_string_list("fuse_speaker_type", &settings_current.speaker_type, options, values, sizeof(options) / sizeof(options[0]));
    }
-   
+
    {
-      var.key = "fuse_speaker_type";
-      var.value = NULL;
-      const char *value = "TV speaker";
-      
-      if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         if (!strcmp(var.value, "tv speaker"))
-            value = "TV speaker";
-         else if (!strcmp(var.value, "beeper"))
-            value = "Beeper";
-         else if (!strcmp(var.value, "unfiltered"))
-            value = "Unfiltered";
-         else
-            log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_speaker_type: %s\n", var.value);
-      }
-      
-      update_string(&settings_current.speaker_type, value);
-      log_cb(RETRO_LOG_INFO, "fuse_speaker_type set to %s\n", value);
+      static const char* options[] = { "none", "acb", "abc" };
+      static const char* values[]  = { "None", "ACB", "ABC" };
+      update_string_list("fuse_ay_stereo_separation", &settings_current.stereo_ay, options, values, sizeof(options) / sizeof(options[0]));
    }
-   
+
+   update_bool("fuse_key_ovrlay_transp", &keyb_transparent, 1);
+
    {
-      var.key = "fuse_ay_stereo_separation";
-      var.value = NULL;
-      const char *value = "None";
-      
-      if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         if (!strcmp(var.value, "none"))
-            value = "None";
-         else if (!strcmp(var.value, "acb"))
-            value = "ACB";
-         else if (!strcmp(var.value, "abc"))
-            value = "ABC";
-         else
-            log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_ay_stereo_separation: %s\n", var.value);
-      }
-      
-      update_string(&settings_current.stereo_ay, value);
-      log_cb(RETRO_LOG_INFO, "fuse_ay_stereo_separation set to %s\n", value);
-   }
-   
-   {
-      var.key = "fuse_key_ovrlay_transp";
-      var.value = NULL;
-      bool value = true;
-      
-      if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         if (!strcmp(var.value, "enabled"))
-            value = true;
-         else if (!strcmp(var.value, "disabled"))
-            value = false;
-         else
-            log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_key_ovrlay_transp: %s\n", var.value);
-      }
-      
-      keyb_transparent = value;
-      log_cb(RETRO_LOG_INFO, "fuse_key_ovrlay_transp set to %d\n", value);
-   }
-   
-   {
-      var.key = "fuse_key_hold_time";
-      var.value = NULL;
-      int64_t value = 500;
-      
-      if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-      {
-         char *endptr;
-         int64_t x = strtoll(var.value, &endptr, 10);
-         
-         if (*endptr != 0 || errno == ERANGE)
-         {
-            log_cb(RETRO_LOG_ERROR, "Invalid value for fuse_key_hold_time: %s\n", var.value);
-         }
-         else
-         {
-            value = x;
-         }
-      }
-      
-      keyb_hold_time = value * 1000;
-      log_cb(RETRO_LOG_INFO, "fuse_key_hold_time set to %lld\n", value);
+      static long values[] = { 500, 1000, 100, 300 };
+      long value;
+      update_long_list("fuse_key_hold_time", &value, values, sizeof(values) / sizeof(values[0]));
+      keyb_hold_time = value * 1000LL;
    }
 }
 
