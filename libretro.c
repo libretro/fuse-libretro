@@ -953,7 +953,7 @@ int mkstemp(char *template)
 
 double compat_timer_get_time( void )
 {
-   return perf_cb.get_time_usec() / 1000000.0;;
+   return perf_cb.get_time_usec() / 1000000.0;
 }
 
 void compat_timer_sleep(int ms)
@@ -1133,6 +1133,7 @@ int ui_event(void)
                   case RETRO_DEVICE_ID_JOYPAD_LEFT:  keyb_x = keyb_x == 0 ? 9 : keyb_x - 1; break;
                   case RETRO_DEVICE_ID_JOYPAD_RIGHT: keyb_x = keyb_x == 9 ? 0 : keyb_x + 1; break;
                   case RETRO_DEVICE_ID_JOYPAD_A:
+                     if (keyb_send == 0)
                      {
                         keyb_overlay = false;
                         
@@ -1142,8 +1143,8 @@ int ui_event(void)
                         input_event(&keyb_event);
                         
                         keyb_send = perf_cb.get_time_usec() + keyb_hold_time;
-                        return 0;
                      }
+                     return 0;
                }
             }
          }
