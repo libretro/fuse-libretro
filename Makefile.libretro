@@ -253,12 +253,12 @@ DEFINES := -D__LIBRETRO__ $(PLATFORM_DEFINES)
 DEFINES += -DHAVE_CONFIG_H
 
 CFLAGS   += $(fpic) $(DEFINES)
-CFLAGS   += -w -g
+CFLAGS   += -w
 
 CXXFLAGS += $(fpic) $(DEFINES)
-CXXFLAGS += -w -g
+CXXFLAGS += -w
 
-LDFLAGS += -Llibspectrum/.libs -g
+LDFLAGS += -Llibspectrum/.libs
 
 include Makefile.common
 
