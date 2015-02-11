@@ -1,22 +1,13 @@
 #include <libretro.h>
-
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <libspectrum.h>
-
-#include <fuse/settings.h>
-#include <fuse/utils.h>
-#include <fuse/ui/ui.h>
-#include <fuse/keyboard.h>
-
 #include <keyboverlay.h>
+
+#include <errno.h>
+
+// Fuse includes
+#include <libspectrum.h>
+#include <externs.h>
+#include <utils.h>
+#include <keyboard.h>
 
 static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -32,35 +23,36 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 #define RETRO_DEVICE_TIMEX2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 5)
 #define RETRO_DEVICE_FULLER_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 6)
 
-#define MAX_WIDTH  320
-#define MAX_HEIGHT 240
-
-static retro_log_printf_t log_cb = dummy_log;
 static retro_video_refresh_t video_cb;
-static retro_audio_sample_batch_t audio_cb;
 static retro_input_poll_t input_poll_cb;
-static retro_input_state_t input_state_cb;
-static retro_environment_t env_cb;
-
 static struct retro_frame_time_callback time_cb;
-static struct retro_perf_callback perf_cb;
 
-#define MAX_PADS 7
 static unsigned input_devices[MAX_PADS];
-
-static uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
 static uint16_t image_buffer_2[MAX_WIDTH * MAX_HEIGHT];
 static unsigned first_pixel;
 static unsigned soft_width, soft_height;
-static unsigned hard_width, hard_height;
 static int hide_border, change_geometry;
-static bool some_audio, show_frame, select_pressed, keyb_overlay;
 static int keyb_transparent;
-static unsigned keyb_x, keyb_y;
-static int64_t keyb_send, keyb_hold_time;
-static input_event_t keyb_event;
-static void*  snapshot_buffer;
-static size_t snapshot_size;
+
+// allow access to variables declared here
+retro_environment_t env_cb;
+retro_log_printf_t log_cb = dummy_log;
+retro_audio_sample_batch_t audio_cb;
+retro_input_state_t input_state_cb;
+struct retro_perf_callback perf_cb;
+uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
+unsigned hard_width, hard_height;
+int show_frame, some_audio;
+int64_t keyb_send;
+int64_t keyb_hold_time;
+input_event_t keyb_event;
+int select_pressed;
+int keyb_overlay;
+unsigned keyb_x;
+unsigned keyb_y;
+int input_state[MAX_PADS][5];
+void*  snapshot_buffer;
+size_t snapshot_size;
 
 static const struct { unsigned x; unsigned y; } keyb_positions[4] = {
    { 32, 40 }, { 40, 88 }, { 48, 136 }, { 32, 184 }
@@ -121,8 +113,7 @@ static struct retro_input_descriptor input_descriptors[] = {
    { 255, 255, 255, 255, "" }
 };
 
-static bool input_state[MAX_PADS][5];
- 
+// Must implement the keyboard
 keysyms_map_t keysyms_map[] = {
    { RETROK_TAB,       INPUT_KEY_Tab         },
    { RETROK_RETURN,    INPUT_KEY_Return      },
@@ -218,25 +209,8 @@ keysyms_map_t keysyms_map[] = {
    { RETROK_LSUPER,    INPUT_KEY_Super_L     },
    { RETROK_RSUPER,    INPUT_KEY_Super_R     },
    { RETROK_MENU,      INPUT_KEY_Mode_switch },
-   { 0, 0 }			/* End marker: DO NOT MOVE! */
+   { 0, 0 }	// End marker: DO NOT MOVE!
 };
-
-static const uint16_t palette[16] = {
-   0x0000, 0x0018, 0xc000, 0xc018,
-   0x0600, 0x0618, 0xc600, 0xc618,
-   0x0000, 0x001f, 0xf800, 0xf81f,
-   0x07e0, 0x07ff, 0xffe0, 0xffff,
-};
-
-/*
-// B&W TV palette
-static const uint16_t greys[16] = {
-   0x0000, 0x10a2, 0x39c7, 0x4a69,
-   0x738e, 0x8430, 0xad55, 0xbdf7,
-   0x0000, 0x18e3, 0x4a69, 0x6b4d,
-   0x94b2, 0xb596, 0xe71c, 0xffff,
-};
-*/
 
 #ifdef LOG_PERFORMANCE
 #define RETRO_PERFORMANCE_INIT(name)  static struct retro_perf_counter name = {#name}; if (!name.registered) perf_cb.perf_register(&(name))
@@ -351,7 +325,7 @@ static void update_long_list(const char* key, long* value, long values[], unsign
    log_cb(RETRO_LOG_INFO, "%s set to %ld\n", key, x);
 }
 
-static void update_variables()
+void update_variables(void)
 {
    {
       // Change this when we're emulating Timex. The MAX_[WIDTH|HEIGHT] macros must be changed also.
@@ -428,61 +402,6 @@ static int get_joystick(unsigned device)
    
    log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x\n", device);
    return 0;
-}
-
-static int fuse_init(int argc, char **argv);
-static int fuse_end(void);
-int fuse_settings_init( int *first_arg, int argc, char **argv );
-int fuse_ui_error_specific( ui_error_level severity, const char *message );
-int tape_is_playing( void );
-
-// Replacement function for settings_init so we can change the settings before
-// the emulation starts without having to build an extensive argv.
-int settings_init(int *first_arg, int argc, char **argv)
-{
-   int res = fuse_settings_init(first_arg, argc, argv);
-  
-   settings_current.auto_load = 1;
-   settings_current.detect_loader = 1;
-   
-   settings_current.printer = 0;
-   
-   settings_current.bw_tv = 0;
-
-   settings_current.sound = 1;
-   settings_current.sound_force_8bit = 0;
-   settings_current.sound_freq = 44100;
-   settings_current.sound_load = 1;
-   
-   settings_current.joy_kempston = 1;
-   settings_current.fuller = 1;
-   settings_current.joystick_1_output = 1;
-   settings_current.joystick_2_output = 2;
-   
-   update_variables();
-   return res;
-}
-
-// This is an ugly hack so that we can have the frontend manage snapshots for us
-int fuse_write_snapshot(const char *filename, const unsigned char *buffer, size_t length)
-{
-   log_cb(RETRO_LOG_DEBUG, "%s(\"%s\", %p, %lu)\n", __FUNCTION__, filename, buffer, length);
-   
-   if (snapshot_buffer)
-   {
-      free(snapshot_buffer);
-   }
-   
-   snapshot_buffer = malloc(length);
-   
-   if (snapshot_buffer)
-   {
-      memcpy(snapshot_buffer, buffer, length);
-      snapshot_size = length;
-      return 0;
-   }
-   
-   return 1;
 }
 
 void retro_get_system_info(struct retro_system_info *info)
@@ -579,7 +498,7 @@ bool retro_load_game(const struct retro_game_info *info)
    
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(input_state, 0, sizeof(input_state));
-   select_pressed = keyb_overlay = false;
+   select_pressed = keyb_overlay = 0;
    keyb_x = keyb_y = 0;
    keyb_send = 0;
    snapshot_buffer = NULL;
@@ -779,7 +698,6 @@ static void render_video(void)
 
 void retro_run(void)
 {
-   // TODO: Can (should) we call the video callback inside the loops?
    bool updated = false;
    
    if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
@@ -787,7 +705,7 @@ void retro_run(void)
       update_variables();
    }
 
-   show_frame = some_audio = false;
+   show_frame = some_audio = 0;
    
    if (settings_current.fastload && tape_is_playing())
    {
@@ -949,787 +867,3 @@ int mkstemp(char *template)
 {
   return -1;
 }
-
-// Compatibility timer functions (timer.c)
-
-double compat_timer_get_time( void )
-{
-   return perf_cb.get_time_usec() / 1000000.0;
-}
-
-void compat_timer_sleep(int ms)
-{
-   retro_time_t t0 = perf_cb.get_time_usec();
-   retro_time_t t1;
-  
-   /* Busy wait! */
-   do {
-     t1 = perf_cb.get_time_usec();
-   }
-   while ( ( t1 - t0 ) / 1000 < ms );
-}
-
-// Compatibility sound functions (sound.c)
-
-int sound_lowlevel_init(const char *device, int *freqptr, int *stereoptr)
-{
-   (void)device;
-   *freqptr = 44100;
-   *stereoptr = 1;
-   return 0;
-}
-
-void sound_lowlevel_end(void)
-{
-}
-
-void sound_lowlevel_frame(libspectrum_signed_word *data, int len)
-{
-   audio_cb( data, (size_t)len / 2 );
-   some_audio = true;
-}
-
-// Compatibility UI functions (ui.c)
-
-int ui_init(int *argc, char ***argv)
-{
-   (void)argc;
-   (void)argv;
-   return 0;
-}
-
-static input_key translate(unsigned index)
-{
-   switch (index)
-   {
-      case RETRO_DEVICE_ID_JOYPAD_UP:    return INPUT_JOYSTICK_UP;
-      case RETRO_DEVICE_ID_JOYPAD_DOWN:  return INPUT_JOYSTICK_DOWN;
-      case RETRO_DEVICE_ID_JOYPAD_LEFT:  return INPUT_JOYSTICK_LEFT;
-      case RETRO_DEVICE_ID_JOYPAD_RIGHT: return INPUT_JOYSTICK_RIGHT;
-      case RETRO_DEVICE_ID_JOYPAD_A:     return INPUT_JOYSTICK_FIRE_1;
-   }
-   
-   return INPUT_KEY_NONE;
-}
-
-int ui_event(void)
-{
-   static const unsigned map[] = {
-      RETRO_DEVICE_ID_JOYPAD_UP,
-      RETRO_DEVICE_ID_JOYPAD_DOWN,
-      RETRO_DEVICE_ID_JOYPAD_LEFT,
-      RETRO_DEVICE_ID_JOYPAD_RIGHT,
-      RETRO_DEVICE_ID_JOYPAD_A
-   };
-   
-   static const input_key keyb_layout[4][10] = {
-      {
-         INPUT_KEY_1, INPUT_KEY_2, INPUT_KEY_3, INPUT_KEY_4, INPUT_KEY_5,
-         INPUT_KEY_6, INPUT_KEY_7, INPUT_KEY_8, INPUT_KEY_9, INPUT_KEY_0
-      },
-      {
-         INPUT_KEY_Q, INPUT_KEY_W, INPUT_KEY_E, INPUT_KEY_R, INPUT_KEY_T,
-         INPUT_KEY_Y, INPUT_KEY_U, INPUT_KEY_I, INPUT_KEY_O, INPUT_KEY_P
-      },
-      {
-         INPUT_KEY_A, INPUT_KEY_S, INPUT_KEY_D, INPUT_KEY_F, INPUT_KEY_G,
-         INPUT_KEY_H, INPUT_KEY_J, INPUT_KEY_K, INPUT_KEY_L, INPUT_KEY_Return
-      },
-      {
-         INPUT_KEY_Shift_L, INPUT_KEY_Z, INPUT_KEY_X, INPUT_KEY_C, INPUT_KEY_V,
-         INPUT_KEY_B, INPUT_KEY_N, INPUT_KEY_M, INPUT_KEY_Shift_R, INPUT_KEY_space
-      }
-   };
-
-   //log_cb( RETRO_LOG_DEBUG, "%s\n", __FUNCTION__ );
-   
-   if (keyb_send != 0 && perf_cb.get_time_usec() >= keyb_send)
-   {
-       keyb_event.type = INPUT_EVENT_KEYRELEASE;
-       input_event(&keyb_event);
-       keyb_send = 0;
-   }
-
-   int16_t is_down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
-   
-   if (is_down)
-   {
-      if (!select_pressed)
-      {
-         select_pressed = true;
-         keyb_overlay = !keyb_overlay;
-      }
-   }
-   else
-   {
-      select_pressed = false;
-   }
-   
-   if (!keyb_overlay)
-   {
-      unsigned port, id;
-      input_event_t fuse_event;
-      
-      for (port = 0; port < 2; port++)
-      {
-         for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
-         {
-            is_down = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, map[id]);
-            
-            if (is_down)
-            {
-               if (!input_state[port][id])
-               {
-                  input_state[port][id] = true;
-                  input_key button = translate(map[id]);
-              
-                  if (button != INPUT_KEY_NONE)
-                  {
-                     fuse_event.type = INPUT_EVENT_JOYSTICK_PRESS;
-                     fuse_event.types.joystick.which = port;
-                     fuse_event.types.joystick.button = button;
-              
-                     input_event(&fuse_event);
-                  }
-               }
-            }
-            else
-            {
-               if (input_state[port][id])
-               {
-                  input_state[port][id] = false;
-                  input_key button = translate(map[id]);
-              
-                  if (button != INPUT_KEY_NONE)
-                  {
-                     fuse_event.type = INPUT_EVENT_JOYSTICK_RELEASE;
-                     fuse_event.types.joystick.which = port;
-                     fuse_event.types.joystick.button = button;
-              
-                     input_event(&fuse_event);
-                  }
-               }
-            }
-         }
-      }
-   }
-   else
-   {
-      unsigned id;
-      
-      for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
-      {
-         is_down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, map[id]);
-         
-         if (is_down)
-         {
-            if (!input_state[0][id])
-            {
-               input_state[0][id] = true;
-               
-               switch (map[id])
-               {
-                  case RETRO_DEVICE_ID_JOYPAD_UP:    keyb_y = (keyb_y - 1) & 3; break;
-                  case RETRO_DEVICE_ID_JOYPAD_DOWN:  keyb_y = (keyb_y + 1) & 3; break;
-                  case RETRO_DEVICE_ID_JOYPAD_LEFT:  keyb_x = keyb_x == 0 ? 9 : keyb_x - 1; break;
-                  case RETRO_DEVICE_ID_JOYPAD_RIGHT: keyb_x = keyb_x == 9 ? 0 : keyb_x + 1; break;
-                  case RETRO_DEVICE_ID_JOYPAD_A:
-                     if (keyb_send == 0)
-                     {
-                        keyb_overlay = false;
-                        
-                        keyb_event.type = INPUT_EVENT_KEYPRESS;
-                        keyb_event.types.key.native_key = keyb_layout[keyb_y][keyb_x];
-                        keyb_event.types.key.spectrum_key = keyb_layout[keyb_y][keyb_x];
-                        input_event(&keyb_event);
-                        
-                        keyb_send = perf_cb.get_time_usec() + keyb_hold_time;
-                     }
-                     return 0;
-               }
-            }
-         }
-         else
-         {
-            if (input_state[0][id])
-            {
-               input_state[0][id] = false;
-            }
-         }
-      }
-   }
-   
-   return 0;
-}
-
-int ui_error_specific(ui_error_level severity, const char *message)
-{
-   switch (severity)
-   {
-   case UI_ERROR_INFO:    log_cb(RETRO_LOG_INFO, "%s\n", message); break;
-   case UI_ERROR_WARNING: log_cb(RETRO_LOG_WARN, "%s\n", message); break;
-   case UI_ERROR_ERROR:   log_cb(RETRO_LOG_ERROR, "%s\n", message); break;
-   }
-  
-   return fuse_ui_error_specific(severity, message);
-}
-
-int ui_end(void)
-{
-   return 0;
-}
-
-// Compatibility display funcions (display.c)
-
-int uidisplay_init(int width, int height)
-{
-   log_cb(RETRO_LOG_DEBUG, "%s(%d, %d)\n", __FUNCTION__, width, height);
-   
-   if (width != 320)
-   {
-      log_cb(RETRO_LOG_ERROR, "Invalid value for the display width: %d\n", width);
-      width = 320;
-   }
-   
-   if (height != 240)
-   {
-      log_cb(RETRO_LOG_ERROR, "Invalid value for the display height: %d\n", height);
-      height = 240;
-   }
-   
-   //soft_width = (unsigned)width;
-   //soft_height = (unsigned)height;
-   //change_geometry = true;
-   //log_cb(RETRO_LOG_INFO, "Display set to %dx%d\n", width, height);
-   
-   return 0;
-}
-
-void uidisplay_area(int x, int y, int w, int h)
-{
-   (void)x;
-   (void)y;
-   (void)w;
-   (void)h;
-}
-
-void uidisplay_frame_end(void)
-{
-   show_frame = true;
-}
-
-int uidisplay_hotswap_gfx_mode(void)
-{
-   return 0;
-}
-
-int uidisplay_end(void)
-{
-   return 0;
-}
-
-void uidisplay_putpixel(int x, int y, int color)
-{
-   uint16_t palette_color = palette[color];
-   
-   if (machine_current->timex)
-   {
-      x <<= 1; y <<= 1;
-      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
-      
-      *image_buffer_pos++ = palette_color;
-      *image_buffer_pos   = palette_color;
-      
-      image_buffer_pos += hard_width - 1;
-      
-      *image_buffer_pos++ = palette_color;
-      *image_buffer_pos   = palette_color;
-   }
-   else
-   {
-      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
-      *image_buffer_pos = palette_color;
-   }
-}
-
-void uidisplay_plot8(int x, int y, libspectrum_byte data, libspectrum_byte ink, libspectrum_byte paper)
-{
-   // TODO: SSE versions maybe?
-   uint16_t palette_ink = palette[ink];
-   uint16_t palette_paper = palette[paper];
-   
-   x <<= 3;
-
-   if (machine_current->timex)
-   {
-      int i;
-
-      x <<= 1; y <<= 1;
-      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
-      
-      uint16_t data_80 = data & 0x80 ? palette_ink : palette_paper;
-      uint16_t data_40 = data & 0x40 ? palette_ink : palette_paper;
-      uint16_t data_20 = data & 0x20 ? palette_ink : palette_paper;
-      uint16_t data_10 = data & 0x10 ? palette_ink : palette_paper;
-      uint16_t data_08 = data & 0x08 ? palette_ink : palette_paper;
-      uint16_t data_04 = data & 0x04 ? palette_ink : palette_paper;
-      uint16_t data_02 = data & 0x02 ? palette_ink : palette_paper;
-      uint16_t data_01 = data & 0x01 ? palette_ink : palette_paper;
-    
-      *image_buffer_pos++ = data_80;
-      *image_buffer_pos++ = data_80;
-      *image_buffer_pos++ = data_40;
-      *image_buffer_pos++ = data_40;
-      *image_buffer_pos++ = data_20;
-      *image_buffer_pos++ = data_20;
-      *image_buffer_pos++ = data_10;
-      *image_buffer_pos++ = data_10;
-      *image_buffer_pos++ = data_08;
-      *image_buffer_pos++ = data_08;
-      *image_buffer_pos++ = data_04;
-      *image_buffer_pos++ = data_04;
-      *image_buffer_pos++ = data_02;
-      *image_buffer_pos++ = data_02;
-      *image_buffer_pos++ = data_01;
-      *image_buffer_pos   = data_01;
-    
-      image_buffer_pos += hard_width - 15;
-
-      *image_buffer_pos++ = data_80;
-      *image_buffer_pos++ = data_80;
-      *image_buffer_pos++ = data_40;
-      *image_buffer_pos++ = data_40;
-      *image_buffer_pos++ = data_20;
-      *image_buffer_pos++ = data_20;
-      *image_buffer_pos++ = data_10;
-      *image_buffer_pos++ = data_10;
-      *image_buffer_pos++ = data_08;
-      *image_buffer_pos++ = data_08;
-      *image_buffer_pos++ = data_04;
-      *image_buffer_pos++ = data_04;
-      *image_buffer_pos++ = data_02;
-      *image_buffer_pos++ = data_02;
-      *image_buffer_pos++ = data_01;
-      *image_buffer_pos   = data_01;
-   }
-   else
-   {
-      uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
-      
-      *image_buffer_pos++ = data & 0x80 ? palette_ink : palette_paper;
-      *image_buffer_pos++ = data & 0x40 ? palette_ink : palette_paper;
-      *image_buffer_pos++ = data & 0x20 ? palette_ink : palette_paper;
-      *image_buffer_pos++ = data & 0x10 ? palette_ink : palette_paper;
-      *image_buffer_pos++ = data & 0x08 ? palette_ink : palette_paper;
-      *image_buffer_pos++ = data & 0x04 ? palette_ink : palette_paper;
-      *image_buffer_pos++ = data & 0x02 ? palette_ink : palette_paper;
-      *image_buffer_pos   = data & 0x01 ? palette_ink : palette_paper;
-   }
-}
-
-void uidisplay_plot16(int x, int y, libspectrum_word data, libspectrum_byte ink, libspectrum_byte paper)
-{
-   // TODO: SSE versions maybe?
-   uint16_t palette_ink = palette[ink];
-   uint16_t palette_paper = palette[paper];
-   x <<= 4; y <<= 1;
-   uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
-   
-   uint16_t data_8000 = data & 0x8000 ? palette_ink : palette_paper;
-   uint16_t data_4000 = data & 0x4000 ? palette_ink : palette_paper;
-   uint16_t data_2000 = data & 0x2000 ? palette_ink : palette_paper;
-   uint16_t data_1000 = data & 0x1000 ? palette_ink : palette_paper;
-   uint16_t data_0800 = data & 0x0800 ? palette_ink : palette_paper;
-   uint16_t data_0400 = data & 0x0400 ? palette_ink : palette_paper;
-   uint16_t data_0200 = data & 0x0200 ? palette_ink : palette_paper;
-   uint16_t data_0100 = data & 0x0100 ? palette_ink : palette_paper;
-   uint16_t data_0080 = data & 0x0080 ? palette_ink : palette_paper;
-   uint16_t data_0040 = data & 0x0040 ? palette_ink : palette_paper;
-   uint16_t data_0020 = data & 0x0020 ? palette_ink : palette_paper;
-   uint16_t data_0010 = data & 0x0010 ? palette_ink : palette_paper;
-   uint16_t data_0008 = data & 0x0008 ? palette_ink : palette_paper;
-   uint16_t data_0004 = data & 0x0004 ? palette_ink : palette_paper;
-   uint16_t data_0002 = data & 0x0002 ? palette_ink : palette_paper;
-   uint16_t data_0001 = data & 0x0001 ? palette_ink : palette_paper;
-
-   *image_buffer_pos++ = data_8000;
-   *image_buffer_pos++ = data_4000;
-   *image_buffer_pos++ = data_2000;
-   *image_buffer_pos++ = data_1000;
-   *image_buffer_pos++ = data_0800;
-   *image_buffer_pos++ = data_0400;
-   *image_buffer_pos++ = data_0200;
-   *image_buffer_pos++ = data_0100;
-   *image_buffer_pos++ = data_0080;
-   *image_buffer_pos++ = data_0040;
-   *image_buffer_pos++ = data_0020;
-   *image_buffer_pos++ = data_0010;
-   *image_buffer_pos++ = data_0008;
-   *image_buffer_pos++ = data_0004;
-   *image_buffer_pos++ = data_0002;
-   *image_buffer_pos   = data_0001;
-  
-   image_buffer_pos += hard_width - 15;
-
-   *image_buffer_pos++ = data_8000;
-   *image_buffer_pos++ = data_4000;
-   *image_buffer_pos++ = data_2000;
-   *image_buffer_pos++ = data_1000;
-   *image_buffer_pos++ = data_0800;
-   *image_buffer_pos++ = data_0400;
-   *image_buffer_pos++ = data_0200;
-   *image_buffer_pos++ = data_0100;
-   *image_buffer_pos++ = data_0080;
-   *image_buffer_pos++ = data_0040;
-   *image_buffer_pos++ = data_0020;
-   *image_buffer_pos++ = data_0010;
-   *image_buffer_pos++ = data_0008;
-   *image_buffer_pos++ = data_0004;
-   *image_buffer_pos++ = data_0002;
-   *image_buffer_pos   = data_0001;
-}
-
-void uidisplay_frame_save( void )
-{
-   /* FIXME: Save current framebuffer state as the widget UI wants to scribble
-      in here */
-}
-
-void uidisplay_frame_restore( void )
-{
-   /* FIXME: Restore saved framebuffer state as the widget UI wants to draw a
-      new menu */
-}
-
-// Compatibility osname function
-
-int compat_osname(char *buffer, size_t length)
-{
-   strncpy(buffer, "libretro", length);
-   buffer[length - 1] = 0;
-   return 0;
-}
-
-// Compatibility file functions
-
-#include <fuse/roms/48.rom.h>
-#include <fuse/lib/compressed/tape_48.szx.h>
-
-typedef struct
-{
-   const char *name;
-   const unsigned char* ptr;
-   size_t size;
-}
-entry_t;
-
-static const entry_t mem_entries[] = {
-   {
-      FUSE_DIR_SEP_STR "fuse" FUSE_DIR_SEP_STR "roms" FUSE_DIR_SEP_STR "48.rom",
-      fuse_roms_48_rom, sizeof(fuse_roms_48_rom)
-   },
-   {
-      FUSE_DIR_SEP_STR "fuse" FUSE_DIR_SEP_STR "lib" FUSE_DIR_SEP_STR "tape_48.szx",
-      fuse_lib_compressed_tape_48_szx, sizeof(fuse_lib_compressed_tape_48_szx)
-   }
-};
-
-static const entry_t* find_entry(const char *path)
-{
-   int i;
-   size_t len = strlen(path);
-   
-   for (i = 0; i < sizeof(mem_entries) / sizeof(mem_entries[0]); i++)
-   {
-      size_t len2 = strlen(mem_entries[i].name);
-      
-      if (!strcmp(path + len - len2, mem_entries[i].name))
-      {
-         return mem_entries + i;
-      }
-   }
-   
-   return NULL;
-}
-
-typedef struct
-{
-   int type; // 0=FILE 1=memory
-   
-   union {
-      FILE* file;
-      
-      struct {
-         const char* ptr;
-         size_t length, remain;
-      };
-   };
-}
-compat_fd_internal;
-
-const compat_fd COMPAT_FILE_OPEN_FAILED = NULL;
-
-compat_fd compat_file_open(const char *path, int write)
-{
-   compat_fd_internal *fd = (compat_fd_internal*)malloc(sizeof(compat_fd_internal));
-   
-   if (fd)
-   {
-      if (!write)
-      {
-         const entry_t* entry = find_entry(path);
-         
-         if (entry != NULL)
-         {
-            fd->type = 1;
-            fd->ptr = entry->ptr;
-            fd->length = fd->remain = entry->size;
-            
-            log_cb(RETRO_LOG_INFO, "Opened \"%s\" from memory\n", path);
-            return (compat_fd)fd;
-         }
-      }
-      
-      fd->type = 0;
-      fd->file = fopen( path, write ? "wb" : "rb" );
-      
-      if (fd->file)
-      {
-         log_cb(RETRO_LOG_INFO, "Opened \"%s\" from the file system\n", path);
-         return (compat_fd)fd;
-      }
-      
-      free(fd);
-   }
-   
-   return COMPAT_FILE_OPEN_FAILED;
-}
-
-off_t compat_file_get_length(compat_fd cfd)
-{
-   struct stat file_info;
-   compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   
-   if (fd->type == 1)
-   {
-      return (off_t)fd->length;
-   }
- 
-   if (fstat(fileno(fd->file), &file_info))
-   {
-      ui_error(UI_ERROR_ERROR, "couldn't stat file: %s", strerror(errno));
-      return -1;
-   }
- 
-   return file_info.st_size;
-}
-
-int compat_file_read(compat_fd cfd, utils_file *file)
-{
-   compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   size_t numread;
-   
-   if (fd->type == 1)
-   {
-      numread = file->length < fd->remain ? file->length : fd->remain;
-      memcpy(file->buffer, fd->ptr, numread);
-      fd->ptr += numread;
-      fd->remain -= numread;
-   }
-   else
-   {
-      numread = fread(file->buffer, 1, file->length, fd->file);
-   }
-   
-   if (numread == file->length)
-   {
-      return 0;
-   }
-   
-   ui_error( UI_ERROR_ERROR,
-             "error reading file: expected %lu bytes, but read only %lu",
-             (unsigned long)file->length, (unsigned long)numread );
-   return 1;
-}
-
-int compat_file_write(compat_fd cfd, const unsigned char *buffer, size_t length)
-{
-   compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   
-   size_t numwritten = fwrite(buffer, 1, length, fd->file);
-   
-   if (numwritten == length)
-   {
-      return 0;
-   }
-   
-   ui_error( UI_ERROR_ERROR,
-             "error writing file: expected %lu bytes, but wrote only %lu",
-             (unsigned long)length, (unsigned long)numwritten );
-   return 1;
-}
-
-int compat_file_close(compat_fd cfd)
-{
-   compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   
-   if (fd->type == 0)
-   {
-      int res = fclose(fd->file);
-      free(fd);
-      return res;
-   }
-   
-   free(fd);
-   return 0;
-}
-
-int compat_file_exists(const char *path)
-{
-   log_cb(RETRO_LOG_INFO, "Checking if \"%s\" exists\n", path);
-   return find_entry(path) != NULL || access( path, R_OK ) != -1;
-}
-
-// Compatibility path functions
-
-const char *compat_get_temp_path(void)
-{
-   return ".";
-}
-
-const char *compat_get_home_path(void)
-{
-   return ".";
-}
-
-int
-compat_is_absolute_path(const char *path)
-{
-   // TODO how to handle other architectures?
-#ifdef WIN32
-   if( path[0] == '\\' ) return 1;
-   if( path[0] && path[1] == ':' ) return 1;
-#else
-   if ( path[0] == '/' ) return 1;
-#endif
-
-   return 0;
-}
-
-int compat_get_next_path(path_context *ctx)
-{
-   const char *content, *path_segment;
-   
-   if (!env_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &content) || !content)
-   {
-      ui_error(UI_ERROR_ERROR, "Could not get libretro's system directory" );
-      return 0;
-   }
-
-   switch (ctx->type)
-   {
-      case UTILS_AUXILIARY_LIB:    path_segment = "lib"; break;
-      case UTILS_AUXILIARY_ROM:    path_segment = "roms"; break;
-      case UTILS_AUXILIARY_WIDGET: path_segment = "ui/widget"; break;
-      case UTILS_AUXILIARY_GTK:    path_segment = "ui/gtk"; break;
-      
-      default:
-         ui_error(UI_ERROR_ERROR, "Unknown auxiliary file type %d", ctx->type);
-         return 0;
-   }
-
-   switch (ctx->state++)
-   {
-      case 0:
-         snprintf(ctx->path, PATH_MAX, "%s" FUSE_DIR_SEP_STR "fuse" FUSE_DIR_SEP_STR "%s", content, path_segment);
-         ctx->path[PATH_MAX - 1] = 0;
-         log_cb(RETRO_LOG_INFO, "Returning \"%s\" as path for %s\n", ctx->path, ctx->type == UTILS_AUXILIARY_LIB ? "lib" : ctx->type == UTILS_AUXILIARY_ROM ? "rom" : ctx->type == UTILS_AUXILIARY_WIDGET ? "widget" : "gtk" );
-         return 1;
-
-      case 1:
-         return 0;
-   }
-
-   ui_error(UI_ERROR_ERROR, "unknown path_context state %d", ctx->state);
-   return 0;
-}
-
-// Compatibility keyboard functions (keyboard.c)
-
-int ui_keyboard_init(void)
-{
-   return 0;
-}
-
-void ui_keyboard_end(void)
-{
-}
-
-// Compatibility joystick functions (joystick.c)
-
-int ui_joystick_init(void)
-{
-   return 0;
-}
-
-void ui_joystick_end(void)
-{
-}
-
-void ui_joystick_poll(void)
-{
-}
-
-// Compatibility mouse functions (mouse.c)
-
-int ui_mouse_grab(int startup)
-{
-   (void)startup;
-   return 1;
-}
-
-int ui_mouse_release(int suspend)
-{
-   return !suspend;
-}
-
-// Include fuse.c source so we can call fuse_init
-
-#include <fuse/fuse.c>
-
-// Rename settings_init so we can extend it
-
-#define settings_init fuse_settings_init
-#include <fuse/settings.c>
-#undef settings_init
-
-// Rename ui_error_specific so we can extend it
-
-#define ui_error_specific fuse_ui_error_specific
-#include <fuse/ui/widget/error.c>
-#undef ui_error_specific
-
-// Rename print_error_to_stderr so we can mute it
-
-#define print_error_to_stderr fuse_print_error_to_stderr
-#include <fuse/ui.c>
-#undef print_error_to_stderr
-
-static int print_error_to_stderr(ui_error_level severity, const char *message)
-{
-   (void)severity;
-   (void)message;
-   return 0;
-}
-
-// Fix a bug in utils_find_file_path where stat is used instead of compat_file_exists
-
-#define stat(a, b) (!compat_file_exists(a))
-#include <fuse/utils.c>
-#undef stat
-
-// Change the call to utils_write_file in snapshot_write so we can trap the write and use libretro to save it for us
-
-#define utils_write_file fuse_write_snapshot
-#include <fuse/snapshot.c>
-#undef utils_write_file

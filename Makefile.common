@@ -1,19 +1,27 @@
 INCFLAGS := -I$(CORE_DIR) \
+            -I$(CORE_DIR)/src \
             -I$(CORE_DIR)/fuse \
             -I$(CORE_DIR)/zlib \
             -I$(CORE_DIR)/bzip2 \
             -I$(CORE_DIR)/libspectrum
 
-SOURCES_C += $(CORE_DIR)/libretro.c
-SOURCES_C += $(CORE_DIR)/getopt.c
-SOURCES_C += $(CORE_DIR)/getopt1.c
-SOURCES_C += $(CORE_DIR)/scalers16.c
-SOURCES_C += $(CORE_DIR)/scalers32.c
+SOURCES_C += $(CORE_DIR)/src/libretro.c
+SOURCES_C += $(CORE_DIR)/src/fuse/scalers16.c
+SOURCES_C += $(CORE_DIR)/src/fuse/scalers32.c
 
-#SOURCES_C += $(CORE_DIR)/fuse/compat/getopt.c
-#SOURCES_C += $(CORE_DIR)/fuse/compat/getopt1.c
+SOURCES_C += $(CORE_DIR)/src/fuse/getopt.c
+SOURCES_C += $(CORE_DIR)/src/fuse/getopt1.c
 SOURCES_C += $(CORE_DIR)/fuse/compat/unix/dir.c
-#SOURCES_C += $(CORE_DIR)/fuse/compat/unix/file.c
+SOURCES_C += $(CORE_DIR)/src/compat/display.c
+SOURCES_C += $(CORE_DIR)/src/compat/file.c
+SOURCES_C += $(CORE_DIR)/src/compat/joystick.c
+SOURCES_C += $(CORE_DIR)/src/compat/keyboard.c
+SOURCES_C += $(CORE_DIR)/src/compat/mouse.c
+SOURCES_C += $(CORE_DIR)/src/compat/osname.c
+SOURCES_C += $(CORE_DIR)/src/compat/paths.c
+SOURCES_C += $(CORE_DIR)/src/compat/sound.c
+SOURCES_C += $(CORE_DIR)/src/compat/timer.c
+SOURCES_C += $(CORE_DIR)/src/compat/ui.c
 
 SOURCES_C += $(CORE_DIR)/fuse/debugger/breakpoint.c
 SOURCES_C += $(CORE_DIR)/fuse/debugger/command.c
@@ -88,7 +96,7 @@ SOURCES_C += $(CORE_DIR)/fuse/timer/native.c
 
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/browse.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/debugger.c
-#SOURCES_C += $(CORE_DIR)/fuse/ui/widget/error.c
+SOURCES_C += $(CORE_DIR)/src/fuse/error.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/filesel.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/memory.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/menu.c
@@ -112,7 +120,7 @@ SOURCES_C += $(CORE_DIR)/fuse/z80/z80_ops.c
 
 SOURCES_C += $(CORE_DIR)/fuse/display.c
 SOURCES_C += $(CORE_DIR)/fuse/event.c
-#SOURCES_C += $(CORE_DIR)/fuse/fuse.c
+SOURCES_C += $(CORE_DIR)/src/fuse/fuse.c
 SOURCES_C += $(CORE_DIR)/fuse/input.c
 SOURCES_C += $(CORE_DIR)/fuse/keyboard.c
 SOURCES_C += $(CORE_DIR)/fuse/loader.c
@@ -128,15 +136,15 @@ SOURCES_C += $(CORE_DIR)/fuse/psg.c
 SOURCES_C += $(CORE_DIR)/fuse/rectangle.c
 SOURCES_C += $(CORE_DIR)/fuse/rzx.c
 SOURCES_C += $(CORE_DIR)/fuse/screenshot.c
-#SOURCES_C += $(CORE_DIR)/fuse/settings.c
+SOURCES_C += $(CORE_DIR)/src/fuse/settings.c
 SOURCES_C += $(CORE_DIR)/fuse/slt.c
-#SOURCES_C += $(CORE_DIR)/fuse/snapshot.c
+SOURCES_C += $(CORE_DIR)/src/fuse/snapshot.c
 SOURCES_C += $(CORE_DIR)/fuse/sound.c
 SOURCES_C += $(CORE_DIR)/fuse/spectrum.c
 SOURCES_C += $(CORE_DIR)/fuse/tape.c
-#SOURCES_C += $(CORE_DIR)/fuse/ui.c
+SOURCES_C += $(CORE_DIR)/src/fuse/ui.c
 SOURCES_C += $(CORE_DIR)/fuse/uidisplay.c
-#SOURCES_C += $(CORE_DIR)/fuse/utils.c
+SOURCES_C += $(CORE_DIR)/src/fuse/utils.c
 
 SOURCES_C += $(CORE_DIR)/libspectrum/bzip2.c
 SOURCES_C += $(CORE_DIR)/libspectrum/creator.c
