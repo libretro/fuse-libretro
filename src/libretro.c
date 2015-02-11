@@ -482,35 +482,14 @@ void retro_init(void)
    }
 }
 
-static const char* get_extension(const void* data, size_t size)
+static libspectrum_id_t identify_file(const void* data, size_t size)
 {
    libspectrum_id_t type;
    libspectrum_error error = libspectrum_identify_file(&type, NULL, (const unsigned char*)data, size);
    
    if (type != LIBSPECTRUM_ID_UNKNOWN)
    {
-return_ext:
-      switch (type)
-      {
-         case LIBSPECTRUM_ID_RECORDING_RZX: return ".rzx";
-         case LIBSPECTRUM_ID_SNAPSHOT_SNA:  return ".sna";
-         case LIBSPECTRUM_ID_SNAPSHOT_Z80:  return ".z80";
-         case LIBSPECTRUM_ID_TAPE_TAP:      // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
-         case LIBSPECTRUM_ID_TAPE_WARAJEVO: return ".tap";
-         case LIBSPECTRUM_ID_TAPE_TZX:      return ".tzx";
-         case LIBSPECTRUM_ID_SNAPSHOT_SP:   return ".sp";
-         case LIBSPECTRUM_ID_SNAPSHOT_SNP:  return ".snp";
-         case LIBSPECTRUM_ID_SNAPSHOT_ZXS:  return ".zxs";
-         case LIBSPECTRUM_ID_SNAPSHOT_SZX:  return ".szx";
-         case LIBSPECTRUM_ID_TAPE_CSW:      return ".csw";
-         case LIBSPECTRUM_ID_TAPE_Z80EM:    return ".raw";
-         case LIBSPECTRUM_ID_TAPE_WAV:      return ".wav";
-         case LIBSPECTRUM_ID_TAPE_SPC:      return ".spc";
-         case LIBSPECTRUM_ID_TAPE_STA:      return ".sta";
-         case LIBSPECTRUM_ID_TAPE_LTP:      return ".ltp";
-         case LIBSPECTRUM_ID_TAPE_PZX:      return ".pzx";
-         default:                           return NULL;
-      }
+      return type;
    }
    
    libspectrum_snap* snap = libspectrum_snap_alloc();
@@ -519,11 +498,10 @@ return_ext:
    
    if (error == LIBSPECTRUM_ERROR_NONE)
    {
-      type = LIBSPECTRUM_ID_SNAPSHOT_Z80;
-      goto return_ext;
+      return LIBSPECTRUM_ID_SNAPSHOT_Z80;
    }
    
-   return NULL;
+   return LIBSPECTRUM_ID_UNKNOWN;
 }
 
 bool retro_load_game(const struct retro_game_info *info)
@@ -551,9 +529,32 @@ bool retro_load_game(const struct retro_game_info *info)
    
    if (info != NULL)
    {
+      const char* ext = "";
+      
       // Try to identify the file type
+      switch (identify_file(info->data, info->size))
+      {
+         case LIBSPECTRUM_ID_RECORDING_RZX: ext = ".rzx"; break;
+         case LIBSPECTRUM_ID_SNAPSHOT_SNA:  ext = ".sna"; break;
+         case LIBSPECTRUM_ID_SNAPSHOT_Z80:  ext = ".z80"; break;
+         case LIBSPECTRUM_ID_TAPE_TAP:      // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
+         case LIBSPECTRUM_ID_TAPE_WARAJEVO: ext = ".tap"; break;
+         case LIBSPECTRUM_ID_TAPE_TZX:      ext = ".tzx"; break;
+         case LIBSPECTRUM_ID_SNAPSHOT_SP:   ext = ".sp";  break;
+         case LIBSPECTRUM_ID_SNAPSHOT_SNP:  ext = ".snp"; break;
+         case LIBSPECTRUM_ID_SNAPSHOT_ZXS:  ext = ".zxs"; break;
+         case LIBSPECTRUM_ID_SNAPSHOT_SZX:  ext = ".szx"; break;
+         case LIBSPECTRUM_ID_TAPE_CSW:      ext = ".csw"; break;
+         case LIBSPECTRUM_ID_TAPE_Z80EM:    ext = ".raw"; break;
+         case LIBSPECTRUM_ID_TAPE_WAV:      ext = ".wav"; break;
+         case LIBSPECTRUM_ID_TAPE_SPC:      ext = ".spc"; break;
+         case LIBSPECTRUM_ID_TAPE_STA:      ext = ".sta"; break;
+         case LIBSPECTRUM_ID_TAPE_LTP:      ext = ".ltp"; break;
+         case LIBSPECTRUM_ID_TAPE_PZX:      ext = ".pzx"; break;
+      }
+      
       char filename_option[32];
-      snprintf(filename_option, sizeof(filename_option), "-t*%s", get_extension(info->data, info->size));
+      snprintf(filename_option, sizeof(filename_option), "-t*%s", ext);
       filename_option[sizeof(filename_option) - 1] = 0;
       
       log_cb(RETRO_LOG_INFO, "Named the input file as %s\n", filename_option + 2);
