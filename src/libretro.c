@@ -850,7 +850,7 @@ void retro_unload_game(void)
 unsigned retro_get_region(void)
 {
    // TODO set this accordingly to the machine being emulated
-   return RETRO_REGION_NTSC;
+   return RETRO_REGION_PAL;
 }
 
 // Dummy callbacks for the UI
