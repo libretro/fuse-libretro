@@ -1,10 +1,5 @@
 // Compatibility file functions
 
-#include <stddef.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-
 #include <libretro.h>
 #include <externs.h>
 #include <compat.h>
@@ -24,19 +19,30 @@ entry_t;
 
 static const entry_t mem_entries[] = {
    {
-      FUSE_DIR_SEP_STR "fuse" FUSE_DIR_SEP_STR "roms" FUSE_DIR_SEP_STR "48.rom",
+      "48.rom",
       fuse_roms_48_rom, sizeof(fuse_roms_48_rom)
    },
    {
-      FUSE_DIR_SEP_STR "fuse" FUSE_DIR_SEP_STR "lib" FUSE_DIR_SEP_STR "tape_48.szx",
+      "tape_48.szx",
       fuse_lib_compressed_tape_48_szx, sizeof(fuse_lib_compressed_tape_48_szx)
    }
 };
 
 static const entry_t* find_entry(const char *path)
 {
+   static entry_t tape;
+   
    int i;
    size_t len = strlen(path);
+   
+   // * signals us to load the tape data
+   if (path[0] == '*')
+   {
+      tape.name = NULL;
+      tape.ptr = (const unsigned char*)tape_data;
+      tape.size = tape_size;
+      return &tape;
+   }
    
    for (i = 0; i < sizeof(mem_entries) / sizeof(mem_entries[0]); i++)
    {
@@ -53,16 +59,8 @@ static const entry_t* find_entry(const char *path)
 
 typedef struct
 {
-   int type; // 0=FILE 1=memory
-   
-   union {
-      FILE* file;
-      
-      struct {
-         const char* ptr;
-         size_t length, remain;
-      };
-   };
+   const char* ptr;
+   size_t length, remain;
 }
 compat_fd_internal;
 
@@ -70,35 +68,35 @@ const compat_fd COMPAT_FILE_OPEN_FAILED = NULL;
 
 compat_fd compat_file_open(const char *path, int write)
 {
-   compat_fd_internal *fd = (compat_fd_internal*)malloc(sizeof(compat_fd_internal));
-   
-   if (fd)
+   if (!write)
    {
-      if (!write)
+      const entry_t* entry = find_entry(path);
+      
+      if (entry != NULL)
       {
-         const entry_t* entry = find_entry(path);
+         compat_fd_internal *fd = (compat_fd_internal*)malloc(sizeof(compat_fd_internal));
          
-         if (entry != NULL)
+         if (fd)
          {
-            fd->type = 1;
             fd->ptr = entry->ptr;
             fd->length = fd->remain = entry->size;
             
             log_cb(RETRO_LOG_INFO, "Opened \"%s\" from memory\n", path);
             return (compat_fd)fd;
          }
+         else
+         {
+            log_cb(RETRO_LOG_ERROR, "Out of memory\n");
+         }
       }
-      
-      fd->type = 0;
-      fd->file = fopen( path, write ? "wb" : "rb" );
-      
-      if (fd->file)
+      else
       {
-         log_cb(RETRO_LOG_INFO, "Opened \"%s\" from the file system\n", path);
-         return (compat_fd)fd;
+         log_cb(RETRO_LOG_ERROR, "Could not find file %s\n", path);
       }
-      
-      free(fd);
+   }
+   else
+   {
+      log_cb(RETRO_LOG_ERROR, "Cannot open %s for writing\n", path);
    }
    
    return COMPAT_FILE_OPEN_FAILED;
@@ -106,21 +104,8 @@ compat_fd compat_file_open(const char *path, int write)
 
 off_t compat_file_get_length(compat_fd cfd)
 {
-   struct stat file_info;
    compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   
-   if (fd->type == 1)
-   {
-      return (off_t)fd->length;
-   }
- 
-   if (fstat(fileno(fd->file), &file_info))
-   {
-      ui_error(UI_ERROR_ERROR, "couldn't stat file: %s", strerror(errno));
-      return -1;
-   }
- 
-   return file_info.st_size;
+   return (off_t)fd->length;
 }
 
 int compat_file_read(compat_fd cfd, utils_file *file)
@@ -128,17 +113,10 @@ int compat_file_read(compat_fd cfd, utils_file *file)
    compat_fd_internal *fd = (compat_fd_internal*)cfd;
    size_t numread;
    
-   if (fd->type == 1)
-   {
-      numread = file->length < fd->remain ? file->length : fd->remain;
-      memcpy(file->buffer, fd->ptr, numread);
-      fd->ptr += numread;
-      fd->remain -= numread;
-   }
-   else
-   {
-      numread = fread(file->buffer, 1, file->length, fd->file);
-   }
+   numread = file->length < fd->remain ? file->length : fd->remain;
+   memcpy(file->buffer, fd->ptr, numread);
+   fd->ptr += numread;
+   fd->remain -= numread;
    
    if (numread == file->length)
    {
@@ -153,32 +131,15 @@ int compat_file_read(compat_fd cfd, utils_file *file)
 
 int compat_file_write(compat_fd cfd, const unsigned char *buffer, size_t length)
 {
-   compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   
-   size_t numwritten = fwrite(buffer, 1, length, fd->file);
-   
-   if (numwritten == length)
-   {
-      return 0;
-   }
-   
-   ui_error( UI_ERROR_ERROR,
-             "error writing file: expected %lu bytes, but wrote only %lu",
-             (unsigned long)length, (unsigned long)numwritten );
+   (void)cfd;
+   (void)buffer;
+   (void)length;
    return 1;
 }
 
 int compat_file_close(compat_fd cfd)
 {
    compat_fd_internal *fd = (compat_fd_internal*)cfd;
-   
-   if (fd->type == 0)
-   {
-      int res = fclose(fd->file);
-      free(fd);
-      return res;
-   }
-   
    free(fd);
    return 0;
 }
@@ -186,5 +147,5 @@ int compat_file_close(compat_fd cfd)
 int compat_file_exists(const char *path)
 {
    log_cb(RETRO_LOG_INFO, "Checking if \"%s\" exists\n", path);
-   return find_entry(path) != NULL || access( path, R_OK ) != -1;
+   return find_entry(path) != NULL;
 }

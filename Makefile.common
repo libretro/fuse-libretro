@@ -8,10 +8,10 @@ INCFLAGS := -I$(CORE_DIR) \
 SOURCES_C += $(CORE_DIR)/src/libretro.c
 SOURCES_C += $(CORE_DIR)/src/fuse/scalers16.c
 SOURCES_C += $(CORE_DIR)/src/fuse/scalers32.c
-
 SOURCES_C += $(CORE_DIR)/src/fuse/getopt.c
 SOURCES_C += $(CORE_DIR)/src/fuse/getopt1.c
-SOURCES_C += $(CORE_DIR)/fuse/compat/unix/dir.c
+
+SOURCES_C += $(CORE_DIR)/src/compat/dir.c
 SOURCES_C += $(CORE_DIR)/src/compat/display.c
 SOURCES_C += $(CORE_DIR)/src/compat/file.c
 SOURCES_C += $(CORE_DIR)/src/compat/joystick.c

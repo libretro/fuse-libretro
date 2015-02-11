@@ -33,10 +33,14 @@ extern unsigned keyb_y;
 extern int input_state[MAX_PADS][5];
 extern void* snapshot_buffer;
 extern size_t snapshot_size;
+const void* tape_data;
+size_t tape_size;
+
 void update_variables(void);
 
 // From Fuse
 extern settings_info settings_current;
+
 int fuse_init(int argc, char** argv);
 int fuse_end(void);
 int tape_is_playing(void);

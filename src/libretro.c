@@ -53,6 +53,8 @@ unsigned keyb_y;
 int input_state[MAX_PADS][5];
 void*  snapshot_buffer;
 size_t snapshot_size;
+const void* tape_data;
+size_t tape_size;
 
 static const struct { unsigned x; unsigned y; } keyb_positions[4] = {
    { 32, 40 }, { 40, 88 }, { 48, 136 }, { 32, 184 }
@@ -408,7 +410,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
    info->library_name = PACKAGE_NAME;
    info->library_version = PACKAGE_VERSION;
-   info->need_fullpath = true;
+   info->need_fullpath = false;
    info->block_extract = false;
    info->valid_extensions = "tzx|tap|z80";
 }
@@ -480,6 +482,50 @@ void retro_init(void)
    }
 }
 
+static const char* get_extension(const void* data, size_t size)
+{
+   libspectrum_id_t type;
+   libspectrum_error error = libspectrum_identify_file(&type, NULL, (const unsigned char*)data, size);
+   
+   if (type != LIBSPECTRUM_ID_UNKNOWN)
+   {
+return_ext:
+      switch (type)
+      {
+         case LIBSPECTRUM_ID_RECORDING_RZX: return ".rzx";
+         case LIBSPECTRUM_ID_SNAPSHOT_SNA:  return ".sna";
+         case LIBSPECTRUM_ID_SNAPSHOT_Z80:  return ".z80";
+         case LIBSPECTRUM_ID_TAPE_TAP:      // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
+         case LIBSPECTRUM_ID_TAPE_WARAJEVO: return ".tap";
+         case LIBSPECTRUM_ID_TAPE_TZX:      return ".tzx";
+         case LIBSPECTRUM_ID_SNAPSHOT_SP:   return ".sp";
+         case LIBSPECTRUM_ID_SNAPSHOT_SNP:  return ".snp";
+         case LIBSPECTRUM_ID_SNAPSHOT_ZXS:  return ".zxs";
+         case LIBSPECTRUM_ID_SNAPSHOT_SZX:  return ".szx";
+         case LIBSPECTRUM_ID_TAPE_CSW:      return ".csw";
+         case LIBSPECTRUM_ID_TAPE_Z80EM:    return ".raw";
+         case LIBSPECTRUM_ID_TAPE_WAV:      return ".wav";
+         case LIBSPECTRUM_ID_TAPE_SPC:      return ".spc";
+         case LIBSPECTRUM_ID_TAPE_STA:      return ".sta";
+         case LIBSPECTRUM_ID_TAPE_LTP:      return ".ltp";
+         case LIBSPECTRUM_ID_TAPE_PZX:      return ".pzx";
+         default:                           return NULL;
+      }
+   }
+   
+   libspectrum_snap* snap = libspectrum_snap_alloc();
+   error = libspectrum_snap_read(snap, (const libspectrum_byte*)data, size, LIBSPECTRUM_ID_SNAPSHOT_Z80, NULL);
+   libspectrum_snap_free(snap);
+   
+   if (error == LIBSPECTRUM_ERROR_NONE)
+   {
+      type = LIBSPECTRUM_ID_SNAPSHOT_Z80;
+      goto return_ext;
+   }
+   
+   return NULL;
+}
+
 bool retro_load_game(const struct retro_game_info *info)
 {
    if (!perf_cb.get_time_usec)
@@ -505,16 +551,22 @@ bool retro_load_game(const struct retro_game_info *info)
    
    if (info != NULL)
    {
-      char tape[PATH_MAX];
-      snprintf(tape, sizeof(tape), "-t%s", info->path);
-      tape[sizeof(tape) - 1] = 0;
+      // Try to identify the file type
+      char filename_option[32];
+      snprintf(filename_option, sizeof(filename_option), "-t*%s", get_extension(info->data, info->size));
+      filename_option[sizeof(filename_option) - 1] = 0;
+      
+      log_cb(RETRO_LOG_INFO, "Named the input file as %s\n", filename_option + 2);
       
       char *argv[] = {
          "fuse",
-         tape
+         filename_option
       };
       
-      log_cb(RETRO_LOG_INFO, "Loading %s\n", info->path);
+      tape_data = info->data;
+      tape_size = info->size;
+      
+      log_cb(RETRO_LOG_INFO, "Loading content %s\n", info->path);
       return fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0;
    }
    
