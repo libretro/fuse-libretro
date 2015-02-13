@@ -28,12 +28,12 @@ The core options available on the frontend are:
 There are seven types of joysticks emulated:
 
 1. Cursor
-2. Kempston
-3. Sinclair 1
-4. Sinclair 2
-5. Timex 1
-6. Timex 2
-7. Fuller Joystick
+1. Kempston
+1. Sinclair 1
+1. Sinclair 2
+1. Timex 1
+1. Timex 2
+1. Fuller Joystick
 
 Users can configure their joystick types in the input configuration on the front end. However, **fuse-libretro** allows for two joysticks at maximum so only users one and two can actually use theirs in the emulation.
 
