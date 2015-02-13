@@ -520,6 +520,17 @@ bool retro_load_game(const struct retro_game_info *info)
       return false;
    }
    
+   tape_size = info->size;
+   tape_data = malloc( tape_size );
+   
+   if (!tape_data)
+   {
+      log_cb(RETRO_LOG_ERROR, "Could not allocate memory for the tape");
+      return false;
+   }
+   
+   memcpy(tape_data, info->data, tape_size);
+   
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(input_state, 0, sizeof(input_state));
    select_pressed = keyb_overlay = 0;
@@ -532,7 +543,7 @@ bool retro_load_game(const struct retro_game_info *info)
       const char* ext = "";
       
       // Try to identify the file type
-      switch (identify_file(info->data, info->size))
+      switch (identify_file(tape_data, tape_size))
       {
          case LIBSPECTRUM_ID_RECORDING_RZX: ext = ".rzx"; break;
          case LIBSPECTRUM_ID_SNAPSHOT_SNA:  ext = ".sna"; break;
@@ -564,10 +575,7 @@ bool retro_load_game(const struct retro_game_info *info)
          filename_option
       };
       
-      tape_data = info->data;
-      tape_size = info->size;
-      
-      log_cb(RETRO_LOG_INFO, "Loading content %s\n", info->path);
+      log_cb(RETRO_LOG_INFO, "Loading content %s\n", info->path ? info->path : "(null)");
       return fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0;
    }
    
@@ -898,6 +906,8 @@ void retro_unload_game(void)
    {
       free(snapshot_buffer);
    }
+   
+   free(tape_data);
 }
 
 unsigned retro_get_region(void)
