@@ -768,36 +768,23 @@ void retro_run(void)
 
    show_frame = some_audio = 0;
    
-   if (settings_current.fastload && tape_is_playing())
-   {
-      // Repeat the loop while the tape is playing if we're fast loading.
-      do {
-         input_poll_cb();
-         z80_do_opcodes();
-         event_do_events();
-      }
-      while (tape_is_playing());
+   /*
+   After playing Sabre Wulf's initial title music, fuse starts generating
+   audio only for every other frame. RetroArch computes the FPS based on
+   this and tries to call retro_run at double the rate to compensate for
+   the audio. When vsync is on, FPS will cap at some value and the game
+   will run slower.
+   
+   This solution guarantees that every call to retro_run generates audio, so
+   emulation runs steadly at 50 FPS. Ideally, we should investigate why fuse
+   is doing that and fix it, but this solutions seems to work just fine.
+   */
+   do {
+      input_poll_cb();
+      z80_do_opcodes();
+      event_do_events();
    }
-   else
-   {
-      /*
-      After playing Sabre Wulf's initial title music, fuse starts generating
-      audio only for every other frame. RetroArch computes the FPS based on
-      this and tries to call retro_run at double the rate to compensate for
-      the audio. When vsync is on, FPS will cap at some value and the game
-      will run slower.
-      
-      This solution guarantees that every call to retro_run generates audio, so
-      emulation runs steadly at 50 FPS. Ideally, we should investigate why fuse
-      is doing that and fix it, but this solutions seems to work just fine.
-      */
-      do {
-         input_poll_cb();
-         z80_do_opcodes();
-         event_do_events();
-      }
-      while (!some_audio);
-   }
+   while (!some_audio);
    
    render_video();
 }
