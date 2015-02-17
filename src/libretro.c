@@ -862,7 +862,7 @@ bool retro_serialize(void *data, size_t size)
    log_cb(RETRO_LOG_DEBUG, "%s(%p, %lu)\n", __FUNCTION__, data, size);
    bool res = false;
    
-   if (size >= snapshot_size)
+   if (size <= snapshot_size)
    {
       memcpy(data, snapshot_buffer, snapshot_size);
       res = true;
@@ -872,6 +872,7 @@ bool retro_serialize(void *data, size_t size)
       log_cb(RETRO_LOG_ERROR, "Provided buffer size of %lu is less than the required size of %lu\n", size, snapshot_size);
    }
 
+   free(snapshot_buffer);
    return res;
 }
 
@@ -902,11 +903,6 @@ bool retro_load_game_special(unsigned a, const struct retro_game_info *b, size_t
 
 void retro_unload_game(void)
 {
-   if (snapshot_buffer)
-   {
-      free(snapshot_buffer);
-   }
-   
    free(tape_data);
 }
 

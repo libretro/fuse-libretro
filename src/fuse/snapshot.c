@@ -12,11 +12,6 @@ int fuse_write_snapshot(const char *filename, const unsigned char *buffer, size_
 {
    log_cb(RETRO_LOG_DEBUG, "%s(\"%s\", %p, %lu)\n", __FUNCTION__, filename, buffer, length);
    
-   if (snapshot_buffer)
-   {
-      free(snapshot_buffer);
-   }
-   
    snapshot_buffer = malloc(length);
    
    if (snapshot_buffer)
