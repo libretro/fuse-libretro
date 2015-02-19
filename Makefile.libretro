@@ -258,7 +258,7 @@ CFLAGS   += -w -Wall
 CXXFLAGS += $(fpic) $(DEFINES)
 CXXFLAGS += -w -Wall
 
-LDFLAGS += -Llibspectrum/.libs
+LDFLAGS +=
 
 include Makefile.common
 
@@ -303,7 +303,7 @@ libspectrum/config.h:
 src/compat/48.rom.h: fuse/roms/48.rom
 	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
 
-src/compat/tape_48.szx.h: fuse/lib/compressed/tape_48.szx
+src/compat/tape_48.szx.h: fuse/lib/uncompressed/tape_48.szx
 	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
 
 clean-objs:

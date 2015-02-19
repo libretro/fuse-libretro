@@ -24,7 +24,7 @@ static const entry_t mem_entries[] = {
    },
    {
       "tape_48.szx",
-      fuse_lib_compressed_tape_48_szx, sizeof(fuse_lib_compressed_tape_48_szx)
+      fuse_lib_uncompressed_tape_48_szx, sizeof(fuse_lib_uncompressed_tape_48_szx)
    }
 };
 

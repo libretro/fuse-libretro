@@ -1,8 +1,6 @@
 INCFLAGS := -I$(CORE_DIR) \
             -I$(CORE_DIR)/src \
             -I$(CORE_DIR)/fuse \
-            -I$(CORE_DIR)/zlib \
-            -I$(CORE_DIR)/bzip2 \
             -I$(CORE_DIR)/libspectrum
 
 SOURCES_C += $(CORE_DIR)/src/libretro.c
@@ -184,27 +182,3 @@ SOURCES_C += $(CORE_DIR)/libspectrum/z80.c
 SOURCES_C += $(CORE_DIR)/libspectrum/z80em.c
 SOURCES_C += $(CORE_DIR)/libspectrum/zlib.c
 SOURCES_C += $(CORE_DIR)/libspectrum/zxs.c
-
-SOURCES_C += $(CORE_DIR)/zlib/adler32.c
-SOURCES_C += $(CORE_DIR)/zlib/compress.c
-SOURCES_C += $(CORE_DIR)/zlib/crc32.c
-SOURCES_C += $(CORE_DIR)/zlib/deflate.c
-SOURCES_C += $(CORE_DIR)/zlib/gzclose.c
-SOURCES_C += $(CORE_DIR)/zlib/gzlib.c
-SOURCES_C += $(CORE_DIR)/zlib/gzread.c
-SOURCES_C += $(CORE_DIR)/zlib/gzwrite.c
-SOURCES_C += $(CORE_DIR)/zlib/infback.c
-SOURCES_C += $(CORE_DIR)/zlib/inffast.c
-SOURCES_C += $(CORE_DIR)/zlib/inflate.c
-SOURCES_C += $(CORE_DIR)/zlib/inftrees.c
-SOURCES_C += $(CORE_DIR)/zlib/trees.c
-SOURCES_C += $(CORE_DIR)/zlib/uncompr.c
-SOURCES_C += $(CORE_DIR)/zlib/zutil.c
-
-SOURCES_C += $(CORE_DIR)/bzip2/blocksort.c
-SOURCES_C += $(CORE_DIR)/bzip2/huffman.c
-SOURCES_C += $(CORE_DIR)/bzip2/crctable.c
-SOURCES_C += $(CORE_DIR)/bzip2/randtable.c
-SOURCES_C += $(CORE_DIR)/bzip2/compress.c
-SOURCES_C += $(CORE_DIR)/bzip2/decompress.c
-SOURCES_C += $(CORE_DIR)/bzip2/bzlib.c
