@@ -277,7 +277,7 @@ static void update_string_list(const char* key, const char** value, const char* 
    
    if (*value)
    {
-      libspectrum_free(*value);
+      libspectrum_free((void*)*value);
    }
    
    *value = utils_safe_strdup(x);
@@ -504,6 +504,35 @@ static libspectrum_id_t identify_file(const void* data, size_t size)
    return LIBSPECTRUM_ID_UNKNOWN;
 }
 
+static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, const char** ext)
+{
+   libspectrum_id_t type = identify_file(data, size);
+   
+   switch (identify_file(tape_data, tape_size))
+   {
+      case LIBSPECTRUM_ID_RECORDING_RZX: *ext = ".rzx"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SNA:  *ext = ".sna"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_Z80:  *ext = ".z80"; break;
+      case LIBSPECTRUM_ID_TAPE_TAP:      // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
+      case LIBSPECTRUM_ID_TAPE_WARAJEVO: *ext = ".tap"; break;
+      case LIBSPECTRUM_ID_TAPE_TZX:      *ext = ".tzx"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SP:   *ext = ".sp";  break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SNP:  *ext = ".snp"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_ZXS:  *ext = ".zxs"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SZX:  *ext = ".szx"; break;
+      case LIBSPECTRUM_ID_TAPE_CSW:      *ext = ".csw"; break;
+      case LIBSPECTRUM_ID_TAPE_Z80EM:    *ext = ".raw"; break;
+      case LIBSPECTRUM_ID_TAPE_WAV:      *ext = ".wav"; break;
+      case LIBSPECTRUM_ID_TAPE_SPC:      *ext = ".spc"; break;
+      case LIBSPECTRUM_ID_TAPE_STA:      *ext = ".sta"; break;
+      case LIBSPECTRUM_ID_TAPE_LTP:      *ext = ".ltp"; break;
+      case LIBSPECTRUM_ID_TAPE_PZX:      *ext = ".pzx"; break;
+      default:                           *ext = "";     break;
+   }
+   
+   return type;
+}
+
 bool retro_load_game(const struct retro_game_info *info)
 {
    if (!perf_cb.get_time_usec)
@@ -540,29 +569,8 @@ bool retro_load_game(const struct retro_game_info *info)
    
    if (info != NULL)
    {
-      const char* ext = "";
-      
-      // Try to identify the file type
-      switch (identify_file(tape_data, tape_size))
-      {
-         case LIBSPECTRUM_ID_RECORDING_RZX: ext = ".rzx"; break;
-         case LIBSPECTRUM_ID_SNAPSHOT_SNA:  ext = ".sna"; break;
-         case LIBSPECTRUM_ID_SNAPSHOT_Z80:  ext = ".z80"; break;
-         case LIBSPECTRUM_ID_TAPE_TAP:      // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
-         case LIBSPECTRUM_ID_TAPE_WARAJEVO: ext = ".tap"; break;
-         case LIBSPECTRUM_ID_TAPE_TZX:      ext = ".tzx"; break;
-         case LIBSPECTRUM_ID_SNAPSHOT_SP:   ext = ".sp";  break;
-         case LIBSPECTRUM_ID_SNAPSHOT_SNP:  ext = ".snp"; break;
-         case LIBSPECTRUM_ID_SNAPSHOT_ZXS:  ext = ".zxs"; break;
-         case LIBSPECTRUM_ID_SNAPSHOT_SZX:  ext = ".szx"; break;
-         case LIBSPECTRUM_ID_TAPE_CSW:      ext = ".csw"; break;
-         case LIBSPECTRUM_ID_TAPE_Z80EM:    ext = ".raw"; break;
-         case LIBSPECTRUM_ID_TAPE_WAV:      ext = ".wav"; break;
-         case LIBSPECTRUM_ID_TAPE_SPC:      ext = ".spc"; break;
-         case LIBSPECTRUM_ID_TAPE_STA:      ext = ".sta"; break;
-         case LIBSPECTRUM_ID_TAPE_LTP:      ext = ".ltp"; break;
-         case LIBSPECTRUM_ID_TAPE_PZX:      ext = ".pzx"; break;
-      }
+      const char* ext;
+      indentify_file_get_ext(tape_data, tape_size, &ext);
       
       char filename_option[32];
       snprintf(filename_option, sizeof(filename_option), "-t*%s", ext);
@@ -833,6 +841,18 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
 void retro_reset(void)
 {
+   fuse_emulation_pause();
+   
+   const char* ext;
+   libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
+   
+   char filename[32];
+   snprintf(filename, sizeof(filename), "*%s", ext);
+   filename[sizeof(filename) - 1] = 0;
+   
+   utils_open_file(filename, 1, &type);
+   display_refresh_all();
+   fuse_emulation_unpause();
 }
 
 size_t retro_serialize_size(void)
