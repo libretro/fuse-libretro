@@ -1,3 +1,5 @@
+#include <externs.h>
+
 // Rename settings_init so we can extend it
 
 #define settings_init fuse_settings_init

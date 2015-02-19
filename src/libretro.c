@@ -25,7 +25,6 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
-static struct retro_frame_time_callback time_cb;
 
 static unsigned input_devices[MAX_PADS];
 static uint16_t image_buffer_2[MAX_WIDTH * MAX_HEIGHT];
@@ -53,7 +52,7 @@ unsigned keyb_y;
 int input_state[MAX_PADS][5];
 void*  snapshot_buffer;
 size_t snapshot_size;
-const void* tape_data;
+void* tape_data;
 size_t tape_size;
 
 static const struct { unsigned x; unsigned y; } keyb_positions[4] = {
@@ -246,7 +245,7 @@ static void update_bool(const char* key, int* value, int def)
    log_cb(RETRO_LOG_INFO, "%s set to %d\n", key, x);
 }
 
-static void update_string_list(const char* key, const char** value, const char* options[], const char* values[], unsigned count)
+static void update_string_list(const char* key, char** value, const char* options[], const char* values[], unsigned count)
 {
    struct retro_variable var;
   
@@ -692,9 +691,9 @@ static void render_video(void)
       {
          if (keyb_transparent)
          {
-            uint16_t* src1 = keyboard_overlay;
-            uint16_t* src2 = image_buffer;
-            uint16_t* end = src1 + sizeof(keyboard_overlay) / sizeof(keyboard_overlay[0]);
+            const uint16_t* src1 = keyboard_overlay;
+            const uint16_t* src2 = image_buffer;
+            const uint16_t* end = src1 + sizeof(keyboard_overlay) / sizeof(keyboard_overlay[0]);
             uint16_t* dest = image_buffer_2;
          
             do

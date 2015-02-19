@@ -7,6 +7,7 @@
 #include <libretro.h>
 #include <settings.h>
 #include <input.h>
+#include <ui/ui.h>
 
 // These defines shouldn't be here...
 #define MAX_WIDTH  320
@@ -33,10 +34,11 @@ extern unsigned keyb_y;
 extern int input_state[MAX_PADS][5];
 extern void* snapshot_buffer;
 extern size_t snapshot_size;
-const void* tape_data;
+void* tape_data;
 size_t tape_size;
 
 void update_variables(void);
+int fuse_ui_error_specific(ui_error_level, const char*);
 
 // From Fuse
 extern settings_info settings_current;

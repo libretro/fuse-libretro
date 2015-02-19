@@ -102,8 +102,6 @@ void uidisplay_plot8(int x, int y, libspectrum_byte data, libspectrum_byte ink, 
 
    if (machine_current->timex)
    {
-      int i;
-
       x <<= 1; y <<= 1;
       uint16_t* image_buffer_pos = image_buffer + (y * hard_width + x);
       

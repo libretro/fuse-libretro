@@ -1,6 +1,7 @@
 // Compatibility osname function
 
 #include <stddef.h>
+#include <string.h>
 
 int compat_osname(char *buffer, size_t length)
 {

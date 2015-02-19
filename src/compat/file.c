@@ -78,7 +78,7 @@ compat_fd compat_file_open(const char *path, int write)
          
          if (fd)
          {
-            fd->ptr = entry->ptr;
+            fd->ptr = (const char*)entry->ptr;
             fd->length = fd->remain = entry->size;
             
             log_cb(RETRO_LOG_INFO, "Opened \"%s\" from memory\n", path);
