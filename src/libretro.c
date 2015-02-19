@@ -568,31 +568,30 @@ bool retro_load_game(const struct retro_game_info *info)
    
    if (info != NULL)
    {
-      const char* ext;
-      indentify_file_get_ext(tape_data, tape_size, &ext);
-      
-      char filename_option[32];
-      snprintf(filename_option, sizeof(filename_option), "-t*%s", ext);
-      filename_option[sizeof(filename_option) - 1] = 0;
-      
-      log_cb(RETRO_LOG_INFO, "Named the input file as %s\n", filename_option + 2);
-      
       char *argv[] = {
          "fuse",
-         filename_option
       };
       
-      log_cb(RETRO_LOG_INFO, "Loading content %s\n", info->path ? info->path : "(null)");
-      return fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0;
+      if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
+      {
+         fuse_emulation_pause();
+         
+         const char* ext;
+         libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
+         
+         char filename[32];
+         snprintf(filename, sizeof(filename), "*%s", ext);
+         filename[sizeof(filename) - 1] = 0;
+         
+         utils_open_file(filename, 1, &type);
+         display_refresh_all();
+         fuse_emulation_unpause();
+      
+         return true;
+      }
    }
    
-   // Boots the emulation into BASIC
-   char *argv[] = {
-      "fuse"
-   };
-   
-   log_cb(RETRO_LOG_INFO, "Booting into BASIC\n");
-   return fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0;
+   return false;
 }
 
 size_t retro_get_memory_size(unsigned id)
