@@ -182,3 +182,21 @@ SOURCES_C += $(CORE_DIR)/libspectrum/z80.c
 SOURCES_C += $(CORE_DIR)/libspectrum/z80em.c
 SOURCES_C += $(CORE_DIR)/libspectrum/zlib.c
 SOURCES_C += $(CORE_DIR)/libspectrum/zxs.c
+
+ROMS += fuse/roms/48.rom
+ROMS += fuse/roms/128-0.rom
+ROMS += fuse/roms/128-1.rom
+ROMS += fuse/roms/plus2-0.rom
+ROMS += fuse/roms/plus2-1.rom
+ROMS += fuse/roms/plus3-0.rom
+ROMS += fuse/roms/plus3-1.rom
+ROMS += fuse/roms/plus3-2.rom
+ROMS += fuse/roms/plus3-3.rom
+
+SNAPS += fuse/lib/uncompressed/tape_48.szx
+SNAPS += fuse/lib/uncompressed/tape_16.szx
+SNAPS += fuse/lib/uncompressed/tape_48_ntsc.szx
+SNAPS += fuse/lib/uncompressed/tape_128.szx
+SNAPS += fuse/lib/uncompressed/tape_plus2.szx
+SNAPS += fuse/lib/uncompressed/tape_plus2a.szx
+SNAPS += fuse/lib/uncompressed/tape_plus3.szx

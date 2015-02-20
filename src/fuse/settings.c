@@ -29,6 +29,6 @@ int settings_init(int *first_arg, int argc, char **argv)
    settings_current.joystick_1_output = 1;
    settings_current.joystick_2_output = 2;
    
-   update_variables();
+   update_variables(1);
    return res;
 }

@@ -37,7 +37,7 @@ extern size_t snapshot_size;
 void* tape_data;
 size_t tape_size;
 
-void update_variables(void);
+int update_variables(int);
 int fuse_ui_error_specific(ui_error_level, const char*);
 
 // From Fuse

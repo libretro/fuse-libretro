@@ -260,9 +260,12 @@ CXXFLAGS += -Wall
 
 LDFLAGS +=
 
+ROMS =
+SNAPS =
+
 include Makefile.common
 
-OBJS += $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
+OBJS += $(ROMS:.rom=.h) $(SNAPS:.szx=.h) fuse/config.h libspectrum/config.h $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
 
 INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
 
@@ -274,6 +277,12 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
 
 %.o: %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
+
+%.h: %.rom
+	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+
+%.h: %.szx
+	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
 
 ifeq ($(platform), theos_ios)
 COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
@@ -292,19 +301,11 @@ else
 	$(CXX) -o $@ $(SHARED) $(OBJS) $(LDFLAGS) $(LIBS)
 endif
 
-$(OBJS): fuse/config.h libspectrum/config.h src/compat/48.rom.h src/compat/tape_48.szx.h
-
 fuse/config.h:
 	cp src/config_fuse.h fuse/config.h
 
 libspectrum/config.h:
 	cp src/config_libspectrum.h libspectrum/config.h
-
-src/compat/48.rom.h: fuse/roms/48.rom
-	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
-
-src/compat/tape_48.szx.h: fuse/lib/uncompressed/tape_48.szx
-	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
 
 clean-objs:
 	rm -f $(OBJS)
@@ -312,8 +313,6 @@ clean-objs:
 clean:
 	rm -f $(OBJS)
 	rm -f $(TARGET)
-	rm -f fuse/config.h libspectrum/config.h
-	rm -f src/compat/48.rom.h src/compat/tape_48.szx.h
 
 .PHONY: $(TARGET) clean clean-objs
 endif

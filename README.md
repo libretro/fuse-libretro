@@ -9,12 +9,21 @@ There are hundreds of free, legally available ZX Spectrum games at [World of Spe
 
 ## Emulated Machines
 
-The only emulated machine for now is the ZX Spectrum 48K. The port correctly loads and runs ~~some~~ many games I have around.
+1. Spectrum 16K
+1. Spectrum 48K
+1. Spectrum 48K (NTSC)
+1. Spectrum 128K
+1. Spectrum +2
+1. Spectrum +2A
+1. Spectrum +3"
+
+The port correctly loads and runs ~~some~~ many games I have around, but all of them are 48K tapes.
 
 ## Core Options
 
 The core options available on the frontend are:
 
+* Machine to emulate (Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3): Set the machine to emulate. Note that the current emulation will be reset, and the current content will be loaded into the new emulation. If the current content is not appropriate for the new machine, emulation may freeze. If that's the case, it usually suffice to load some other content appropriate to the new emulation.
 * Hide video border (enabled|disabled): Hides the video border, making the game occupy the entire screen area
 * Tape Fast Load (enabled|disabled): Instantly loads tape files if enabled, or disabled it to see the moving horizontal lines in the video border while the game loads
 * Tape Load Sound (enabled|disabled): Outputs the tape sound if fast load is disabled

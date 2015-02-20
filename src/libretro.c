@@ -23,6 +23,10 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 #define RETRO_DEVICE_TIMEX2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 5)
 #define RETRO_DEVICE_FULLER_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 6)
 
+#define UPDATE_AV_INFO  1
+#define UPDATE_GEOMETRY 2
+#define UPDATE_MACHINE  4
+
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
 
@@ -30,8 +34,9 @@ static unsigned input_devices[MAX_PADS];
 static uint16_t image_buffer_2[MAX_WIDTH * MAX_HEIGHT];
 static unsigned first_pixel;
 static unsigned soft_width, soft_height;
-static int hide_border, change_geometry;
+static int hide_border;
 static int keyb_transparent;
+static libspectrum_machine machine;
 
 // allow access to variables declared here
 retro_environment_t env_cb;
@@ -326,38 +331,89 @@ static void update_long_list(const char* key, long* value, long values[], unsign
    log_cb(RETRO_LOG_INFO, "%s set to %ld\n", key, x);
 }
 
-void update_variables(void)
+static uint32_t djb2(const char *str)
 {
+   const unsigned char *aux = (const unsigned char *)str;
+   uint32_t hash = 5381;
+   
+   while ( *aux )
    {
-      // Change this when we're emulating Timex. The MAX_[WIDTH|HEIGHT] macros must be changed also.
-      hard_width = 320;
-      hard_height = 240;
+      hash = ( hash << 5 ) + hash + *aux++;
+   }
+   
+   return hash;
+}
+
+int update_variables(int force)
+{
+   int flags = 0;
+   
+   {
+      static const char* options[] = { "Spectrum 16K", "Spectrum 48K", "Spectrum 48K (NTSC)", "Spectrum 128K", "Spectrum +2", "Spectrum +2A", "Spectrum +3" };
+      static const char* values[]  = { "16",           "48",           "48_ntsc",             "128",           "plus2",       "plus2a",       "plus3" };
+      update_string_list("fuse_machine", &settings_current.start_machine, options, values, sizeof(options) / sizeof(options[0]));
       
-      soft_width = hard_width;
-      soft_height = hard_height;
-      first_pixel = 0;
+      uint32_t hash = djb2(settings_current.start_machine);
+      libspectrum_machine new_machine;
       
-      change_geometry = true;
+      switch (hash)
+      {
+         default: // fall through
+         case 0x00597131U: new_machine = LIBSPECTRUM_MACHINE_48;      break; // 48
+         case 0x005970ccU: new_machine = LIBSPECTRUM_MACHINE_16;      break; // 16
+         case 0x302a3e08U: new_machine = LIBSPECTRUM_MACHINE_48_NTSC; break; // 48_ntsc
+         case 0x0b878a00U: new_machine = LIBSPECTRUM_MACHINE_128;     break; // 128
+         case 0x1026f23bU: new_machine = LIBSPECTRUM_MACHINE_PLUS2;   break; // plus2
+         case 0x150539fcU: new_machine = LIBSPECTRUM_MACHINE_PLUS2A;  break; // plus2a
+         case 0x1026f23cU: new_machine = LIBSPECTRUM_MACHINE_PLUS3;   break; // plus3
+      }
       
-      log_cb(RETRO_LOG_INFO, "Hard resolution set to %ux%u\n", hard_width, hard_height);
-      log_cb(RETRO_LOG_INFO, "Soft resolution set to %ux%u\n", soft_width, soft_height);
+      if (new_machine != machine || force)
+      {
+         if (new_machine == LIBSPECTRUM_MACHINE_48_NTSC || machine == LIBSPECTRUM_MACHINE_48_NTSC)
+         {
+            // region and fps change
+            flags |= UPDATE_AV_INFO;
+         }
+         
+         machine = new_machine;
+         flags |= UPDATE_MACHINE;
+      }
+      
+      // Change this when we're emulating timex machines
+      unsigned width = 320;
+      unsigned height = 240;
+      
+      if (width != hard_width || height != hard_height || force)
+      {
+         hard_width = width;
+         hard_height = height;
+         
+         flags |= UPDATE_AV_INFO;
+      }
    }
    
    {
       int value;
       update_bool("fuse_hide_border", &value, 0);
       
-      if (value != hide_border)
+      if (value != hide_border || force)
       {
          hide_border = value;
          
-         soft_width = hide_border ? 256 : 320;
-         soft_height = hide_border ? 192 : 240;
+         if (hide_border)
+         {
+            soft_width = hard_width == 320 ? 256 : 512;
+            soft_height = hard_height == 240 ? 192 : 384;
+         }
+         else
+         {
+            soft_width = hard_width;
+            soft_height = hard_height;
+         }
+         
          first_pixel = ( hard_height - soft_height ) / 2 * hard_width + ( hard_width - soft_width ) / 2;
-         
-         change_geometry = true;
-         
-         log_cb(RETRO_LOG_INFO, "Soft resolution set to %ux%u\n", soft_width, soft_height);
+         flags |= UPDATE_GEOMETRY;
       }
    }
    
@@ -386,6 +442,8 @@ void update_variables(void)
       update_long_list("fuse_key_hold_time", &value, values, sizeof(values) / sizeof(values[0]));
       keyb_hold_time = value * 1000LL;
    }
+   
+   return flags;
 }
 
 static int get_joystick(unsigned device)
@@ -419,6 +477,7 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_variable vars[] = {
+      { "fuse_machine", "Machine to emulate (Restart); Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3" },
       { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
       { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
       { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
@@ -534,6 +593,8 @@ static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, co
 
 bool retro_load_game(const struct retro_game_info *info)
 {
+   log_cb(RETRO_LOG_DEBUG, "%s(%p)\n", __FUNCTION__, info);
+
    if (!perf_cb.get_time_usec)
    {
       log_cb(RETRO_LOG_ERROR, "Fuse needs the perf interface");
@@ -561,6 +622,7 @@ bool retro_load_game(const struct retro_game_info *info)
    
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(input_state, 0, sizeof(input_state));
+   hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;
    keyb_x = keyb_y = 0;
    keyb_send = 0;
@@ -641,7 +703,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
    info->geometry.aspect_ratio = 0.0f;
-   info->timing.fps = 50.0;
+   info->timing.fps = strcmp( settings_current.start_machine, "48_ntsc" ) == 0 ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
    
    log_cb(RETRO_LOG_INFO, "Set retro_system_av_info to:\n");
@@ -656,30 +718,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 
 static void render_video(void)
 {
-   if (change_geometry)
-   {
-      struct retro_game_geometry geometry;
-      
-      // Here we use the "soft" resolution that is changed according to the
-      // fuse_hide_border variable
-      geometry.base_width = soft_width;
-      geometry.base_height = soft_height;
-      
-      geometry.max_width = MAX_WIDTH;
-      geometry.max_height = MAX_HEIGHT;
-      geometry.aspect_ratio = 0.0f;
-      
-      env_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
-      change_geometry = false;
-      
-      log_cb(RETRO_LOG_INFO, "Set retro_game_geometry to:\n");
-      log_cb(RETRO_LOG_INFO, "  base_width   = %u\n", geometry.base_width);
-      log_cb(RETRO_LOG_INFO, "  base_height  = %u\n", geometry.base_height);
-      log_cb(RETRO_LOG_INFO, "  max_width    = %u\n", geometry.max_width);
-      log_cb(RETRO_LOG_INFO, "  max_height   = %u\n", geometry.max_height);
-      log_cb(RETRO_LOG_INFO, "  aspect_ratio = %f\n", geometry.max_height);
-   }
-   
    if (!keyb_overlay)
    {
       video_cb(show_frame ? image_buffer + first_pixel : NULL, soft_width, soft_height, hard_width * sizeof(uint16_t));
@@ -769,9 +807,56 @@ void retro_run(void)
    
    if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
    {
-      update_variables();
+      int flags = update_variables(0);
+      
+      if (flags & UPDATE_AV_INFO)
+      {
+         struct retro_system_av_info info;
+         retro_get_system_av_info(&info);
+         env_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
+      }
+      
+      if (flags & UPDATE_GEOMETRY)
+      {
+         struct retro_game_geometry geometry;
+         
+         // Here we use the "soft" resolution that is changed according to the
+         // fuse_hide_border variable
+         geometry.base_width = soft_width;
+         geometry.base_height = soft_height;
+         
+         geometry.max_width = MAX_WIDTH;
+         geometry.max_height = MAX_HEIGHT;
+         geometry.aspect_ratio = 0.0f;
+         
+         env_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
+         
+         log_cb(RETRO_LOG_INFO, "Set retro_game_geometry to:\n");
+         log_cb(RETRO_LOG_INFO, "  base_width   = %u\n", geometry.base_width);
+         log_cb(RETRO_LOG_INFO, "  base_height  = %u\n", geometry.base_height);
+         log_cb(RETRO_LOG_INFO, "  max_width    = %u\n", geometry.max_width);
+         log_cb(RETRO_LOG_INFO, "  max_height   = %u\n", geometry.max_height);
+         log_cb(RETRO_LOG_INFO, "  aspect_ratio = %f\n", geometry.aspect_ratio);
+      }
+      
+      if (flags & UPDATE_MACHINE)
+      {
+         machine_select( machine );
+         fuse_emulation_pause();
+         
+         const char* ext;
+         libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
+         
+         char filename[32];
+         snprintf(filename, sizeof(filename), "*%s", ext);
+         filename[sizeof(filename) - 1] = 0;
+         
+         utils_open_file(filename, 1, &type);
+         display_refresh_all();
+         fuse_emulation_unpause();
+      }
    }
-
+   
    show_frame = some_audio = 0;
    
    /*
@@ -913,8 +998,7 @@ void retro_unload_game(void)
 
 unsigned retro_get_region(void)
 {
-   // TODO set this accordingly to the machine being emulated
-   return RETRO_REGION_PAL;
+   return strcmp( settings_current.start_machine, "48_ntsc" ) == 0 ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
 }
 
 // Dummy callbacks for the UI
