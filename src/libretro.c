@@ -477,7 +477,7 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_variable vars[] = {
-      { "fuse_machine", "Machine to emulate (Restart); Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3" },
+      { "fuse_machine", "Model (resets emulation); Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3" },
       { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
       { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
       { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
@@ -703,7 +703,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
    info->geometry.aspect_ratio = 0.0f;
-   info->timing.fps = strcmp( settings_current.start_machine, "48_ntsc" ) == 0 ? 60.0 : 50.0;
+   info->timing.fps = machine == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
    
    log_cb(RETRO_LOG_INFO, "Set retro_system_av_info to:\n");
@@ -842,18 +842,6 @@ void retro_run(void)
       if (flags & UPDATE_MACHINE)
       {
          machine_select( machine );
-         fuse_emulation_pause();
-         
-         const char* ext;
-         libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
-         
-         char filename[32];
-         snprintf(filename, sizeof(filename), "*%s", ext);
-         filename[sizeof(filename) - 1] = 0;
-         
-         utils_open_file(filename, 1, &type);
-         display_refresh_all();
-         fuse_emulation_unpause();
       }
    }
    
@@ -998,7 +986,7 @@ void retro_unload_game(void)
 
 unsigned retro_get_region(void)
 {
-   return strcmp( settings_current.start_machine, "48_ntsc" ) == 0 ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
+   return machine == LIBSPECTRUM_MACHINE_48_NTSC ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
 }
 
 // Dummy callbacks for the UI
