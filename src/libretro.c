@@ -1,6 +1,8 @@
 #include <libretro.h>
 #include <keyboverlay.h>
 
+#include <stddef.h>
+#include <string.h>
 #include <errno.h>
 
 // Fuse includes
