@@ -265,7 +265,8 @@ SNAPS =
 
 include Makefile.common
 
-OBJS += $(ROMS:.rom=.h) $(SNAPS:.szx=.h) fuse/config.h libspectrum/config.h $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
+HEADERS += $(ROMS:.rom=.h) $(SNAPS:.szx=.h) fuse/config.h libspectrum/config.h
+OBJS += $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
 
 INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
 
@@ -294,7 +295,7 @@ include $(THEOS_MAKE_PATH)/library.mk
 else
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
+$(TARGET): $(HEADERS) $(OBJS)
 ifeq ($(STATIC_LINKING), 1)
 	$(AR) rcs $@ $(OBJS)
 else
