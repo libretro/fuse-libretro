@@ -1,6 +1,6 @@
 TARGET_NAME := fuse
 
-DEBUG   = 0
+DEBUG   = 1
 LOG_PERFORMANCE = 1
 HAVE_COMPAT = 0
 
@@ -298,7 +298,7 @@ $(TARGET): $(OBJS)
 ifeq ($(STATIC_LINKING), 1)
 	$(AR) rcs $@ $(OBJS)
 else
-	$(CXX) -o $@ $(SHARED) $(OBJS) $(LDFLAGS) $(LIBS)
+	$(CC) -o $@ $(SHARED) $(OBJS) $(LDFLAGS) $(LIBS)
 endif
 
 fuse/config.h:

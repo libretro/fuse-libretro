@@ -1,6 +1,7 @@
 #include <libretro.h>
 #include <keyboverlay.h>
 
+#include <coreopt.h>
 #include <errno.h>
 
 // Fuse includes
@@ -27,6 +28,35 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 #define UPDATE_GEOMETRY 2
 #define UPDATE_MACHINE  4
 
+typedef struct
+{
+   libspectrum_machine id;
+   const char*         fuse_id;
+   char                is_timex;
+}
+machine_t;
+
+static const machine_t machine_list[] =
+{
+   { LIBSPECTRUM_MACHINE_48,       "48",           0 },
+   { LIBSPECTRUM_MACHINE_48_NTSC,  "48_ntsc",      0 },
+   { LIBSPECTRUM_MACHINE_128,      "128",          0 },
+   { LIBSPECTRUM_MACHINE_PLUS2,    "plus2",        0 },
+   { LIBSPECTRUM_MACHINE_PLUS2A,   "plus2a",       0 },
+   { LIBSPECTRUM_MACHINE_PLUS3,    "plus3",        0 },
+   { LIBSPECTRUM_MACHINE_PLUS3E,   "plus3e",       0 },
+   { LIBSPECTRUM_MACHINE_SE,       "se",           1 },
+   { LIBSPECTRUM_MACHINE_TC2048,   "2048",         1 },
+   { LIBSPECTRUM_MACHINE_TC2068,   "2068",         1 },
+   { LIBSPECTRUM_MACHINE_TS2068,   "ts2068",       1 },
+   { LIBSPECTRUM_MACHINE_16,       "16",           0 },
+   /* missing roms */
+   { LIBSPECTRUM_MACHINE_PENT,     "pentagon",     0 },
+   { LIBSPECTRUM_MACHINE_PENT512,  "pentagon512",  0 },
+   { LIBSPECTRUM_MACHINE_PENT1024, "pentagon1024", 0 },
+   { LIBSPECTRUM_MACHINE_SCORP,    "scorpion",     0 },
+};
+
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
 
@@ -36,7 +66,7 @@ static unsigned first_pixel;
 static unsigned soft_width, soft_height;
 static int hide_border;
 static int keyb_transparent;
-static libspectrum_machine machine;
+static const machine_t* machine;
 
 // allow access to variables declared here
 retro_environment_t env_cb;
@@ -218,6 +248,19 @@ keysyms_map_t keysyms_map[] = {
    { 0, 0 }	// End marker: DO NOT MOVE!
 };
 
+static const struct retro_variable core_vars[] =
+{
+   { "fuse_machine", "Model (resets emulation); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K" },
+   { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
+   { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
+   { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
+   { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
+   { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
+   { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
+   { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
+   { NULL, NULL },
+};
+ 
 #ifdef LOG_PERFORMANCE
 #define RETRO_PERFORMANCE_INIT(name)  static struct retro_perf_counter name = {#name}; if (!name.registered) perf_cb.perf_register(&(name))
 #define RETRO_PERFORMANCE_START(name) perf_cb.perf_start(&(name))
@@ -228,149 +271,25 @@ keysyms_map_t keysyms_map[] = {
 #define RETRO_PERFORMANCE_STOP(name)
 #endif
 
-static void update_bool(const char* key, int* value, int def)
-{
-   struct retro_variable var;
-  
-   var.key = key;
-   var.value = NULL;
-   int x = def;
-   
-   if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "enabled"))
-         x = 1;
-      else if (!strcmp(var.value, "disabled"))
-         x = 0;
-      else
-         log_cb(RETRO_LOG_ERROR, "Invalid value for %s: %s\n", key, var.value);
-   }
-   
-   *value = x;
-   log_cb(RETRO_LOG_INFO, "%s set to %d\n", key, x);
-}
-
-static void update_string_list(const char* key, char** value, const char* options[], const char* values[], unsigned count)
-{
-   struct retro_variable var;
-  
-   var.key = key;
-   var.value = NULL;
-   const char* x = values[0];
-   
-   if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      unsigned i;
-      bool found = false;
-      
-      for (i = 0; i < count; i++)
-      {
-         if (!strcmp(var.value, options[i]))
-         {
-            x = values[i];
-            found = true;
-            break;
-         }
-      }
-      
-      if (!found)
-      {
-         log_cb(RETRO_LOG_ERROR, "Invalid value for %s: \"%s\"\n", key, var.value);
-      }
-   }
-   
-   if (*value)
-   {
-      libspectrum_free((void*)*value);
-   }
-   
-   *value = utils_safe_strdup(x);
-   log_cb(RETRO_LOG_INFO, "%s set to \"%s\"\n", key, x);
-}
-
-static void update_long_list(const char* key, long* value, long values[], unsigned count)
-{
-   struct retro_variable var;
-  
-   var.key = key;
-   var.value = NULL;
-   long x = values[0];
-   
-   if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      char *endptr;
-      long y = strtol(var.value, &endptr, 10);
-      
-      if (*endptr != 0 || errno == ERANGE)
-      {
-         log_cb(RETRO_LOG_ERROR, "Invalid value for %s: %s\n", key, var.value);
-      }
-      else
-      {
-         unsigned i;
-         bool found = false;
-         
-         for (i = 0; i < count; i++)
-         {
-            if (y == values[i])
-            {
-               x = y;
-               found = true;
-               break;
-            }
-         }
-         
-         if (!found)
-         {
-            log_cb(RETRO_LOG_ERROR, "Invalid value for %s: %s\n", key, var.value);
-         }
-      }
-   }
-   
-   *value = x;
-   log_cb(RETRO_LOG_INFO, "%s set to %ld\n", key, x);
-}
-
-static uint32_t djb2(const char *str)
-{
-   const unsigned char *aux = (const unsigned char *)str;
-   uint32_t hash = 5381;
-   
-   while ( *aux )
-   {
-      hash = ( hash << 5 ) + hash + *aux++;
-   }
-   
-   return hash;
-}
-
 int update_variables(int force)
 {
    int flags = 0;
    
    {
-      static const char* options[] = { "Spectrum 16K", "Spectrum 48K", "Spectrum 48K (NTSC)", "Spectrum 128K", "Spectrum +2", "Spectrum +2A", "Spectrum +3" };
-      static const char* values[]  = { "16",           "48",           "48_ntsc",             "128",           "plus2",       "plus2a",       "plus3" };
-      update_string_list("fuse_machine", &settings_current.start_machine, options, values, sizeof(options) / sizeof(options[0]));
-      
-      uint32_t hash = djb2(settings_current.start_machine);
-      libspectrum_machine new_machine;
-      
-      switch (hash)
-      {
-         default: // fall through
-         case 0x00597131U: new_machine = LIBSPECTRUM_MACHINE_48;      break; // 48
-         case 0x005970ccU: new_machine = LIBSPECTRUM_MACHINE_16;      break; // 16
-         case 0x302a3e08U: new_machine = LIBSPECTRUM_MACHINE_48_NTSC; break; // 48_ntsc
-         case 0x0b878a00U: new_machine = LIBSPECTRUM_MACHINE_128;     break; // 128
-         case 0x1026f23bU: new_machine = LIBSPECTRUM_MACHINE_PLUS2;   break; // plus2
-         case 0x150539fcU: new_machine = LIBSPECTRUM_MACHINE_PLUS2A;  break; // plus2a
-         case 0x1026f23cU: new_machine = LIBSPECTRUM_MACHINE_PLUS3;   break; // plus3
-      }
+      int option = coreopt(env_cb, core_vars, "fuse_machine");
+      option += option < 0;
+      const machine_t *new_machine = machine_list + option;
       
       if (new_machine != machine || force)
       {
-         if (new_machine == LIBSPECTRUM_MACHINE_48_NTSC || machine == LIBSPECTRUM_MACHINE_48_NTSC)
+         if (settings_current.start_machine)
+         {
+            libspectrum_free((void*)settings_current.start_machine);
+         }
+         
+         settings_current.start_machine = utils_safe_strdup(new_machine->fuse_id);
+         
+         if (machine == NULL || new_machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_48_NTSC)
          {
             // region and fps change
             flags |= UPDATE_AV_INFO;
@@ -381,30 +300,18 @@ int update_variables(int force)
       }
       
       // Change this when we're emulating timex machines
-      unsigned width = 320;
-      unsigned height = 240;
+      unsigned width = machine->is_timex ? 640 : 320;
+      unsigned height = machine->is_timex ? 480 : 240;
       
       if (width != hard_width || height != hard_height || force)
       {
          hard_width = width;
          hard_height = height;
          
-         flags |= UPDATE_AV_INFO;
-      }
-   }
-   
-   {
-      int value;
-      update_bool("fuse_hide_border", &value, 0);
-      
-      if (value != hide_border || force)
-      {
-         hide_border = value;
-         
          if (hide_border)
          {
-            soft_width = hard_width == 320 ? 256 : 512;
-            soft_height = hard_height == 240 ? 192 : 384;
+            soft_width = machine->is_timex ? 512 : 256;
+            soft_height = machine->is_timex ? 384 : 192;
          }
          else
          {
@@ -412,35 +319,69 @@ int update_variables(int force)
             soft_height = hard_height;
          }
          
-         first_pixel = ( hard_height - soft_height ) / 2 * hard_width + ( hard_width - soft_width ) / 2;
+         first_pixel = (hard_height - soft_height) / 2 * hard_width + (hard_width - soft_width) / 2;
+         flags |= UPDATE_AV_INFO | UPDATE_GEOMETRY;
+      }
+   }
+   
+   {
+      int option = coreopt(env_cb, core_vars, "fuse_hide_border");
+      option += option < 0;
+      
+      if (option != hide_border || force)
+      {
+         hide_border = option;
+         
+         if (hide_border)
+         {
+            soft_width = machine->is_timex ? 512 : 256;
+            soft_height = machine->is_timex ? 384 : 192;
+         }
+         else
+         {
+            soft_width = hard_width;
+            soft_height = hard_height;
+         }
+         
+         first_pixel = (hard_height - soft_height) / 2 * hard_width + (hard_width - soft_width) / 2;
          flags |= UPDATE_GEOMETRY;
       }
    }
    
-   update_bool("fuse_fast_load", &settings_current.accelerate_loader, 1);
-   settings_current.fastload = settings_current.accelerate_loader;
+   settings_current.fastload = coreopt(env_cb, core_vars, "fuse_fast_load") != 1;
+   settings_current.accelerate_loader = settings_current.fastload;
 
-   update_bool("fuse_load_sound", &settings_current.sound_load, 1);
+   settings_current.sound_load = coreopt(env_cb, core_vars, "fuse_load_sound") != 1;
 
    {
-      static const char* options[] = { "tv speaker", "beeper", "unfiltered" };
-      static const char* values[]  = { "TV speaker", "Beeper", "Unfiltered" };
-      update_string_list("fuse_speaker_type", &settings_current.speaker_type, options, values, sizeof(options) / sizeof(options[0]));
+      int option = coreopt(env_cb, core_vars, "fuse_speaker_type");
+      
+      if (settings_current.speaker_type)
+      {
+         libspectrum_free((void*)settings_current.speaker_type);
+      }
+      
+      settings_current.speaker_type = utils_safe_strdup(option == 1 ? "Beeper" : option == 2 ? "Unfiltered" : "TV speaker");
    }
 
    {
-      static const char* options[] = { "none", "acb", "abc" };
-      static const char* values[]  = { "None", "ACB", "ABC" };
-      update_string_list("fuse_ay_stereo_separation", &settings_current.stereo_ay, options, values, sizeof(options) / sizeof(options[0]));
+      int option = coreopt(env_cb, core_vars, "fuse_ay_stereo_separation");
+      
+      if (settings_current.stereo_ay)
+      {
+         libspectrum_free((void*)settings_current.stereo_ay);
+      }
+      
+      settings_current.stereo_ay = utils_safe_strdup(option == 1 ? "ACB" : option == 2 ? "ABC" : "None");
    }
 
-   update_bool("fuse_key_ovrlay_transp", &keyb_transparent, 1);
+   keyb_transparent = coreopt(env_cb, core_vars, "fuse_key_ovrlay_transp") != 1;
 
    {
       static long values[] = { 500, 1000, 100, 300 };
-      long value;
-      update_long_list("fuse_key_hold_time", &value, values, sizeof(values) / sizeof(values[0]));
-      keyb_hold_time = value * 1000LL;
+      
+      int option = coreopt(env_cb, core_vars, "fuse_key_hold_time");
+      keyb_hold_time = values[option + (option < 0)] * 1000LL;
    }
    
    return flags;
@@ -476,18 +417,6 @@ void retro_set_environment(retro_environment_t cb)
 {
    env_cb = cb;
 
-   static const struct retro_variable vars[] = {
-      { "fuse_machine", "Model (resets emulation); Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3" },
-      { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
-      { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
-      { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
-      { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
-      { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
-      { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
-      { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
-      { NULL, NULL },
-   };
-   
    static const struct retro_controller_description controllers[] = {
       { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
       { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
@@ -514,7 +443,7 @@ void retro_set_environment(retro_environment_t cb)
    //bool _true = true;
    //cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, (void*)&_true);
    
-   cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
+   cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
 
@@ -622,6 +551,7 @@ bool retro_load_game(const struct retro_game_info *info)
    
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(input_state, 0, sizeof(input_state));
+   machine = NULL;
    hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;
    keyb_x = keyb_y = 0;
@@ -703,7 +633,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
    info->geometry.aspect_ratio = 0.0f;
-   info->timing.fps = machine == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
+   info->timing.fps = machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
    
    log_cb(RETRO_LOG_INFO, "Set retro_system_av_info to:\n");
@@ -726,25 +656,78 @@ static void render_video(void)
    {
       if (show_frame)
       {
-         if (keyb_transparent)
+         if (machine->is_timex)
          {
             const uint16_t* src1 = keyboard_overlay;
             const uint16_t* src2 = image_buffer;
-            const uint16_t* end = src1 + sizeof(keyboard_overlay) / sizeof(keyboard_overlay[0]);
             uint16_t* dest = image_buffer_2;
-         
-            do
+            int x, y;
+            
+            if (keyb_transparent)
             {
-               uint32_t src1_pixel = *src1++ & 0xe79c;
-               uint32_t src2_pixel = *src2++ & 0xe79c;
-               
-               *dest++ = (src1_pixel * 3 + src2_pixel) >> 2;
+               for (y = 0; y < 240; y++)
+               {
+                  for (x = 0; x < 320; x++)
+                  {
+                     uint32_t src1_pixel = (*src1++ & 0xe79c) * 3;
+                     
+                     dest[ 0 ] = (src1_pixel + ( src2[ 0 ] & 0xe79c)) >> 2;
+                     dest[ 1 ] = (src1_pixel + ( src2[ 1 ] & 0xe79c)) >> 2;
+                     dest[ 640 ] = (src1_pixel + ( src2[ 640 ] & 0xe79c)) >> 2;
+                     dest[ 641 ] = (src1_pixel + ( src2[ 641 ] & 0xe79c)) >> 2;
+                     
+                     src2 += 2;
+                     dest += 2;
+                  }
+                  
+                  src2 += 640;
+                  dest += 640;
+               }
             }
-            while (src1 < end);
+            else
+            {
+               for (y = 0; y < 240; y++)
+               {
+                  for (x = 0; x < 320; x++)
+                  {
+                     uint32_t src1_pixel = *src1++;
+                     
+                     dest[ 0 ] = src1_pixel;
+                     dest[ 1 ] = src1_pixel;
+                     dest[ 640 ] = src1_pixel;
+                     dest[ 641 ] = src1_pixel;
+                     
+                     src2 += 2;
+                     dest += 2;
+                  }
+                  
+                  src2 += 640;
+                  dest += 640;
+               }
+             }
          }
          else
          {
-            memcpy(image_buffer_2, keyboard_overlay, sizeof(keyboard_overlay));
+            if (keyb_transparent)
+            {
+               const uint16_t* src1 = keyboard_overlay;
+               const uint16_t* src2 = image_buffer;
+               const uint16_t* end = src1 + sizeof(keyboard_overlay) / sizeof(keyboard_overlay[0]);
+               uint16_t* dest = image_buffer_2;
+            
+               do
+               {
+                  uint32_t src1_pixel = *src1++ & 0xe79c;
+                  uint32_t src2_pixel = *src2++ & 0xe79c;
+                  
+                  *dest++ = (src1_pixel * 3 + src2_pixel) >> 2;
+               }
+               while (src1 < end);
+            }
+            else
+            {
+               memcpy(image_buffer_2, keyboard_overlay, sizeof(keyboard_overlay));
+            }
          }
          
          unsigned x = keyb_positions[keyb_y].x + keyb_x * 24;
@@ -764,32 +747,45 @@ static void render_video(void)
             }
          }
          
-         uint16_t* pixel = image_buffer_2 + y * 320 + x + 1;
+         unsigned mult = machine->is_timex ? 2 : 1;
+         uint16_t* pixel = image_buffer_2 + (y * hard_width + x + 1) * mult;
          unsigned i, j;
          
-         for (i = 0; i < width - 2; i++)
+         for (j = mult; j > 0; --j )
          {
-            *pixel = ~*pixel;
-            pixel++;
-         }
-         
-         pixel += 320 - width + 1;
-         
-         for (j = 0; j < 22; j++)
-         {
-            for (i = 0; i < width; i++)
+            for (i = (width - 2) * mult; i > 0; --i)
             {
                *pixel = ~*pixel;
                pixel++;
             }
             
-            pixel += 320 - width;
+            pixel += hard_width - (width - 2) * mult;
          }
          
-         for (i = 0; i < width - 2; i++)
+         pixel -= mult;
+         
+         for (j = 22 * mult; j > 0; --j)
          {
-            pixel++;
-            *pixel = ~*pixel;
+            for (i = width * mult; i > 0; --i)
+            {
+               *pixel = ~*pixel;
+               pixel++;
+            }
+            
+            pixel += hard_width - width * mult;
+         }
+         
+         pixel += mult;
+         
+         for (j = mult; j > 0; --j)
+         {
+            for (i = (width - 2) * mult; i > 0; --i)
+            {
+               *pixel = ~*pixel;
+               pixel++;
+            }
+            
+            pixel += hard_width - (width - 2) * mult;
          }
          
          video_cb(image_buffer_2 + first_pixel, soft_width, soft_height, hard_width * sizeof(uint16_t));
@@ -841,7 +837,7 @@ void retro_run(void)
       
       if (flags & UPDATE_MACHINE)
       {
-         machine_select( machine );
+         machine_select( machine->id );
       }
    }
    
@@ -986,7 +982,7 @@ void retro_unload_game(void)
 
 unsigned retro_get_region(void)
 {
-   return machine == LIBSPECTRUM_MACHINE_48_NTSC ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
+   return machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
 }
 
 // Dummy callbacks for the UI
