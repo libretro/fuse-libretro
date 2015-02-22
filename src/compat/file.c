@@ -5,6 +5,7 @@
 #include <compat.h>
 #include <ui/ui.h>
 #include <utils.h>
+#include <string.h>
 
 #include <fuse/roms/48.h>
 #include <fuse/roms/128-0.h>
