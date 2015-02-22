@@ -15,7 +15,12 @@ There are hundreds of free, legally available ZX Spectrum games at [World of Spe
 1. Spectrum 128K
 1. Spectrum +2
 1. Spectrum +2A
-1. Spectrum +3"
+1. Spectrum +3
+1. Spectrum +3e
+1. Spectrum SE
+1. Timex TC2048
+1. Timex TC2068
+1. Timex TS2068
 
 The port correctly loads and runs ~~some~~ many games I have around, but all of them are 48K tapes.
 
@@ -72,8 +77,6 @@ Versions that are being used to build and test **fuse-libretro**:
 
 * Fuse 1.1.1
 * libspectrum 1.1.1
-* zlib 1.2.8
-* bzip2 1.0.6
 
 ## TODO
 

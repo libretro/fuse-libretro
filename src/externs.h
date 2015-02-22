@@ -10,8 +10,8 @@
 #include <ui/ui.h>
 
 // These defines shouldn't be here...
-#define MAX_WIDTH  320
-#define MAX_HEIGHT 240
+#define MAX_WIDTH  640
+#define MAX_HEIGHT 480
 #define MAX_PADS   7
 
 // From the core
