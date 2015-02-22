@@ -1,6 +1,6 @@
 TARGET_NAME := fuse
 
-DEBUG   = 1
+DEBUG   = 0
 LOG_PERFORMANCE = 1
 HAVE_COMPAT = 0
 

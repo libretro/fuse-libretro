@@ -2,6 +2,8 @@
 #include <keyboverlay.h>
 
 #include <coreopt.h>
+#include <stddef.h>
+#include <string.h>
 #include <errno.h>
 
 // Fuse includes
