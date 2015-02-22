@@ -77,8 +77,6 @@ Versions that are being used to build and test **fuse-libretro**:
 
 * Fuse 1.1.1
 * libspectrum 1.1.1
-* zlib 1.2.8
-* bzip2 1.0.6
 
 ## TODO
 
