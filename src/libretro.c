@@ -252,7 +252,7 @@ keysyms_map_t keysyms_map[] = {
 
 static const struct retro_variable core_vars[] =
 {
-   { "fuse_machine", "Model (resets emulation); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K" },
+   { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K" },
    { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
@@ -277,7 +277,9 @@ int update_variables(int force)
 {
    int flags = 0;
    
+   if (force)
    {
+      // Only change the machine when reloading content
       int option = coreopt(env_cb, core_vars, "fuse_machine");
       option += option < 0;
       const machine_t *new_machine = machine_list + option;
@@ -301,7 +303,6 @@ int update_variables(int force)
          flags |= UPDATE_MACHINE;
       }
       
-      // Change this when we're emulating timex machines
       unsigned width = machine->is_timex ? 640 : 320;
       unsigned height = machine->is_timex ? 480 : 240;
       
@@ -309,6 +310,9 @@ int update_variables(int force)
       {
          hard_width = width;
          hard_height = height;
+         
+         hide_border = coreopt(env_cb, core_vars, "fuse_hide_border");
+         hide_border += hide_border < 0;
          
          if (hide_border)
          {
@@ -325,8 +329,9 @@ int update_variables(int force)
          flags |= UPDATE_AV_INFO | UPDATE_GEOMETRY;
       }
    }
-   
+   else
    {
+      // When reloading content, this is already done as part of the machine change
       int option = coreopt(env_cb, core_vars, "fuse_hide_border");
       option += option < 0;
       
