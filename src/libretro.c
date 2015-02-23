@@ -435,20 +435,14 @@ void retro_set_environment(retro_environment_t cb)
    };
    
    static const struct retro_controller_info ports[] = {
-      { controllers, 7 },
-      { controllers, 7 },
-      { controllers, 7 },
-      { controllers, 7 },
-      { controllers, 7 },
-      { controllers, 7 },
-      { controllers, 7 },
-      { 0 }
+      { controllers, sizeof(controllers) / sizeof(controllers[0]) },
+      { NULL, 0 }
    };
 
    // This seem to be broken right now, as info is NULL in retro_load_game
    // even when we load a game via the frontend after booting to BASIC.
-   //bool _true = true;
-   //cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, (void*)&_true);
+   //bool yes = true;
+   //cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, (void*)&yes);
    
    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
@@ -502,7 +496,7 @@ static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, co
 {
    libspectrum_id_t type = identify_file(data, size);
    
-   switch (identify_file(tape_data, tape_size))
+   switch (type)
    {
       case LIBSPECTRUM_ID_RECORDING_RZX: *ext = ".rzx"; break;
       case LIBSPECTRUM_ID_SNAPSHOT_SNA:  *ext = ".sna"; break;
@@ -545,17 +539,6 @@ bool retro_load_game(const struct retro_game_info *info)
       return false;
    }
    
-   tape_size = info->size;
-   tape_data = malloc( tape_size );
-   
-   if (!tape_data)
-   {
-      log_cb(RETRO_LOG_ERROR, "Could not allocate memory for the tape");
-      return false;
-   }
-   
-   memcpy(tape_data, info->data, tape_size);
-   
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(input_state, 0, sizeof(input_state));
    machine = NULL;
@@ -565,15 +548,25 @@ bool retro_load_game(const struct retro_game_info *info)
    keyb_send = 0;
    snapshot_buffer = NULL;
    
-   if (info != NULL)
+   char *argv[] = {
+      "fuse",
+   };
+   
+   if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
    {
-      char *argv[] = {
-         "fuse",
-      };
-      
-      if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
+      if (info != NULL)
       {
-         fuse_emulation_pause();
+         tape_size = info->size;
+         tape_data = malloc(tape_size);
+         
+         if (!tape_data)
+         {
+            log_cb(RETRO_LOG_ERROR, "Could not allocate memory for the tape");
+            fuse_end();
+            return false;
+         }
+         
+         memcpy(tape_data, info->data, tape_size);
          
          const char* ext;
          libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
@@ -582,12 +575,18 @@ bool retro_load_game(const struct retro_game_info *info)
          snprintf(filename, sizeof(filename), "*%s", ext);
          filename[sizeof(filename) - 1] = 0;
          
+         fuse_emulation_pause();
          utils_open_file(filename, 1, &type);
          display_refresh_all();
          fuse_emulation_unpause();
-      
-         return true;
       }
+      else
+      {
+         tape_data = NULL;
+         tape_size = 0;
+      }
+   
+      return true;
    }
    
    return false;
@@ -915,8 +914,6 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
 void retro_reset(void)
 {
-   fuse_emulation_pause();
-   
    const char* ext;
    libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
    
@@ -924,6 +921,7 @@ void retro_reset(void)
    snprintf(filename, sizeof(filename), "*%s", ext);
    filename[sizeof(filename) - 1] = 0;
    
+   fuse_emulation_pause();
    utils_open_file(filename, 1, &type);
    display_refresh_all();
    fuse_emulation_unpause();
