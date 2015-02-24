@@ -147,8 +147,8 @@ static struct retro_input_descriptor input_descriptors[] = {
    { 6, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right" },
    { 6, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Fire" },
    { 6, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Keyboard overlay" },
-   // TODO: Is this needed?
-   { 255, 255, 255, 255, "" }
+   // Terminate
+   { 255, 255, 255, 255, NULL }
 };
 
 // Must implement the keyboard
@@ -280,7 +280,7 @@ int update_variables(int force)
    if (force)
    {
       // Only change the machine when reloading content
-      int option = coreopt(env_cb, core_vars, "fuse_machine");
+      int option = coreopt(env_cb, core_vars, "fuse_machine", NULL);
       option += option < 0;
       const machine_t *new_machine = machine_list + option;
       
@@ -311,7 +311,7 @@ int update_variables(int force)
          hard_width = width;
          hard_height = height;
          
-         hide_border = coreopt(env_cb, core_vars, "fuse_hide_border");
+         hide_border = coreopt(env_cb, core_vars, "fuse_hide_border", NULL);
          hide_border += hide_border < 0;
          
          if (hide_border)
@@ -332,7 +332,7 @@ int update_variables(int force)
    else
    {
       // When reloading content, this is already done as part of the machine change
-      int option = coreopt(env_cb, core_vars, "fuse_hide_border");
+      int option = coreopt(env_cb, core_vars, "fuse_hide_border", NULL);
       option += option < 0;
       
       if (option != hide_border || force)
@@ -355,13 +355,13 @@ int update_variables(int force)
       }
    }
    
-   settings_current.fastload = coreopt(env_cb, core_vars, "fuse_fast_load") != 1;
+   settings_current.fastload = coreopt(env_cb, core_vars, "fuse_fast_load", NULL) != 1;
    settings_current.accelerate_loader = settings_current.fastload;
 
-   settings_current.sound_load = coreopt(env_cb, core_vars, "fuse_load_sound") != 1;
+   settings_current.sound_load = coreopt(env_cb, core_vars, "fuse_load_sound", NULL) != 1;
 
    {
-      int option = coreopt(env_cb, core_vars, "fuse_speaker_type");
+      int option = coreopt(env_cb, core_vars, "fuse_speaker_type", NULL);
       
       if (settings_current.speaker_type)
       {
@@ -372,7 +372,7 @@ int update_variables(int force)
    }
 
    {
-      int option = coreopt(env_cb, core_vars, "fuse_ay_stereo_separation");
+      int option = coreopt(env_cb, core_vars, "fuse_ay_stereo_separation", NULL);
       
       if (settings_current.stereo_ay)
       {
@@ -382,13 +382,12 @@ int update_variables(int force)
       settings_current.stereo_ay = utils_safe_strdup(option == 1 ? "ACB" : option == 2 ? "ABC" : "None");
    }
 
-   keyb_transparent = coreopt(env_cb, core_vars, "fuse_key_ovrlay_transp") != 1;
+   keyb_transparent = coreopt(env_cb, core_vars, "fuse_key_ovrlay_transp", NULL) != 1;
 
    {
-      static long values[] = { 500, 1000, 100, 300 };
-      
-      int option = coreopt(env_cb, core_vars, "fuse_key_hold_time");
-      keyb_hold_time = values[option + (option < 0)] * 1000LL;
+      const char* value;
+      int option = coreopt(env_cb, core_vars, "fuse_key_hold_time", &value);
+      keyb_hold_time = option >= 0 ? strtoll(value, NULL, 10) * 1000LL : 500000LL;
    }
    
    return flags;

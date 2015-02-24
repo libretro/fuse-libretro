@@ -1,7 +1,7 @@
 #include <coreopt.h>
 #include <string.h>
 
-int coreopt( retro_environment_t env_cb, const struct retro_variable* vars, const char* opt_name )
+int coreopt( retro_environment_t env_cb, const struct retro_variable* vars, const char* opt_name, const char** opt_value )
 {
   const struct retro_variable* var = vars;
   
@@ -51,6 +51,11 @@ int coreopt( retro_environment_t env_cb, const struct retro_variable* vars, cons
               pipes += *--option == '|';
             }
 
+            if ( opt_value )
+            {
+              *opt_value = user_opt.value;
+            }
+            
             return pipes;
           }
 

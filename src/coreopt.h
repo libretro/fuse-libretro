@@ -7,6 +7,6 @@
  * retro_variable. Returns -1 if the option wasn't found in the list or if
  * opt_name is not a valid option.
  */
-int coreopt( retro_environment_t env_cb, const struct retro_variable* vars, const char* opt_name );
+int coreopt( retro_environment_t env_cb, const struct retro_variable* vars, const char* opt_name, const char** opt_value );
 
 #endif /* COREOPT_H */
