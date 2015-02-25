@@ -18,14 +18,15 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
    (void)fmt;
 }
 
-#define RETRO_DEVICE_SPECTRUM_KEYBOARD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_KEYBOARD, 0)
-#define RETRO_DEVICE_CURSOR_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 0)
-#define RETRO_DEVICE_KEMPSTON_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1)
-#define RETRO_DEVICE_SINCLAIR1_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 2)
-#define RETRO_DEVICE_SINCLAIR2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 3)
-#define RETRO_DEVICE_TIMEX1_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 4)
-#define RETRO_DEVICE_TIMEX2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 5)
-#define RETRO_DEVICE_FULLER_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 6)
+#define RETRO_DEVICE_SPECTRUM_KEYBOARD RETRO_DEVICE_KEYBOARD
+
+#define RETRO_DEVICE_CURSOR_JOYSTICK RETRO_DEVICE_JOYPAD
+#define RETRO_DEVICE_KEMPSTON_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 1)
+#define RETRO_DEVICE_SINCLAIR1_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 2)
+#define RETRO_DEVICE_SINCLAIR2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 3)
+#define RETRO_DEVICE_TIMEX1_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 4)
+#define RETRO_DEVICE_TIMEX2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 5)
+#define RETRO_DEVICE_FULLER_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 6)
 
 #define UPDATE_AV_INFO  1
 #define UPDATE_GEOMETRY 2
@@ -87,7 +88,7 @@ int select_pressed;
 int keyb_overlay;
 unsigned keyb_x;
 unsigned keyb_y;
-int input_state[MAX_PADS][5];
+bool joypad_state[MAX_PADS][5];
 void*  snapshot_buffer;
 size_t snapshot_size;
 void* tape_data;
@@ -425,7 +426,7 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_controller_description controllers[] = {
-      { "Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
+      //{ "Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
       { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
       { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
       { "Sinclair 1 Joystick", RETRO_DEVICE_SINCLAIR1_JOYSTICK },
@@ -436,7 +437,8 @@ void retro_set_environment(retro_environment_t cb)
    };
    
    static const struct retro_controller_info ports[] = {
-      { controllers, sizeof(controllers) / sizeof(controllers[0]) },
+      { controllers, sizeof(controllers) / sizeof(controllers[0]) }, // port 1
+      { controllers, sizeof(controllers) / sizeof(controllers[0]) }, // port 2
       { NULL, 0 }
    };
 
@@ -541,7 +543,7 @@ bool retro_load_game(const struct retro_game_info *info)
    }
    
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
-   memset(input_state, 0, sizeof(input_state));
+   memset(joypad_state, 0, sizeof(joypad_state));
    machine = NULL;
    hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;
@@ -883,6 +885,7 @@ void retro_deinit(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
+   log_cb(RETRO_LOG_DEBUG, "%s(%u, %u)\n", __FUNCTION__, port, device);
    switch (device)
    {
       case RETRO_DEVICE_CURSOR_JOYSTICK:

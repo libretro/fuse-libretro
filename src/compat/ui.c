@@ -98,9 +98,9 @@ int ui_event(void)
             
             if (is_down)
             {
-               if (!input_state[port][id])
+               if (!joypad_state[port][id])
                {
-                  input_state[port][id] = true;
+                  joypad_state[port][id] = true;
                   input_key button = translate(map[id]);
               
                   if (button != INPUT_KEY_NONE)
@@ -115,9 +115,9 @@ int ui_event(void)
             }
             else
             {
-               if (input_state[port][id])
+               if (joypad_state[port][id])
                {
-                  input_state[port][id] = false;
+                  joypad_state[port][id] = false;
                   input_key button = translate(map[id]);
               
                   if (button != INPUT_KEY_NONE)
@@ -143,9 +143,9 @@ int ui_event(void)
          
          if (is_down)
          {
-            if (!input_state[0][id])
+            if (!joypad_state[0][id])
             {
-               input_state[0][id] = true;
+               joypad_state[0][id] = true;
                
                switch (map[id])
                {
@@ -171,9 +171,9 @@ int ui_event(void)
          }
          else
          {
-            if (input_state[0][id])
+            if (joypad_state[0][id])
             {
-               input_state[0][id] = false;
+               joypad_state[0][id] = false;
             }
          }
       }

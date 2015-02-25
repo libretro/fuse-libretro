@@ -12,7 +12,7 @@
 // These defines shouldn't be here...
 #define MAX_WIDTH  640
 #define MAX_HEIGHT 480
-#define MAX_PADS   7
+#define MAX_PADS   2
 
 // From the core
 extern retro_environment_t env_cb;
@@ -31,7 +31,7 @@ extern int select_pressed;
 extern int keyb_overlay;
 extern unsigned keyb_x;
 extern unsigned keyb_y;
-extern int input_state[MAX_PADS][5];
+extern bool joypad_state[MAX_PADS][5];
 extern void* snapshot_buffer;
 extern size_t snapshot_size;
 void* tape_data;
