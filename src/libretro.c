@@ -18,6 +18,7 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
    (void)fmt;
 }
 
+#define RETRO_DEVICE_SPECTRUM_KEYBOARD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_KEYBOARD, 0)
 #define RETRO_DEVICE_CURSOR_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 0)
 #define RETRO_DEVICE_KEMPSTON_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1)
 #define RETRO_DEVICE_SINCLAIR1_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 2)
@@ -424,6 +425,7 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_controller_description controllers[] = {
+      { "Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
       { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
       { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
       { "Sinclair 1 Joystick", RETRO_DEVICE_SINCLAIR1_JOYSTICK },
@@ -553,7 +555,8 @@ bool retro_load_game(const struct retro_game_info *info)
    
    if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
    {
-      if (info != NULL)
+      // Load the _BASIC.z80 content to boot to BASIC
+      if (info->size != 0)
       {
          tape_size = info->size;
          tape_data = malloc(tape_size);
@@ -902,6 +905,10 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
             log_cb(RETRO_LOG_INFO, "Joystick 2 set to 0x%04x\n", device);
          }
          
+         break;
+      
+      case RETRO_DEVICE_SPECTRUM_KEYBOARD:
+         input_devices[port] = device;
          break;
          
       default:
