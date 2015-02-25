@@ -7,6 +7,7 @@
 #include <libretro.h>
 #include <settings.h>
 #include <input.h>
+#include <keyboard.h>
 #include <ui/ui.h>
 
 // These defines shouldn't be here...
@@ -24,6 +25,7 @@ extern uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
 extern unsigned hard_width, hard_height;
 extern int show_frame, some_audio;
 extern retro_log_printf_t log_cb;
+extern unsigned input_devices[MAX_PADS];
 extern int64_t keyb_send;
 extern int64_t keyb_hold_time;
 extern input_event_t keyb_event;
@@ -32,10 +34,12 @@ extern int keyb_overlay;
 extern unsigned keyb_x;
 extern unsigned keyb_y;
 extern bool joypad_state[MAX_PADS][5];
+extern bool keyb_state[RETROK_LAST];
 extern void* snapshot_buffer;
 extern size_t snapshot_size;
-void* tape_data;
-size_t tape_size;
+extern void* tape_data;
+extern size_t tape_size;
+extern keysyms_map_t keysyms_map[];
 
 int update_variables(int);
 int fuse_ui_error_specific(ui_error_level, const char*);

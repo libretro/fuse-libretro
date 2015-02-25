@@ -64,7 +64,6 @@ static const machine_t machine_list[] =
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
 
-static unsigned input_devices[MAX_PADS];
 static uint16_t image_buffer_2[MAX_WIDTH * MAX_HEIGHT];
 static unsigned first_pixel;
 static unsigned soft_width, soft_height;
@@ -81,6 +80,7 @@ struct retro_perf_callback perf_cb;
 uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
 unsigned hard_width, hard_height;
 int show_frame, some_audio;
+unsigned input_devices[MAX_PADS];
 int64_t keyb_send;
 int64_t keyb_hold_time;
 input_event_t keyb_event;
@@ -89,6 +89,7 @@ int keyb_overlay;
 unsigned keyb_x;
 unsigned keyb_y;
 bool joypad_state[MAX_PADS][5];
+bool keyb_state[RETROK_LAST];
 void*  snapshot_buffer;
 size_t snapshot_size;
 void* tape_data;
@@ -155,23 +156,9 @@ static struct retro_input_descriptor input_descriptors[] = {
 
 // Must implement the keyboard
 keysyms_map_t keysyms_map[] = {
-   { RETROK_TAB,       INPUT_KEY_Tab         },
    { RETROK_RETURN,    INPUT_KEY_Return      },
-   { RETROK_ESCAPE,    INPUT_KEY_Escape      },
    { RETROK_SPACE,     INPUT_KEY_space       },
-   { RETROK_EXCLAIM,   INPUT_KEY_exclam      },
-   { RETROK_HASH,      INPUT_KEY_numbersign  },
-   { RETROK_DOLLAR,    INPUT_KEY_dollar      },
-   { RETROK_AMPERSAND, INPUT_KEY_ampersand   },
-   { RETROK_QUOTE,     INPUT_KEY_apostrophe  },
-   { RETROK_LEFTPAREN, INPUT_KEY_parenleft   },
-   { RETROK_RIGHTPAREN, INPUT_KEY_parenright  },
-   { RETROK_ASTERISK,  INPUT_KEY_asterisk    },
-   { RETROK_PLUS,      INPUT_KEY_plus        },
-   { RETROK_COMMA,     INPUT_KEY_comma       },
-   { RETROK_MINUS,     INPUT_KEY_minus       },
-   { RETROK_PERIOD,    INPUT_KEY_period      },
-   { RETROK_SLASH,     INPUT_KEY_slash       },
+   { RETROK_BACKSPACE, INPUT_KEY_BackSpace   },
    { RETROK_0,         INPUT_KEY_0           },
    { RETROK_1,         INPUT_KEY_1           },
    { RETROK_2,         INPUT_KEY_2           },
@@ -182,12 +169,6 @@ keysyms_map_t keysyms_map[] = {
    { RETROK_7,         INPUT_KEY_7           },
    { RETROK_8,         INPUT_KEY_8           },
    { RETROK_9,         INPUT_KEY_9           },
-   { RETROK_COLON,     INPUT_KEY_colon       },
-   { RETROK_SEMICOLON, INPUT_KEY_semicolon   },
-   { RETROK_LESS,      INPUT_KEY_less        },
-   { RETROK_EQUALS,    INPUT_KEY_equal       },
-   { RETROK_GREATER,   INPUT_KEY_greater     },
-   { RETROK_CARET,     INPUT_KEY_asciicircum },
    { RETROK_a,         INPUT_KEY_a           },
    { RETROK_b,         INPUT_KEY_b           },
    { RETROK_c,         INPUT_KEY_c           },
@@ -214,30 +195,6 @@ keysyms_map_t keysyms_map[] = {
    { RETROK_x,         INPUT_KEY_x           },
    { RETROK_y,         INPUT_KEY_y           },
    { RETROK_z,         INPUT_KEY_z           },
-   { RETROK_BACKSPACE, INPUT_KEY_BackSpace   },
-   { RETROK_KP_ENTER,  INPUT_KEY_KP_Enter    },
-   { RETROK_UP,        INPUT_KEY_Up          },
-   { RETROK_DOWN,      INPUT_KEY_Down        },
-   { RETROK_LEFT,      INPUT_KEY_Left        },
-   { RETROK_RIGHT,     INPUT_KEY_Right       },
-   { RETROK_INSERT,    INPUT_KEY_Insert      },
-   { RETROK_DELETE,    INPUT_KEY_Delete      },
-   { RETROK_HOME,      INPUT_KEY_Home        },
-   { RETROK_END,       INPUT_KEY_End         },
-   { RETROK_PAGEUP,    INPUT_KEY_Page_Up     },
-   { RETROK_PAGEDOWN,  INPUT_KEY_Page_Down   },
-   { RETROK_F1,        INPUT_KEY_F1          },
-   { RETROK_F2,        INPUT_KEY_F2          },
-   { RETROK_F3,        INPUT_KEY_F3          },
-   { RETROK_F4,        INPUT_KEY_F4          },
-   { RETROK_F5,        INPUT_KEY_F5          },
-   { RETROK_F6,        INPUT_KEY_F6          },
-   { RETROK_F7,        INPUT_KEY_F7          },
-   { RETROK_F8,        INPUT_KEY_F8          },
-   { RETROK_F9,        INPUT_KEY_F9          },
-   { RETROK_F10,       INPUT_KEY_F10         },
-   { RETROK_F11,       INPUT_KEY_F11         },
-   { RETROK_F12,       INPUT_KEY_F12         },
    { RETROK_LSHIFT,    INPUT_KEY_Shift_L     },
    { RETROK_RSHIFT,    INPUT_KEY_Shift_R     },
    { RETROK_LCTRL,     INPUT_KEY_Control_L   },
@@ -248,7 +205,6 @@ keysyms_map_t keysyms_map[] = {
    { RETROK_RMETA,     INPUT_KEY_Meta_R      },
    { RETROK_LSUPER,    INPUT_KEY_Super_L     },
    { RETROK_RSUPER,    INPUT_KEY_Super_R     },
-   { RETROK_MENU,      INPUT_KEY_Mode_switch },
    { 0, 0 }	// End marker: DO NOT MOVE!
 };
 
@@ -426,7 +382,7 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_controller_description controllers[] = {
-      //{ "Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
+      { "Sinclair Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
       { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
       { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
       { "Sinclair 1 Joystick", RETRO_DEVICE_SINCLAIR1_JOYSTICK },
@@ -544,6 +500,7 @@ bool retro_load_game(const struct retro_game_info *info)
    
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(joypad_state, 0, sizeof(joypad_state));
+   memset(keyb_state, 0, sizeof(keyb_state));
    machine = NULL;
    hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;

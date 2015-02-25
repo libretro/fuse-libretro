@@ -94,37 +94,83 @@ int ui_event(void)
       {
          for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
          {
-            is_down = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, map[id]);
+            unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
             
-            if (is_down)
+            if (device == RETRO_DEVICE_JOYPAD)
             {
-               if (!joypad_state[port][id])
+               is_down = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, map[id]);
+               
+               if (is_down)
                {
-                  joypad_state[port][id] = true;
-                  input_key button = translate(map[id]);
-              
-                  if (button != INPUT_KEY_NONE)
+                  if (!joypad_state[port][id])
                   {
-                     fuse_event.type = INPUT_EVENT_JOYSTICK_PRESS;
-                     fuse_event.types.joystick.which = port;
-                     fuse_event.types.joystick.button = button;
+                     joypad_state[port][id] = true;
+                     input_key button = translate(map[id]);
+                 
+                     if (button != INPUT_KEY_NONE)
+                     {
+                        fuse_event.type = INPUT_EVENT_JOYSTICK_PRESS;
+                        fuse_event.types.joystick.which = port;
+                        fuse_event.types.joystick.button = button;
+                 
+                        input_event(&fuse_event);
+                     }
+                  }
+               }
+               else
+               {
+                  if (joypad_state[port][id])
+                  {
+                     joypad_state[port][id] = false;
+                     input_key button = translate(map[id]);
+                 
+                     if (button != INPUT_KEY_NONE)
+                     {
+                        fuse_event.type = INPUT_EVENT_JOYSTICK_RELEASE;
+                        fuse_event.types.joystick.which = port;
+                        fuse_event.types.joystick.button = button;
+                 
+                        input_event(&fuse_event);
+                     }
+                  }
+               }
+            }
+         }
+      }
+      
+      for (port = 0; port < 2; port++)
+      {
+         for (id = 0; keysyms_map[id].ui; id++)
+         {
+            unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
+            
+            if (device == RETRO_DEVICE_KEYBOARD)
+            {
+               unsigned ui = keysyms_map[id].ui;
+               is_down = input_state_cb(port, RETRO_DEVICE_KEYBOARD, 0, ui);
+               
+               if (is_down)
+               {
+                  if (!keyb_state[ui])
+                  {
+                     keyb_state[ui] = true;
+                 
+                     fuse_event.type = INPUT_EVENT_KEYPRESS;
+                     fuse_event.types.key.native_key = keysyms_map[id].fuse;
+                     fuse_event.types.key.spectrum_key = keysyms_map[id].fuse;
               
                      input_event(&fuse_event);
                   }
                }
-            }
-            else
-            {
-               if (joypad_state[port][id])
+               else
                {
-                  joypad_state[port][id] = false;
-                  input_key button = translate(map[id]);
-              
-                  if (button != INPUT_KEY_NONE)
+                  if (keyb_state[ui])
                   {
-                     fuse_event.type = INPUT_EVENT_JOYSTICK_RELEASE;
-                     fuse_event.types.joystick.which = port;
-                     fuse_event.types.joystick.button = button;
+                     keyb_state[ui] = false;
+                 
+                     fuse_event.type = INPUT_EVENT_KEYRELEASE;
+                     fuse_event.types.key.native_key = keysyms_map[id].fuse;
+                     fuse_event.types.key.spectrum_key = keysyms_map[id].fuse;
               
                      input_event(&fuse_event);
                   }
@@ -135,45 +181,53 @@ int ui_event(void)
    }
    else
    {
-      unsigned id;
+      unsigned port, id;
       
-      for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
+      for (port = 0; port < 2; port++)
       {
-         is_down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, map[id]);
-         
-         if (is_down)
+         for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
          {
-            if (!joypad_state[0][id])
+            unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
+            
+            if (device == RETRO_DEVICE_JOYPAD)
             {
-               joypad_state[0][id] = true;
+               is_down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, map[id]);
                
-               switch (map[id])
+               if (is_down)
                {
-                  case RETRO_DEVICE_ID_JOYPAD_UP:    keyb_y = (keyb_y - 1) & 3; break;
-                  case RETRO_DEVICE_ID_JOYPAD_DOWN:  keyb_y = (keyb_y + 1) & 3; break;
-                  case RETRO_DEVICE_ID_JOYPAD_LEFT:  keyb_x = keyb_x == 0 ? 9 : keyb_x - 1; break;
-                  case RETRO_DEVICE_ID_JOYPAD_RIGHT: keyb_x = keyb_x == 9 ? 0 : keyb_x + 1; break;
-                  case RETRO_DEVICE_ID_JOYPAD_A:
-                     if (keyb_send == 0)
+                  if (!joypad_state[0][id])
+                  {
+                     joypad_state[0][id] = true;
+                     
+                     switch (map[id])
                      {
-                        keyb_overlay = false;
-                        
-                        keyb_event.type = INPUT_EVENT_KEYPRESS;
-                        keyb_event.types.key.native_key = keyb_layout[keyb_y][keyb_x];
-                        keyb_event.types.key.spectrum_key = keyb_layout[keyb_y][keyb_x];
-                        input_event(&keyb_event);
-                        
-                        keyb_send = perf_cb.get_time_usec() + keyb_hold_time;
+                        case RETRO_DEVICE_ID_JOYPAD_UP:    keyb_y = (keyb_y - 1) & 3; break;
+                        case RETRO_DEVICE_ID_JOYPAD_DOWN:  keyb_y = (keyb_y + 1) & 3; break;
+                        case RETRO_DEVICE_ID_JOYPAD_LEFT:  keyb_x = keyb_x == 0 ? 9 : keyb_x - 1; break;
+                        case RETRO_DEVICE_ID_JOYPAD_RIGHT: keyb_x = keyb_x == 9 ? 0 : keyb_x + 1; break;
+                        case RETRO_DEVICE_ID_JOYPAD_A:
+                           if (keyb_send == 0)
+                           {
+                              keyb_overlay = false;
+                              
+                              keyb_event.type = INPUT_EVENT_KEYPRESS;
+                              keyb_event.types.key.native_key = keyb_layout[keyb_y][keyb_x];
+                              keyb_event.types.key.spectrum_key = keyb_layout[keyb_y][keyb_x];
+                              input_event(&keyb_event);
+                              
+                              keyb_send = perf_cb.get_time_usec() + keyb_hold_time;
+                           }
+                           return 0;
                      }
-                     return 0;
+                  }
                }
-            }
-         }
-         else
-         {
-            if (joypad_state[0][id])
-            {
-               joypad_state[0][id] = false;
+               else
+               {
+                  if (joypad_state[0][id])
+                  {
+                     joypad_state[0][id] = false;
+                  }
+               }
             }
          }
       }
