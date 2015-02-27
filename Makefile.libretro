@@ -258,7 +258,7 @@ CFLAGS   += -Wall
 CXXFLAGS += $(fpic) $(DEFINES)
 CXXFLAGS += -Wall
 
-LDFLAGS +=
+LDFLAGS += -lm
 
 ROMS =
 SNAPS =
