@@ -33,7 +33,7 @@ extern int select_pressed;
 extern int keyb_overlay;
 extern unsigned keyb_x;
 extern unsigned keyb_y;
-extern bool joypad_state[MAX_PADS][5];
+extern bool joypad_state[MAX_PADS][8];
 extern bool keyb_state[RETROK_LAST];
 extern void* snapshot_buffer;
 extern size_t snapshot_size;

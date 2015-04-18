@@ -53,6 +53,8 @@ Users can configure their joystick types in the input configuration on the front
 
 By default, **fuse-libretro** maps port 0 to a Cursor joystick, port 1 to a Kempston joystick, and port 2 to the keyboard, so you should be able to use the core without bothering to configure the input settings.
 
+Buttons A, X and Y are mapped to the joystick's fire button, and button B is mapped to the UP directional button.
+
 ## Keyboard
 
 Keyboard is fully emulated, but **fuse-libretro** features a keyboard overlay that allows you to bring up a ZX Spectrum keyboard on the screen and use the controller to select and "press" keys. Press "select" on the controller to bring up the keyboard overlay.

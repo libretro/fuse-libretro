@@ -26,7 +26,10 @@ static input_key translate(unsigned index)
       case RETRO_DEVICE_ID_JOYPAD_DOWN:  return INPUT_JOYSTICK_DOWN;
       case RETRO_DEVICE_ID_JOYPAD_LEFT:  return INPUT_JOYSTICK_LEFT;
       case RETRO_DEVICE_ID_JOYPAD_RIGHT: return INPUT_JOYSTICK_RIGHT;
-      case RETRO_DEVICE_ID_JOYPAD_A:     return INPUT_JOYSTICK_FIRE_1;
+      case RETRO_DEVICE_ID_JOYPAD_A:
+      case RETRO_DEVICE_ID_JOYPAD_X:
+      case RETRO_DEVICE_ID_JOYPAD_Y:     return INPUT_JOYSTICK_FIRE_1;
+      case RETRO_DEVICE_ID_JOYPAD_B:     return INPUT_JOYSTICK_UP;
    }
    
    return INPUT_KEY_NONE;
@@ -39,7 +42,10 @@ int ui_event(void)
       RETRO_DEVICE_ID_JOYPAD_DOWN,
       RETRO_DEVICE_ID_JOYPAD_LEFT,
       RETRO_DEVICE_ID_JOYPAD_RIGHT,
-      RETRO_DEVICE_ID_JOYPAD_A
+      RETRO_DEVICE_ID_JOYPAD_A,
+      RETRO_DEVICE_ID_JOYPAD_B,
+      RETRO_DEVICE_ID_JOYPAD_X,
+      RETRO_DEVICE_ID_JOYPAD_Y
    };
    
    static const input_key keyb_layout[4][10] = {
