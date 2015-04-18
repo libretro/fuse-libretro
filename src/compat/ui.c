@@ -30,6 +30,8 @@ static input_key translate(unsigned index)
       case RETRO_DEVICE_ID_JOYPAD_X:
       case RETRO_DEVICE_ID_JOYPAD_Y:     return INPUT_JOYSTICK_FIRE_1;
       case RETRO_DEVICE_ID_JOYPAD_B:     return INPUT_JOYSTICK_UP;
+      case RETRO_DEVICE_ID_JOYPAD_L:     return INPUT_KEY_Return;
+      case RETRO_DEVICE_ID_JOYPAD_R:     return INPUT_KEY_space;
    }
    
    return INPUT_KEY_NONE;
@@ -45,7 +47,9 @@ int ui_event(void)
       RETRO_DEVICE_ID_JOYPAD_A,
       RETRO_DEVICE_ID_JOYPAD_B,
       RETRO_DEVICE_ID_JOYPAD_X,
-      RETRO_DEVICE_ID_JOYPAD_Y
+      RETRO_DEVICE_ID_JOYPAD_Y,
+      RETRO_DEVICE_ID_JOYPAD_L,
+      RETRO_DEVICE_ID_JOYPAD_R
    };
    
    static const input_key keyb_layout[4][10] = {
@@ -113,7 +117,15 @@ int ui_event(void)
                      joypad_state[port][id] = true;
                      input_key button = translate(map[id]);
                  
-                     if (button != INPUT_KEY_NONE)
+                     if (button == INPUT_KEY_Return || button == INPUT_KEY_space)
+                     {
+                        fuse_event.type = INPUT_EVENT_KEYPRESS;
+                        fuse_event.types.key.native_key = button;
+                        fuse_event.types.key.spectrum_key = button;
+                        
+                        input_event(&fuse_event);
+                     }
+                     else if (button != INPUT_KEY_NONE)
                      {
                         fuse_event.type = INPUT_EVENT_JOYSTICK_PRESS;
                         fuse_event.types.joystick.which = port;
@@ -130,7 +142,15 @@ int ui_event(void)
                      joypad_state[port][id] = false;
                      input_key button = translate(map[id]);
                  
-                     if (button != INPUT_KEY_NONE)
+                     if (button == INPUT_KEY_Return || button == INPUT_KEY_space)
+                     {
+                        fuse_event.type = INPUT_EVENT_KEYRELEASE;
+                        fuse_event.types.key.native_key = button;
+                        fuse_event.types.key.spectrum_key = button;
+                        
+                        input_event(&fuse_event);
+                     }
+                     else if (button != INPUT_KEY_NONE)
                      {
                         fuse_event.type = INPUT_EVENT_JOYSTICK_RELEASE;
                         fuse_event.types.joystick.which = port;
