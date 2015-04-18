@@ -90,7 +90,7 @@ int ui_event(void)
       unsigned port, id;
       input_event_t fuse_event;
       
-      for (port = 0; port < 2; port++)
+      for (port = 0; port < MAX_PADS; port++)
       {
          for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
          {
@@ -138,7 +138,7 @@ int ui_event(void)
          }
       }
       
-      for (port = 0; port < 2; port++)
+      for (port = 0; port < MAX_PADS; port++)
       {
          for (id = 0; keysyms_map[id].ui; id++)
          {
@@ -183,7 +183,7 @@ int ui_event(void)
    {
       unsigned port, id;
       
-      for (port = 0; port < 2; port++)
+      for (port = 0; port < MAX_PADS; port++)
       {
          for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
          {

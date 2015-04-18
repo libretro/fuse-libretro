@@ -51,9 +51,11 @@ There are seven types of joysticks emulated:
 
 Users can configure their joystick types in the input configuration on the front end. However, **fuse-libretro** allows for two joysticks at maximum so only users one and two can actually use theirs in the emulation.
 
+By default, **fuse-libretro** maps port 0 to a Cursor joystick, port 1 to a Kempston joystick, and port 2 to the keyboard, so you should be able to use the core without bothering to configure the input settings.
+
 ## Keyboard
 
-Keyboard is **not** being emulated right now, but it's on my TODO list. If you need to press keys in a game (i.e. to choose the joystick type) use the keyboard overlay, which is displayed by pressing *select* on the controller. Don't play games where you have to write a lot yet, nor use this core to write a program for the ZX Spectrum.
+Keyboard is fully emulated, but **fuse-libretro** features a keyboard overlay that allows you to bring up a ZX Spectrum keyboard on the screen and use the controller to select and "press" keys. Press "select" on the controller to bring up the keyboard overlay.
 
 ## Supported Formats
 
@@ -84,7 +86,7 @@ See the open issues.
 
 ## Bugs
 
-Many. Open issues or send pull requests.
+Many, probably. Open issues or send pull requests.
 
 ## License
 

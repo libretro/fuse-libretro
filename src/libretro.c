@@ -382,7 +382,6 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_controller_description controllers[] = {
-      { "Sinclair Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
       { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
       { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
       { "Sinclair 1 Joystick", RETRO_DEVICE_SINCLAIR1_JOYSTICK },
@@ -392,9 +391,14 @@ void retro_set_environment(retro_environment_t cb)
       { "Fuller Joystick", RETRO_DEVICE_FULLER_JOYSTICK }
    };
    
-   static const struct retro_controller_info ports[] = {
+   static const struct retro_controller_description keyboards[] = {
+      { "Sinclair Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
+   };
+   
+   static const struct retro_controller_info ports[MAX_PADS + 1] = {
       { controllers, sizeof(controllers) / sizeof(controllers[0]) }, // port 1
       { controllers, sizeof(controllers) / sizeof(controllers[0]) }, // port 2
+      { keyboards,   sizeof(keyboards)   / sizeof(keyboards[0])   }, // port 3
       { NULL, 0 }
    };
 
@@ -843,6 +847,7 @@ void retro_deinit(void)
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
    log_cb(RETRO_LOG_DEBUG, "%s(%u, %u)\n", __FUNCTION__, port, device);
+   
    switch (device)
    {
       case RETRO_DEVICE_CURSOR_JOYSTICK:
@@ -872,8 +877,23 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          break;
          
       default:
-         log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_KEYBOARD\n", device);
-         input_devices[port] = RETRO_DEVICE_KEYBOARD;
+         if (port == 0)
+         {
+            log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_CURSOR_JOYSTICK\n", device);
+            input_devices[port] = RETRO_DEVICE_CURSOR_JOYSTICK;
+            settings_current.joystick_1_output = get_joystick(RETRO_DEVICE_CURSOR_JOYSTICK);
+         }
+         else if (port == 1)
+         {
+            log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_KEMPSTON_JOYSTICK\n", device);
+            input_devices[port] = RETRO_DEVICE_KEMPSTON_JOYSTICK;
+            settings_current.joystick_1_output = get_joystick(RETRO_DEVICE_KEMPSTON_JOYSTICK);
+         }
+         else
+         {
+            log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_SPECTRUM_KEYBOARD\n", device);
+            input_devices[port] = RETRO_DEVICE_SPECTRUM_KEYBOARD;
+         }
          break;
    }
 }
