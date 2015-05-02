@@ -9,19 +9,19 @@ HEADERS = $(ROMS:.rom=.h) $(SNAPS:.szx=.h) fuse/config.h libspectrum/config.h
 OBJS    = $(SOURCES_C:.c=$(OBJEXT)) $(SOURCES_CXX:.cpp=$(OBJEXT))
 
 %$(OBJEXT): %.cpp
-	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCDIRS)
+	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 %$(OBJEXT): %.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCDIRS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 %$(OBJEXT): %.S
-	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
+	$(CC_AS) -c -o $@ $< $(CFLAGS)
 
 %.h: %.rom
-	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
 
 %.h: %.szx
-	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
 
 all: $(TARGET)
 

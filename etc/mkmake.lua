@@ -12,7 +12,7 @@ LOG_PERFORMANCE = 1
 # Variable setup for Makefile.common
 
 CORE_DIR  = ..
-INCLUDES  = -I${PLAT_INCDIR}
+INCLUDES  = ${PLAT_INCDIR}
 SOURCES_C =
 ROMS      =
 SNAPS     =
@@ -92,8 +92,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/aarch64-linux-android-4.9/prebuilt/' .. host .. '/bin/aarch64-linux-android-as',
     EXT           = 'android_arm64_v8a',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
@@ -106,8 +106,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/x86_64-4.9/prebuilt/' .. host .. '/bin/x86_64-linux-android-as',
     EXT           = 'android_x86_64',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
@@ -120,8 +120,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/mips64el-linux-android-4.9/prebuilt/' .. host .. '/bin/mips64el-linux-android-as',
     EXT           = 'android_mips64',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes -fomit-frame-pointer -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
@@ -134,8 +134,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/' .. host .. '/bin/arm-linux-androideabi-as',
     EXT           = 'android_arm_v7a',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-3/arch-arm -lgcc -no-canonical-prefixes -march=armv7-a -Wl,--fix-cortex-a8 -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
@@ -148,8 +148,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/' .. host .. '/bin/arm-linux-androideabi-as',
     EXT           = 'android_arm_v5te',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -march=armv5te -mtune=xscale -msoft-float -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-3/arch-arm -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
@@ -162,8 +162,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/x86-4.8/prebuilt/' .. host .. '/bin/i686-linux-android-as',
     EXT           = 'android_x86',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-9/arch-x86/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-9/arch-x86/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-ffunction-sections -funwind-tables -no-canonical-prefixes -fstack-protector -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-9/arch-x86 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
@@ -176,8 +176,8 @@ local platforms = {
     AS            = '$(NDK_ROOT_DIR)/toolchains/mipsel-linux-android-4.8/prebuilt/' .. host .. '/bin/mipsel-linux-android-as',
     EXT           = 'android_mips',
     SO            = 'so',
-    PLAT_INCDIR   = '$(NDK_ROOT_DIR)/platforms/android-9/arch-mips/usr/include',
-    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\\(\\)=\\(\\\'.\\\'\\)',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-9/arch-mips/usr/include',
+    PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes -fomit-frame-pointer -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-9/arch-mips -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'

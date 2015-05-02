@@ -1,4 +1,4 @@
-INCLUDES := -I$(CORE_DIR) \
+INCLUDES += -I$(CORE_DIR) \
             -I$(CORE_DIR)/src \
             -I$(CORE_DIR)/fuse \
             -I$(CORE_DIR)/libspectrum

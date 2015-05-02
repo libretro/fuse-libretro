@@ -11,7 +11,7 @@ LOG_PERFORMANCE = 1
 # Variable setup for Makefile.common
 
 CORE_DIR  = ..
-INCLUDES  = -I
+INCLUDES  = 
 SOURCES_C =
 ROMS      =
 SNAPS     =

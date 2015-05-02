@@ -275,7 +275,7 @@ include build/Makefile.common
 HEADERS += $(ROMS:.rom=.h) $(SNAPS:.szx=.h) fuse/config.h libspectrum/config.h
 OBJS += $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
 
-INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
+INCDIRS := $(EXTRA_INCLUDES) $(INCLUDES)
 
 %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCDIRS)
@@ -287,10 +287,10 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
 	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
 
 %.h: %.rom
-	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/^___//g" > $@
 
 %.h: %.szx
-	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/^___//g" > $@
 
 ifeq ($(platform), theos_ios)
 COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
