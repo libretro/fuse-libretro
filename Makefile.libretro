@@ -43,13 +43,13 @@ LIBM := -lm
 ifneq (,$(findstring unix,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro.so
 	fpic := -fPIC
-	SHARED := -shared -Wl,-version-script=link.T -Wl,-no-undefined
+	SHARED := -shared -Wl,-version-script=build/link.T -Wl,-no-undefined
 
 else ifneq (,$(findstring linux-portable,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro.so
 	fpic := -fPIC -nostdlib
 	LIBM :=
-	SHARED := -shared -Wl,-version-script=link.T
+	SHARED := -shared -Wl,-version-script=build/link.T
 
 # Raspberry Pi
 else ifneq (,$(findstring rpi,$(platform)))
