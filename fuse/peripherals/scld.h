@@ -27,7 +27,7 @@
 #define FUSE_SCLD_H
 
 #ifndef FUSE_MEMORY_H
-#include "memory.h"
+#include "../memory.h"
 #endif				/* #ifndef FUSE_MEMORY_H */
 
 #define STANDARD        0x00 /* standard Spectrum */

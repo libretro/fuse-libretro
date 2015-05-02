@@ -28,6 +28,8 @@
 
 #include <libspectrum.h>
 
+#include "../memory.h"
+
 extern libspectrum_byte pokefinder_possible[][ MEMORY_PAGE_SIZE ];
 extern libspectrum_byte pokefinder_impossible[][ MEMORY_PAGE_SIZE / 8 ];
 extern size_t pokefinder_count;
