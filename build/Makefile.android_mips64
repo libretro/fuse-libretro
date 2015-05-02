@@ -1,0 +1,78 @@
+##############
+# Download android-ndk-r10d-linux-x86_64.bin from https://developer.android.com/tools/sdk/ndk/index.html, unpack somewhere, and set NDK_ROOT_DIR to it
+
+#############
+# User config
+
+DEBUG = 0
+LOG_PERFORMANCE = 1
+
+####################################
+# Variable setup for Makefile.common
+
+CORE_DIR  = ..
+INCLUDES  = -I$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64/usr/include
+SOURCES_C =
+ROMS      =
+SNAPS     =
+
+include Makefile.common
+
+#################
+# Toolchain setup
+
+CC  = $(NDK_ROOT_DIR)/toolchains/mips64el-linux-android-4.9/prebuilt/linux-x86_64/bin/mips64el-linux-android-gcc
+CXX = $(NDK_ROOT_DIR)/toolchains/mips64el-linux-android-4.9/prebuilt/linux-x86_64/bin/mips64el-linux-android-g++
+AS  = $(NDK_ROOT_DIR)/toolchains/mips64el-linux-android-4.9/prebuilt/linux-x86_64/bin/mips64el-linux-android-as
+
+############
+# Extensions
+
+OBJEXT = .android_mips64.o
+SOEXT  = .android_mips64.so
+
+################
+# Platform setup
+
+PLATDEFS     = -DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST -Dl_getlocaledecpoint\(\)=\(\'.\'\)
+PLATCFLAGS   = -fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes -fomit-frame-pointer -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security
+PLATCXXFLAGS = -fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes -fomit-frame-pointer -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security
+PLATLDFLAGS  = -shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm
+
+################
+# libretro setup
+
+RETRODEFS     = -D__LIBRETRO__
+RETROCFLAGS   =
+RETROCXXFLAGS =
+RETROLDFLAGS  =
+
+#################
+# Final variables
+
+DEFINES  = $(PLATDEFS) $(RETRODEFS)
+CFLAGS   = $(PLATCFLAGS) $(RETROCFLAGS) $(DEFINES) $(INCLUDES)
+CXXFLAGS = $(PLATCXXFLAGS) $(RETROCXXFLAGS) $(DEFINES) $(INCLUDES)
+LDFLAGS  = $(PLATLDFLAGS) $(RETROLDFLAGS)
+
+########
+# Tuning
+
+ifeq ($(DEBUG), 1)
+  CFLAGS   += -O0 -g
+  CXXFLAGS += -O0 -g
+  LDFLAGS  += -g
+else
+  CFLAGS   += -O3 -DNDEBUG
+  CXXFLAGS += -O3 -DNDEBUG
+endif
+
+ifeq ($(LOG_PERFORMANCE), 1)
+  CFLAGS   += -DLOG_PERFORMANCE
+  CXXFLAGS += -DLOG_PERFORMANCE
+endif
+
+###############
+# Include rules
+
+include Makefile.rules

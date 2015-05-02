@@ -1,0 +1,78 @@
+##############
+# 
+
+#############
+# User config
+
+DEBUG = 0
+LOG_PERFORMANCE = 1
+
+####################################
+# Variable setup for Makefile.common
+
+CORE_DIR  = ..
+INCLUDES  = -I
+SOURCES_C =
+ROMS      =
+SNAPS     =
+
+include Makefile.common
+
+#################
+# Toolchain setup
+
+CC  = gcc
+CXX = g++
+AS  = as
+
+############
+# Extensions
+
+OBJEXT = .mingw32.o
+SOEXT  = .mingw32.dll
+
+################
+# Platform setup
+
+PLATDEFS     = 
+PLATCFLAGS   = -m32 -fpic -fstrict-aliasing
+PLATCXXFLAGS = -m32 -fpic -fstrict-aliasing
+PLATLDFLAGS  = -shared -lm
+
+################
+# libretro setup
+
+RETRODEFS     = -D__LIBRETRO__
+RETROCFLAGS   =
+RETROCXXFLAGS =
+RETROLDFLAGS  =
+
+#################
+# Final variables
+
+DEFINES  = $(PLATDEFS) $(RETRODEFS)
+CFLAGS   = $(PLATCFLAGS) $(RETROCFLAGS) $(DEFINES) $(INCLUDES)
+CXXFLAGS = $(PLATCXXFLAGS) $(RETROCXXFLAGS) $(DEFINES) $(INCLUDES)
+LDFLAGS  = $(PLATLDFLAGS) $(RETROLDFLAGS)
+
+########
+# Tuning
+
+ifeq ($(DEBUG), 1)
+  CFLAGS   += -O0 -g
+  CXXFLAGS += -O0 -g
+  LDFLAGS  += -g
+else
+  CFLAGS   += -O3 -DNDEBUG
+  CXXFLAGS += -O3 -DNDEBUG
+endif
+
+ifeq ($(LOG_PERFORMANCE), 1)
+  CFLAGS   += -DLOG_PERFORMANCE
+  CXXFLAGS += -DLOG_PERFORMANCE
+endif
+
+###############
+# Include rules
+
+include Makefile.rules

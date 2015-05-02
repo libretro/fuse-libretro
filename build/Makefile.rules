@@ -1,0 +1,47 @@
+TARGET = fuse_libretro$(SOEXT)
+
+DEFINES  +=
+CFLAGS   += -Wall
+CXXFLAGS += -Wall
+LDFLAGS  +=
+
+HEADERS = $(ROMS:.rom=.h) $(SNAPS:.szx=.h) fuse/config.h libspectrum/config.h
+OBJS    = $(SOURCES_C:.c=$(OBJEXT)) $(SOURCES_CXX:.cpp=$(OBJEXT))
+
+%$(OBJEXT): %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCDIRS)
+
+%$(OBJEXT): %.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCDIRS)
+
+%$(OBJEXT): %.S
+	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
+
+%.h: %.rom
+	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+
+%.h: %.szx
+	xxd -i $< | sed "s/unsigned/const unsigned/g" > $@
+
+all: $(TARGET)
+
+$(TARGET): $(HEADERS) $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
+
+fuse/config.h:
+	cp $(CORE_DIR)/src/config_fuse.h $(CORE_DIR)/fuse/config.h
+
+libspectrum/config.h:
+	cp $(CORE_DIR)/src/config_libspectrum.h $(CORE_DIR)/libspectrum/config.h
+
+clean-objs:
+	rm -f $(OBJS)
+
+clean: clean-objs
+	rm -f $(TARGET)
+
+dist-clean: clean
+	rm -f $(HEADERS)
+
+
+.PHONY: $(TARGET) clean-objs clean dist-clean
