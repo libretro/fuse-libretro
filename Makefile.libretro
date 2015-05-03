@@ -287,10 +287,10 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCLUDES)
 	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
 
 %.h: %.rom
-	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/^___//g" > $@
+	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
 
 %.h: %.szx
-	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/^___//g" > $@
+	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
 
 ifeq ($(platform), theos_ios)
 COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
