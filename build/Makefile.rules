@@ -1,6 +1,6 @@
 TARGET = fuse_libretro$(SOEXT)
 
-DEFINES  +=
+DEFINES  += -DGITHASH=\"`git rev-parse HEAD`\"
 CFLAGS   += -Wall
 CXXFLAGS += -Wall
 LDFLAGS  +=

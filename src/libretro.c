@@ -399,7 +399,6 @@ static int get_joystick(unsigned device)
       case RETRO_DEVICE_FULLER_JOYSTICK:    return 7;
    }
    
-   log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x\n", device);
    return 0;
 }
 
@@ -519,10 +518,12 @@ static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, co
    return type;
 }
 
+extern const char* gitbanner;
+
 bool retro_load_game(const struct retro_game_info *info)
 {
-   log_cb(RETRO_LOG_DEBUG, "%s(%p)\n", __FUNCTION__, info);
-
+   log_cb( RETRO_LOG_ERROR, "\n%s", gitbanner );
+   
    if (!perf_cb.get_time_usec)
    {
       log_cb(RETRO_LOG_ERROR, "Fuse needs the perf interface");
@@ -629,8 +630,6 @@ void retro_set_input_poll(retro_input_poll_t cb)
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-   log_cb(RETRO_LOG_DEBUG, "%s(%p)\n", __FUNCTION__, info);
-   
    // Here we always use the "hard" resolution to accomodate output with *and*
    // without the video border
    info->geometry.base_width = hard_width;
@@ -641,15 +640,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.aspect_ratio = 0.0f;
    info->timing.fps = machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
-   
-   log_cb(RETRO_LOG_INFO, "Set retro_system_av_info to:\n");
-   log_cb(RETRO_LOG_INFO, "  base_width   = %u\n", info->geometry.base_width);
-   log_cb(RETRO_LOG_INFO, "  base_height  = %u\n", info->geometry.base_height);
-   log_cb(RETRO_LOG_INFO, "  max_width    = %u\n", info->geometry.max_width);
-   log_cb(RETRO_LOG_INFO, "  max_height   = %u\n", info->geometry.max_height);
-   log_cb(RETRO_LOG_INFO, "  aspect_ratio = %f\n", info->geometry.max_height);
-   log_cb(RETRO_LOG_INFO, "  fps          = %f\n", info->timing.fps);
-   log_cb(RETRO_LOG_INFO, "  sample_rate  = %f\n", info->timing.sample_rate);
 }
 
 static void render_video(void)
@@ -832,13 +822,6 @@ void retro_run(void)
          geometry.aspect_ratio = 0.0f;
          
          env_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
-         
-         log_cb(RETRO_LOG_INFO, "Set retro_game_geometry to:\n");
-         log_cb(RETRO_LOG_INFO, "  base_width   = %u\n", geometry.base_width);
-         log_cb(RETRO_LOG_INFO, "  base_height  = %u\n", geometry.base_height);
-         log_cb(RETRO_LOG_INFO, "  max_width    = %u\n", geometry.max_width);
-         log_cb(RETRO_LOG_INFO, "  max_height   = %u\n", geometry.max_height);
-         log_cb(RETRO_LOG_INFO, "  aspect_ratio = %f\n", geometry.aspect_ratio);
       }
       
       if (flags & UPDATE_MACHINE)
@@ -881,8 +864,6 @@ void retro_deinit(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
-   log_cb(RETRO_LOG_DEBUG, "%s(%u, %u)\n", __FUNCTION__, port, device);
-   
    switch (device)
    {
       case RETRO_DEVICE_CURSOR_JOYSTICK:
@@ -897,12 +878,10 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          if (port == 0)
          {
             settings_current.joystick_1_output = get_joystick(device);
-            log_cb(RETRO_LOG_INFO, "Joystick 1 set to 0x%04x\n", device);
          }
          else if (port == 1)
          {
             settings_current.joystick_2_output = get_joystick(device);
-            log_cb(RETRO_LOG_INFO, "Joystick 2 set to 0x%04x\n", device);
          }
          
          break;
@@ -914,19 +893,16 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
       default:
          if (port == 0)
          {
-            log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_CURSOR_JOYSTICK\n", device);
             input_devices[port] = RETRO_DEVICE_CURSOR_JOYSTICK;
             settings_current.joystick_1_output = get_joystick(RETRO_DEVICE_CURSOR_JOYSTICK);
          }
          else if (port == 1)
          {
-            log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_KEMPSTON_JOYSTICK\n", device);
             input_devices[port] = RETRO_DEVICE_KEMPSTON_JOYSTICK;
             settings_current.joystick_1_output = get_joystick(RETRO_DEVICE_KEMPSTON_JOYSTICK);
          }
          else
          {
-            log_cb(RETRO_LOG_ERROR, "Unknown device 0x%04x, setting type to RETRO_DEVICE_SPECTRUM_KEYBOARD\n", device);
             input_devices[port] = RETRO_DEVICE_SPECTRUM_KEYBOARD;
          }
          break;
@@ -950,7 +926,6 @@ void retro_reset(void)
 
 size_t retro_serialize_size(void)
 {
-   log_cb(RETRO_LOG_DEBUG, "%s()\n", __FUNCTION__);
    fuse_emulation_pause();
    snapshot_write("dummy.szx"); // filename is only used to get the snapshot type
    fuse_emulation_unpause();
@@ -959,17 +934,12 @@ size_t retro_serialize_size(void)
 
 bool retro_serialize(void *data, size_t size)
 {
-   log_cb(RETRO_LOG_DEBUG, "%s(%p, %lu)\n", __FUNCTION__, data, size);
    bool res = false;
    
    if (size <= snapshot_size)
    {
       memcpy(data, snapshot_buffer, snapshot_size);
       res = true;
-   }
-   else
-   {
-      log_cb(RETRO_LOG_ERROR, "Provided buffer size of %lu is less than the required size of %lu\n", size, snapshot_size);
    }
 
    free(snapshot_buffer);
@@ -978,7 +948,6 @@ bool retro_serialize(void *data, size_t size)
 
 bool retro_unserialize(const void *data, size_t size)
 {
-   log_cb(RETRO_LOG_DEBUG, "%s(%p, %lu)\n", __FUNCTION__, data, size);
    return snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
 }
 
