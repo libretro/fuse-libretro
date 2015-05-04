@@ -518,11 +518,11 @@ static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, co
    return type;
 }
 
-extern const char* gitbanner;
+extern const char* fuse_gitstamp;
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-   log_cb( RETRO_LOG_ERROR, "\n%s", gitbanner );
+   log_cb( RETRO_LOG_ERROR, "\n%s", fuse_gitstamp );
    
    if (!perf_cb.get_time_usec)
    {
