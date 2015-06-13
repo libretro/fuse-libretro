@@ -408,7 +408,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = PACKAGE_VERSION;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80";
+   info->valid_extensions = "tzx|tap|z80|rzx";
 }
 
 void retro_set_environment(retro_environment_t cb)

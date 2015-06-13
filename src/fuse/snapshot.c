@@ -1,11 +1,15 @@
 // Change the call to utils_write_file in snapshot_write so we can trap the write and use libretro to save it for us
 
-#define utils_write_file fuse_write_snapshot
-#include <fuse/snapshot.c>
-#undef utils_write_file
-
 #include <libretro.h>
 #include <externs.h>
+
+libspectrum_error fuse_libspectrum_snap_write( libspectrum_byte **buffer, size_t *length, int *out_flags, libspectrum_snap *snap, libspectrum_id_t type, libspectrum_creator *creator, int in_flags );
+
+#define libspectrum_snap_write fuse_libspectrum_snap_write
+#define utils_write_file fuse_write_snapshot
+#include <fuse/snapshot.c>
+#undef libspectrum_snap_write
+#undef utils_write_file
 
 // This is an ugly hack so that we can have the frontend manage snapshots for us
 int fuse_write_snapshot(const char *filename, const unsigned char *buffer, size_t length)
@@ -22,4 +26,9 @@ int fuse_write_snapshot(const char *filename, const unsigned char *buffer, size_
    }
    
    return 1;
+}
+
+libspectrum_error fuse_libspectrum_snap_write( libspectrum_byte **buffer, size_t *length, int *out_flags, libspectrum_snap *snap, libspectrum_id_t type, libspectrum_creator *creator, int in_flags )
+{
+   return libspectrum_snap_write( buffer, length, out_flags, snap, type, creator, in_flags | LIBSPECTRUM_FLAG_SNAPSHOT_NO_COMPRESSION );
 }
