@@ -61,7 +61,7 @@ Keyboard is fully emulated, but **fuse-libretro** features a keyboard overlay th
 
 ## Supported Formats
 
-Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, and `z80` files. This decision is somewhat arbitrary (it depends if I can reliably identify the file type), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
+Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, `z80`, and `rzx` files. This decision is somewhat arbitrary (it depends if I can reliably identify the file type), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
 
 ## Save States
 
