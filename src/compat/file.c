@@ -26,17 +26,17 @@
 #include <fuse/roms/tc2068-0.h>
 #include <fuse/roms/tc2068-1.h>
 
-#include <fuse/lib/uncompressed/tape_16.h>
-#include <fuse/lib/uncompressed/tape_48.h>
-#include <fuse/lib/uncompressed/tape_48_ntsc.h>
-#include <fuse/lib/uncompressed/tape_128.h>
-#include <fuse/lib/uncompressed/tape_plus2.h>
-#include <fuse/lib/uncompressed/tape_plus2a.h>
-#include <fuse/lib/uncompressed/tape_plus3.h>
-#include <fuse/lib/uncompressed/tape_plus3e.h>
-#include <fuse/lib/uncompressed/tape_se.h>
-#include <fuse/lib/uncompressed/tape_2048.h>
-#include <fuse/lib/uncompressed/tape_2068.h>
+#include <fuse/lib/compressed/tape_16.h>
+#include <fuse/lib/compressed/tape_48.h>
+#include <fuse/lib/compressed/tape_48_ntsc.h>
+#include <fuse/lib/compressed/tape_128.h>
+#include <fuse/lib/compressed/tape_plus2.h>
+#include <fuse/lib/compressed/tape_plus2a.h>
+#include <fuse/lib/compressed/tape_plus3.h>
+#include <fuse/lib/compressed/tape_plus3e.h>
+#include <fuse/lib/compressed/tape_se.h>
+#include <fuse/lib/compressed/tape_2048.h>
+#include <fuse/lib/compressed/tape_2068.h>
 
 typedef struct
 {
@@ -66,17 +66,17 @@ static const entry_t mem_entries[] = {
    { "tc2068-0.rom",     fuse_roms_tc2068_0_rom,                 sizeof(fuse_roms_tc2068_0_rom) },
    { "tc2068-1.rom",     fuse_roms_tc2068_1_rom,                 sizeof(fuse_roms_tc2068_1_rom) },
    
-   { "tape_16.szx",      fuse_lib_uncompressed_tape_16_szx,      sizeof(fuse_lib_uncompressed_tape_16_szx) },
-   { "tape_48.szx",      fuse_lib_uncompressed_tape_48_szx,      sizeof(fuse_lib_uncompressed_tape_48_szx) },
-   { "tape_48_ntsc.szx", fuse_lib_uncompressed_tape_48_ntsc_szx, sizeof(fuse_lib_uncompressed_tape_48_ntsc_szx) },
-   { "tape_128.szx",     fuse_lib_uncompressed_tape_128_szx,     sizeof(fuse_lib_uncompressed_tape_128_szx) },
-   { "tape_plus2.szx",   fuse_lib_uncompressed_tape_plus2_szx,   sizeof(fuse_lib_uncompressed_tape_plus2_szx) },
-   { "tape_plus2a.szx",  fuse_lib_uncompressed_tape_plus2a_szx,  sizeof(fuse_lib_uncompressed_tape_plus2a_szx) },
-   { "tape_plus3.szx",   fuse_lib_uncompressed_tape_plus3_szx,   sizeof(fuse_lib_uncompressed_tape_plus3_szx) },
-   { "tape_plus3e.szx",  fuse_lib_uncompressed_tape_plus3e_szx,  sizeof(fuse_lib_uncompressed_tape_plus3e_szx) },
-   { "tape_se.szx",      fuse_lib_uncompressed_tape_se_szx,      sizeof(fuse_lib_uncompressed_tape_se_szx) },
-   { "tape_2048.szx",    fuse_lib_uncompressed_tape_2048_szx,    sizeof(fuse_lib_uncompressed_tape_2048_szx) },
-   { "tape_2068.szx",    fuse_lib_uncompressed_tape_2068_szx,    sizeof(fuse_lib_uncompressed_tape_2068_szx) },
+   { "tape_16.szx",      fuse_lib_compressed_tape_16_szx,      sizeof(fuse_lib_compressed_tape_16_szx) },
+   { "tape_48.szx",      fuse_lib_compressed_tape_48_szx,      sizeof(fuse_lib_compressed_tape_48_szx) },
+   { "tape_48_ntsc.szx", fuse_lib_compressed_tape_48_ntsc_szx, sizeof(fuse_lib_compressed_tape_48_ntsc_szx) },
+   { "tape_128.szx",     fuse_lib_compressed_tape_128_szx,     sizeof(fuse_lib_compressed_tape_128_szx) },
+   { "tape_plus2.szx",   fuse_lib_compressed_tape_plus2_szx,   sizeof(fuse_lib_compressed_tape_plus2_szx) },
+   { "tape_plus2a.szx",  fuse_lib_compressed_tape_plus2a_szx,  sizeof(fuse_lib_compressed_tape_plus2a_szx) },
+   { "tape_plus3.szx",   fuse_lib_compressed_tape_plus3_szx,   sizeof(fuse_lib_compressed_tape_plus3_szx) },
+   { "tape_plus3e.szx",  fuse_lib_compressed_tape_plus3e_szx,  sizeof(fuse_lib_compressed_tape_plus3e_szx) },
+   { "tape_se.szx",      fuse_lib_compressed_tape_se_szx,      sizeof(fuse_lib_compressed_tape_se_szx) },
+   { "tape_2048.szx",    fuse_lib_compressed_tape_2048_szx,    sizeof(fuse_lib_compressed_tape_2048_szx) },
+   { "tape_2068.szx",    fuse_lib_compressed_tape_2068_szx,    sizeof(fuse_lib_compressed_tape_2068_szx) },
 };
 
 static const entry_t* find_entry(const char *path)
