@@ -54,7 +54,7 @@ static const machine_t machine_list[] =
    { LIBSPECTRUM_MACHINE_TC2068,   "2068",         1 },
    { LIBSPECTRUM_MACHINE_TS2068,   "ts2068",       1 },
    { LIBSPECTRUM_MACHINE_16,       "16",           0 },
-   /* missing roms */
+   /* these need additional roms in the system/fuse folder */
    { LIBSPECTRUM_MACHINE_PENT,     "pentagon",     0 },
    { LIBSPECTRUM_MACHINE_PENT512,  "pentagon512",  0 },
    { LIBSPECTRUM_MACHINE_PENT1024, "pentagon1024", 0 },
@@ -245,7 +245,7 @@ keysyms_map_t keysyms_map[] = {
 
 static const struct retro_variable core_vars[] =
 {
-   { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K" },
+   { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
    { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
@@ -408,7 +408,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = PACKAGE_VERSION;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx|scl";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd";
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -491,7 +491,8 @@ static libspectrum_id_t identify_file(const void* data, size_t size)
       return LIBSPECTRUM_ID_SNAPSHOT_Z80;
    }
    
-   return LIBSPECTRUM_ID_UNKNOWN;
+   // Default to TRD, we won't be able to load TRD files otherwise
+   return LIBSPECTRUM_ID_DISK_TRD;
 }
 
 static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, const char** ext)
@@ -517,6 +518,8 @@ static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, co
       case LIBSPECTRUM_ID_TAPE_STA:      *ext = ".sta"; break;
       case LIBSPECTRUM_ID_TAPE_LTP:      *ext = ".ltp"; break;
       case LIBSPECTRUM_ID_TAPE_PZX:      *ext = ".pzx"; break;
+      case LIBSPECTRUM_ID_DISK_SCL:      *ext = ".scl"; break;
+      case LIBSPECTRUM_ID_DISK_TRD:      *ext = ".trd"; break;
       default:                           *ext = "";     break;
    }
    

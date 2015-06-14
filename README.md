@@ -21,14 +21,21 @@ There are hundreds of free, legally available ZX Spectrum games at [World of Spe
 1. Timex TC2048
 1. Timex TC2068
 1. Timex TS2068
+1. Spectrum 16K
+1. Pentagon 128K (needs `128p-0.rom`, `128p-1.rom`, and `trdos.rom`)
+1. Pentagon 512K (needs `128p-0.rom`, `128p-1.rom`, `gluck.rom`, and `trdos.rom`)
+1. Pentagon 1024 (needs `128p-0.rom`, `128p-1.rom`, `gluck.rom`, and `trdos.rom`)
+1. Scorpion 256K (needs `256s-0.rom`, `256s-1.rom`, `256s-2.rom`, and `256s-3.rom`)
 
-The port correctly loads and runs ~~some~~ many games I have around, but all of them are 48K tapes.
+The last four machines need additional ROMs to work. Create a `fuse` folder inside the `<system>` folder, download the required ROMs and put them into that folder.
+
+The port correctly loads and runs ~~some~~ many games I have around. Most of them are 48K tapes, but I've successfully loaded one RZX file, one SCL file, and one TRD file.
 
 ## Core Options
 
 The core options available on the frontend are:
 
-* Model (Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068): Set the machine to emulate. Note that the this setting will have effect only when a new content is loaded
+* Model (Spectrum 16K|Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K): Set the machine to emulate. Note that the this setting will have effect only when a new content is loaded
 * Hide video border (enabled|disabled): Hides the video border, making the game occupy the entire screen area
 * Tape Fast Load (enabled|disabled): Instantly loads tape files if enabled, or disabled it to see the moving horizontal lines in the video border while the game loads
 * Tape Load Sound (enabled|disabled): Outputs the tape sound if fast load is disabled
@@ -61,7 +68,7 @@ Keyboard is fully emulated, but **fuse-libretro** features a keyboard overlay th
 
 ## Supported Formats
 
-Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, `z80`, and `rzx` files. This decision is somewhat arbitrary (it depends if I can reliably identify the file type), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
+Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, `z80`, `rzx`, `scl` and `trd` files. This decision is somewhat arbitrary (it depends if I can find a file that I can be sure is not corrupted), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
 
 ## Save States
 
@@ -73,7 +80,7 @@ Supported.
 1. Copy the resulting `fuse_libretro.dll` or `fuse_libretro.so` into the `cores` folder of your libretro frontend
 1. Profit!
 
-> It's *not* necessary to copy files to the `system` folder of your libretro frontend anymore! All supporting files are baked into the core.
+> It's *not* necessary to copy files to the `system` folder of your libretro frontend anymore! All supporting files are baked into the core, except ROMs for the more exotic Spectrum clones (see Emulated Machines.)
 
 ## Versions
 
@@ -81,6 +88,8 @@ Versions that are being used to build and test **fuse-libretro**:
 
 * Fuse 1.1.1
 * libspectrum 1.1.1
+* zlib 1.2.8
+* bzip2 1.0.6
 
 ## TODO
 
