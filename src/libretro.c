@@ -408,7 +408,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = PACKAGE_VERSION;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl";
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -465,6 +465,11 @@ void retro_init(void)
    {
       perf_cb.get_time_usec = NULL;
    }
+   
+   // Set default controllers
+   retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK );
+   retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
+   retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
 }
 
 static libspectrum_id_t identify_file(const void* data, size_t size)
