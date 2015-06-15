@@ -41,6 +41,9 @@
 #include <fuse/lib/compressed/tape_pentagon.h>
 #include <fuse/lib/compressed/tape_scorpion.h>
 
+/* 4096 ought to be enough for anybody */
+#define MAX_PATH_LEN 4096
+
 typedef struct
 {
    const char *name;
@@ -161,15 +164,15 @@ compat_fd compat_file_open(const char *path, int write)
       return COMPAT_FILE_OPEN_FAILED;
    }
    
-   char system[MAX_PATH];
-   strncpy(system, sys, MAX_PATH);
-   system[MAX_PATH - 1] = 0;
+   char system[MAX_PATH_LEN];
+   strncpy(system, sys, MAX_PATH_LEN);
+   system[MAX_PATH_LEN - 1] = 0;
    
-   strncat(system, "/fuse", MAX_PATH);
-   system[MAX_PATH - 1] = 0;
+   strncat(system, "/fuse", MAX_PATH_LEN);
+   system[MAX_PATH_LEN - 1] = 0;
    
-   strncat(system, path, MAX_PATH);
-   system[MAX_PATH - 1] = 0;
+   strncat(system, path, MAX_PATH_LEN);
+   system[MAX_PATH_LEN - 1] = 0;
    
    log_cb(RETRO_LOG_INFO, "Trying to open \"%s\" from the file system\n", system);
    FILE* file = fopen(system, "rb");
