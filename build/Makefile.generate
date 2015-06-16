@@ -12,12 +12,9 @@ HEADERS = $(ROMS:.rom=.h) $(SNAPS:.szx=.h)
 %.h: %.szx
 	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/ _*/ /g" > $@
 
-all: $(HEADERS) $(CORE_DIR)/src/version.c
-
-$(CORE_DIR)/src/version.c: FORCE
-	cat $(CORE_DIR)/etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
+all: $(HEADERS)
 
 clean:
-	rm -f $(HEADERS) $(CORE_DIR)/src/version.c
+	rm -f $(HEADERS)
 
-.PHONY: clean FORCE
+.PHONY: clean
