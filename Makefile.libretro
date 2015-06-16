@@ -255,7 +255,7 @@ ifeq ($(LOG_PERFORMANCE), 1)
 endif
 
 
-DEFINES := -D__LIBRETRO__ $(PLATFORM_DEFINES) -DGITHASH=\"`git rev-parse HEAD`\"
+DEFINES := -D__LIBRETRO__ $(PLATFORM_DEFINES)
 DEFINES += -DHAVE_CONFIG_H
 
 CFLAGS   += $(fpic) $(DEFINES)
@@ -285,12 +285,6 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCLUDES)
 %.o: %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
 
-%.h: %.rom
-	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
-
-%.h: %.szx
-	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
-
 ifeq ($(platform), theos_ios)
 COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
 $(LIBRARY_NAME)_CFLAGS += $(CFLAGS) $(COMMON_FLAGS)
@@ -314,16 +308,12 @@ fuse/config.h:
 libspectrum/config.h:
 	cp src/config_libspectrum.h libspectrum/config.h
 
-$(CORE_DIR)/src/version.c: FORCE
-	cat etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
-
 clean-objs:
 	rm -f $(OBJS)
 
 clean:
 	rm -f $(OBJS)
-	rm -f $(HEADERS)
 	rm -f $(TARGET)
 
-.PHONY: clean clean-objs FORCE
+.PHONY: clean clean-objs
 endif

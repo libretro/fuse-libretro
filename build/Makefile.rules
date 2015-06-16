@@ -1,6 +1,6 @@
 TARGET = fuse_libretro$(SOEXT)
 
-DEFINES  += -DGITHASH=\"`git rev-parse HEAD`\"
+DEFINES  +=
 CFLAGS   += -Wall
 CXXFLAGS += -Wall
 LDFLAGS  +=
@@ -17,12 +17,6 @@ OBJS    = $(SOURCES_C:.c=$(OBJEXT)) $(SOURCES_CXX:.cpp=$(OBJEXT))
 %$(OBJEXT): %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS)
 
-%.h: %.rom
-	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
-
-%.h: %.szx
-	xxd -i $< | sed "s/unsigned/const unsigned/g" | sed "s/___//g" > $@
-
 all: $(TARGET)
 
 $(TARGET): $(HEADERS) $(OBJS)
@@ -34,17 +28,10 @@ fuse/config.h:
 libspectrum/config.h:
 	cp $(CORE_DIR)/src/config_libspectrum.h $(CORE_DIR)/libspectrum/config.h
 
-$(CORE_DIR)/src/version.c: FORCE
-	cat etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
-
 clean-objs:
 	rm -f $(OBJS)
 
 clean: clean-objs
 	rm -f $(TARGET)
-
-dist-clean: clean
-	rm -f $(HEADERS)
-
 
 .PHONY: clean-objs clean dist-clean FORCE
