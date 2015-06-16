@@ -34,4 +34,4 @@ clean-objs:
 clean: clean-objs
 	rm -f $(TARGET)
 
-.PHONY: clean-objs clean dist-clean FORCE
+.PHONY: clean-objs clean dist-clean
