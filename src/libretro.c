@@ -604,14 +604,22 @@ bool retro_load_game(const struct retro_game_info *info)
       // Enable read/write on all disk drives
       int i;
       
-      for (i = 0; i < 16; i++)
+      for (i = 0; i < 2; i++)
       {
          specplus3_disk_writeprotect( i, 0 );
-         beta_disk_writeprotect( i, 0 );
          plusd_disk_writeprotect( i, 0 );
-         if1_mdr_writeprotect( i, 0 );
          opus_disk_writeprotect( i, 0 );
          disciple_disk_writeprotect( i, 0 );
+      }
+      
+      for (i = 0; i < 4; i++)
+      {
+         beta_disk_writeprotect( i, 0 );
+      }
+      
+      for (i = 0; i < 8; i++)
+      {
+         if1_mdr_writeprotect( i, 0 );
       }
       
       return true;
