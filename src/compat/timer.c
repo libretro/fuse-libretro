@@ -5,7 +5,19 @@
 
 double compat_timer_get_time( void )
 {
-   return perf_cb.get_time_usec() / 1000000.0;
+   static int setup = 1;
+   static int64_t t0;
+   
+   if (!setup)
+   {
+      return ( t0 + perf_cb.get_time_usec() ) / 1000000.0;
+   }
+   else
+   {
+      setup = 0;
+      t0 = -perf_cb.get_time_usec();
+      return 0.0;
+   }
 }
 
 void compat_timer_sleep(int ms)
