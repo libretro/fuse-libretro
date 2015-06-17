@@ -11,6 +11,12 @@
 #include <externs.h>
 #include <utils.h>
 #include <keyboard.h>
+#include <machines/specplus3.h>
+#include <peripherals/disk/beta.h>
+#include <peripherals/disk/plusd.h>
+#include <peripherals/if1.h>
+#include <peripherals/disk/opus.h>
+#include <peripherals/disk/disciple.h>
 
 static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -562,7 +568,6 @@ bool retro_load_game(const struct retro_game_info *info)
    
    if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
    {
-      // Load the _BASIC.z80 content to boot to BASIC
       if (info->size != 0)
       {
          tape_size = info->size;
@@ -591,10 +596,24 @@ bool retro_load_game(const struct retro_game_info *info)
       }
       else
       {
+         // Load the _BASIC.z80 content to boot to BASIC
          tape_data = NULL;
          tape_size = 0;
       }
    
+      // Enable read/write on all disk drives
+      int i;
+      
+      for (i = 0; i < 16; i++)
+      {
+         specplus3_disk_writeprotect( i, 0 );
+         beta_disk_writeprotect( i, 0 );
+         plusd_disk_writeprotect( i, 0 );
+         if1_mdr_writeprotect( i, 0 );
+         opus_disk_writeprotect( i, 0 );
+         disciple_disk_writeprotect( i, 0 );
+      }
+      
       return true;
    }
    
