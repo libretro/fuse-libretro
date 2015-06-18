@@ -28,8 +28,8 @@ AS  = $(NDK_ROOT_DIR)/toolchains/x86-4.8/prebuilt/linux-x86_64/bin/i686-linux-an
 ############
 # Extensions
 
-OBJEXT = .android_x86.o
-SOEXT  = .android_x86.so
+OBJEXT = .x86.o
+SOEXT  = .x86.so
 
 ################
 # Platform setup
