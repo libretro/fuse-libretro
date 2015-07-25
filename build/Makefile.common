@@ -1,7 +1,7 @@
 INCLUDES += -I$(CORE_DIR) \
             -I$(CORE_DIR)/src \
-            -I$(CORE_DIR)/src/fuse \
             -I$(CORE_DIR)/fuse \
+            -I$(CORE_DIR)/fuse/compat \
             -I$(CORE_DIR)/libspectrum \
             -I$(CORE_DIR)/zlib \
             -I$(CORE_DIR)/bzip2
