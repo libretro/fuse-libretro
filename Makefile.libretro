@@ -31,6 +31,11 @@ ifeq ($(shell uname -a),)
 	system_platform = win
 else ifneq ($(findstring Darwin,$(shell uname -a)),)
 	system_platform = osx
+ifeq ($(shell uname -p),powerpc)
+	arch = ppc
+else
+	arch = intel
+endif
 else ifneq ($(findstring MINGW,$(shell uname -a)),)
 	system_platform = win
 endif
@@ -67,6 +72,9 @@ else ifeq ($(platform), osx)
 	ifeq ($(OSX_LT_MAVERICKS),"YES")
 		fpic += -mmacosx-version-min=10.5
 	endif
+ifeq ($(arch),ppc)
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+endif
 
 # iOS
 else ifeq ($(platform), ios)
