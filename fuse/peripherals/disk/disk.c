@@ -1839,7 +1839,7 @@ disk_open2( disk_t *d, const char *filename, int preindex )
   libspectrum_id_t type;
   int error;
 
-#ifdef GEKKO		/* Wii doesn't have access() */
+#if defined(GEKKO) || defined(__CELLOS_LV2__)		/* Wii/PS3 doesn't have access() */
   d->wrprot = 0;
 #else			/* #ifdef GEKKO */
   if( access( filename, W_OK ) == -1 )		/* file read only */
