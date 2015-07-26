@@ -1,5 +1,6 @@
 INCLUDES += -I$(CORE_DIR) \
             -I$(CORE_DIR)/src \
+            -I$(CORE_DIR)/src/compat \
             -I$(CORE_DIR)/fuse \
             -I$(CORE_DIR)/fuse/compat \
             -I$(CORE_DIR)/libspectrum \
@@ -17,6 +18,7 @@ SOURCES_C += $(CORE_DIR)/src/fuse/scalers32.c
 
 SOURCES_C += $(CORE_DIR)/src/compat/dir.c
 SOURCES_C += $(CORE_DIR)/src/compat/display.c
+SOURCES_C += $(CORE_DIR)/src/compat/fat.c
 SOURCES_C += $(CORE_DIR)/src/compat/file.c
 SOURCES_C += $(CORE_DIR)/src/compat/joystick.c
 SOURCES_C += $(CORE_DIR)/src/compat/keyboard.c

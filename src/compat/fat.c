@@ -1,0 +1,1 @@
+void fatInitDefault( void ) {}
