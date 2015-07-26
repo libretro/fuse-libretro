@@ -317,7 +317,7 @@ libspectrum/config.h:
 	cp src/config_libspectrum.h libspectrum/config.h
 
 $(CORE_DIR)/src/version.c: FORCE
-	cat etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
+	cat $(CORE_DIR)/etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
 
 clean-objs:
 	rm -f $(OBJS)
