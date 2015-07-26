@@ -2,9 +2,11 @@
 
 #define fuse_init fuse_init_static
 #define fuse_end fuse_end_static
+#define main main_ignore
 #include <fuse/fuse.c>
 #undef fuse_init
 #undef fuse_end
+#undef main
 
 int fuse_init(int argc, char** argv)
 {

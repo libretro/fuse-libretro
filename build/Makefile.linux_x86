@@ -24,20 +24,23 @@ include Makefile.common
 CC  = gcc
 CXX = g++
 AS  = as
+AR  = ar
 
 ############
 # Extensions
 
-OBJEXT = .linux_x86.o
-SOEXT  = .linux_x86.so
+OBJEXT = _linux_x86.o
+SOEXT  = _linux_x86.so
 
 ################
 # Platform setup
 
-PLATDEFS     = 
-PLATCFLAGS   = -m32 -fpic -fstrict-aliasing
-PLATCXXFLAGS = -m32 -fpic -fstrict-aliasing
-PLATLDFLAGS  = -m32 -shared -lm
+STATIC_LINKING = 0
+PLATFORM       = 
+PLATDEFS       = 
+PLATCFLAGS     = -m32 -fpic -fstrict-aliasing
+PLATCXXFLAGS   = -m32 -fpic -fstrict-aliasing
+PLATLDFLAGS    = -m32 -shared -lm
 
 ################
 # libretro setup

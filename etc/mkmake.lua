@@ -36,10 +36,12 @@ SOEXT  = _${EXT}.${SO}
 ################
 # Platform setup
 
-PLATDEFS     = ${PLAT_DEFS}
-PLATCFLAGS   = ${PLAT_CFLAGS}
-PLATCXXFLAGS = ${PLAT_CXXFLAGS}
-PLATLDFLAGS  = ${PLAT_LDFLAGS}
+STATIC_LINKING = ${STATIC_LINKING}
+PLATFORM       = ${PLATFORM}
+PLATDEFS       = ${PLAT_DEFS}
+PLATCFLAGS     = ${PLAT_CFLAGS}
+PLATCXXFLAGS   = ${PLAT_CXXFLAGS}
+PLATLDFLAGS    = ${PLAT_LDFLAGS}
 
 ################
 # libretro setup
@@ -297,15 +299,17 @@ local platforms = {
   wii = {
     MAKEFILE      = 'Makefile.wii',
     HEADERMSG     = 'Install devkitppc and libogc',
-    CC            = '$(DEKITPPC_ROOT_DIR)/powerpc-eabi-gcc',
-    CXX           = '$(DEKITPPC_ROOT_DIR)/powerpc-eabi-g++',
-    AS            = '$(DEKITPPC_ROOT_DIR)/powerpc-eabi-as',
-    AR            = '$(DEKITPPC_ROOT_DIR)/powerpc-eabi-ar',
+    CC            = '$(DEVKITPPC_ROOT_DIR)/bin/powerpc-eabi-gcc',
+    CXX           = '$(DEVKITPPC_ROOT_DIR)/bin/powerpc-eabi-g++',
+    AS            = '$(DEVKITPPC_ROOT_DIR)/bin/powerpc-eabi-as',
+    AR            = '$(DEVKITPPC_ROOT_DIR)/bin/powerpc-eabi-ar',
     EXT           = 'wii',
     SO            = 'so',
+    STATIC_LINKING = '1',
+    PLATFORM      = 'wii',
     PLAT_INCDIR   = '',
     PLAT_DEFS     = '-DGEKKO -DHW_RVL',
-    PLAT_CFLAGS   = '-m32 -fpic -fstrict-aliasing -mrvl -mcpu=750 -meabi -mhard-float',
+    PLAT_CFLAGS   = '-m32 -fstrict-aliasing -mrvl -mcpu=750 -meabi -mhard-float',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS  = '-shared -lm'
   },
@@ -314,6 +318,9 @@ local platforms = {
 for plat, defs in pairs( platforms ) do
   local templ = template
   local equal
+
+  defs.STATIC_LINKING = defs.STATIC_LINKING or '0'
+  defs.PLATFORM = defs.PLATFORM or ''
   
   repeat
     equal = true

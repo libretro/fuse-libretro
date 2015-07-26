@@ -24,20 +24,23 @@ include Makefile.common
 CC  = i686-w64-mingw32-gcc
 CXX = i686-w64-mingw32-g++
 AS  = i686-w64-mingw32-as
+AR  = i686-w64-mingw32-ar
 
 ############
 # Extensions
 
-OBJEXT = .windows_x86.o
-SOEXT  = .windows_x86.dll
+OBJEXT = _windows_x86.o
+SOEXT  = _windows_x86.dll
 
 ################
 # Platform setup
 
-PLATDEFS     = 
-PLATCFLAGS   = -fstrict-aliasing
-PLATCXXFLAGS = -fstrict-aliasing
-PLATLDFLAGS  = -shared -lm
+STATIC_LINKING = 0
+PLATFORM       = 
+PLATDEFS       = 
+PLATCFLAGS     = -fstrict-aliasing
+PLATCXXFLAGS   = -fstrict-aliasing
+PLATLDFLAGS    = -shared -lm
 
 ################
 # libretro setup

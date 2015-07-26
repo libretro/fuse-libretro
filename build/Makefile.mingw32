@@ -1,5 +1,5 @@
 ##############
-# 
+# Install MSYS2
 
 #############
 # User config
@@ -24,20 +24,23 @@ include Makefile.common
 CC  = gcc
 CXX = g++
 AS  = as
+AR  = ar
 
 ############
 # Extensions
 
-OBJEXT = .mingw32.o
-SOEXT  = .mingw32.dll
+OBJEXT = _mingw32.o
+SOEXT  = _mingw32.dll
 
 ################
 # Platform setup
 
-PLATDEFS     = 
-PLATCFLAGS   = -m32 -fpic -fstrict-aliasing
-PLATCXXFLAGS = -m32 -fpic -fstrict-aliasing
-PLATLDFLAGS  = -shared -lm
+STATIC_LINKING = 0
+PLATFORM       = 
+PLATDEFS       = 
+PLATCFLAGS     = -m32 -fpic -fstrict-aliasing
+PLATCXXFLAGS   = -m32 -fpic -fstrict-aliasing
+PLATLDFLAGS    = -shared -lm
 
 ################
 # libretro setup
