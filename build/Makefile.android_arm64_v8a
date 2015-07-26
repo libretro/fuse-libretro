@@ -12,9 +12,6 @@ LOG_PERFORMANCE = 1
 
 CORE_DIR  = ..
 INCLUDES  = -I$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64/usr/include
-SOURCES_C =
-ROMS      =
-SNAPS     =
 
 include Makefile.common
 
@@ -36,7 +33,7 @@ SOEXT  = .android_arm64_v8a.so
 # Platform setup
 
 STATIC_LINKING = 0
-PLATFORM       = 
+PLATFORM       = android
 PLATDEFS       = -DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST
 PLATCFLAGS     = -fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security
 PLATCXXFLAGS   = -fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security

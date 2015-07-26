@@ -12,9 +12,6 @@ LOG_PERFORMANCE = 1
 
 CORE_DIR  = ..
 INCLUDES  = 
-SOURCES_C =
-ROMS      =
-SNAPS     =
 
 include Makefile.common
 
@@ -36,7 +33,7 @@ SOEXT  = .linux_x86_64.so
 # Platform setup
 
 STATIC_LINKING = 0
-PLATFORM       = 
+PLATFORM       = unix
 PLATDEFS       = 
 PLATCFLAGS     = -m64 -fpic -fstrict-aliasing
 PLATCXXFLAGS   = -m64 -fpic -fstrict-aliasing
