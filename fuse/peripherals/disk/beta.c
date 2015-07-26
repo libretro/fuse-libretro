@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#ifdef HAVE_STRINGS_H
+#if defined(HAVE_STRINGS_H) && !defined(__CELLOS_LV2__)
 #include <strings.h>            /* Needed for strncasecmp() on QNX6 */
 #endif                          /* #ifdef HAVE_STRINGS_H */
 #include <limits.h>

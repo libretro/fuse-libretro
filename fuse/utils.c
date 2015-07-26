@@ -30,9 +30,11 @@
 #include <libgen.h>
 #endif				/* #ifdef HAVE_LIBGEN_H */
 #include <string.h>
+#ifndef __CELLOS_LV2__
+#include <unistd.h>
+#endif
 #include <sys/stat.h>
 #include <ui/ui.h>
-#include <unistd.h>
 
 #include <libspectrum.h>
 

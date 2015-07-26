@@ -214,6 +214,16 @@ static int widget_add_filename( int *allocated, int *number,
   return 0;
 }
 
+#ifndef NAME_MAX
+#define NAME_MAX 4096
+#endif
+
+#ifdef __CELLOS_LV2__
+#ifndef S_ISDIR
+#define S_ISDIR(x) (x & 0040000)
+#endif
+#endif
+
 #if defined AMIGA || defined __MORPHOS__
 char *
 amiga_asl( char *title, BOOL is_saving ) {

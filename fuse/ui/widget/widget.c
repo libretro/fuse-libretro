@@ -28,7 +28,9 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
+#if !defined(__CELLOS_LV2__)
 #include <signal.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
