@@ -29,8 +29,8 @@ AR  = $(DEVKITPPC_ROOT_DIR)/bin/powerpc-eabi-ar
 ############
 # Extensions
 
-OBJEXT = _wii.o
-SOEXT  = _wii.so
+OBJEXT = .wii.o
+SOEXT  = .wii.so
 
 ################
 # Platform setup

@@ -29,8 +29,8 @@ AR  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64
 ############
 # Extensions
 
-OBJEXT = _armeabi-v7a.o
-SOEXT  = _armeabi-v7a.so
+OBJEXT = .armeabi-v7a.o
+SOEXT  = .armeabi-v7a.so
 
 ################
 # Platform setup

@@ -29,8 +29,8 @@ AR  = i686-w64-mingw32-ar
 ############
 # Extensions
 
-OBJEXT = _windows_x86.o
-SOEXT  = _windows_x86.dll
+OBJEXT = .windows_x86.o
+SOEXT  = .windows_x86.dll
 
 ################
 # Platform setup

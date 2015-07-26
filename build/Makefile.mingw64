@@ -29,8 +29,8 @@ AR  = ar
 ############
 # Extensions
 
-OBJEXT = _mingw32.o
-SOEXT  = _mingw32.dll
+OBJEXT = .mingw32.o
+SOEXT  = .mingw32.dll
 
 ################
 # Platform setup

@@ -30,8 +30,8 @@ AR  = ${AR}
 ############
 # Extensions
 
-OBJEXT = _${EXT}.o
-SOEXT  = _${EXT}.${SO}
+OBJEXT = .${EXT}.o
+SOEXT  = .${EXT}.${SO}
 
 ################
 # Platform setup

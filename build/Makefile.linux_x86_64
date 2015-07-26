@@ -29,8 +29,8 @@ AR  = ar
 ############
 # Extensions
 
-OBJEXT = _linux_x86_64.o
-SOEXT  = _linux_x86_64.so
+OBJEXT = .linux_x86_64.o
+SOEXT  = .linux_x86_64.so
 
 ################
 # Platform setup

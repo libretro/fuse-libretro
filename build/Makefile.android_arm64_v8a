@@ -29,8 +29,8 @@ AR  = $(NDK_ROOT_DIR)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64
 ############
 # Extensions
 
-OBJEXT = _android_arm64_v8a.o
-SOEXT  = _android_arm64_v8a.so
+OBJEXT = .android_arm64_v8a.o
+SOEXT  = .android_arm64_v8a.so
 
 ################
 # Platform setup

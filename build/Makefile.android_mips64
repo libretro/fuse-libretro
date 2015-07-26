@@ -29,8 +29,8 @@ AR  = $(NDK_ROOT_DIR)/toolchains/mips64el-linux-android-4.9/prebuilt/linux-x86_6
 ############
 # Extensions
 
-OBJEXT = _android_mips64.o
-SOEXT  = _android_mips64.so
+OBJEXT = .android_mips64.o
+SOEXT  = .android_mips64.so
 
 ################
 # Platform setup
