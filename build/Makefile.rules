@@ -31,13 +31,13 @@ else
 endif
 
 fuse/config.h:
-	cp $(CORE_DIR)/src/config_fuse.h $(CORE_DIR)/fuse/config.h
+	cp $(CORE_SRC_DIR)/src/config_fuse.h $(CORE_SRC_DIR)/fuse/config.h
 
 libspectrum/config.h:
-	cp $(CORE_DIR)/src/config_libspectrum.h $(CORE_DIR)/libspectrum/config.h
+	cp $(CORE_SRC_DIR)/src/config_libspectrum.h $(CORE_SRC_DIR)/libspectrum/config.h
 
-$(CORE_DIR)/src/version.c: FORCE
-	cat $(CORE_DIR)/etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
+$(CORE_SRC_DIR)/src/version.c: FORCE
+	cat $(CORE_SRC_DIR)/etc/version.c.templ | sed s/HASH/`git rev-parse HEAD | tr -d "\n"`/g > $@
 
 clean-objs:
 	rm -f $(OBJS)
