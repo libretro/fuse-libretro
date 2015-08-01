@@ -17,11 +17,22 @@ include $(CORE_DIR)/Makefile.common
 
 #################
 # Toolchain setup
+ifeq (,$(ARCH))
+	ARCH = $(shell uname -m)
+endif
 
-CC  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64/bin/arm-linux-androideabi-gcc
-CXX = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64/bin/arm-linux-androideabi-g++
-AS  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64/bin/arm-linux-androideabi-as
-AR  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar
+ifeq ($(ARCH), $(filter $(ARCH), x86_64))
+ifneq ($(findstring Darwin,$(shell uname -a)),)
+NDK_PLATFORM := darwin
+endif
+else
+NDK_PLATFORM := linux
+endif
+
+CC  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(NDK_PLATFORM)-x86_64/bin/arm-linux-androideabi-gcc
+CXX = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(NDK_PLATFORM)-x86_64/bin/arm-linux-androideabi-g++
+AS  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(NDK_PLATFORM)-x86_64/bin/arm-linux-androideabi-as
+AR  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(NDK_PLATFORM)-x86_64/bin/arm-linux-androideabi-ar
 
 ############
 # Extensions
