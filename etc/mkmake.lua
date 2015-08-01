@@ -11,10 +11,10 @@ LOG_PERFORMANCE = 1
 ####################################
 # Variable setup for Makefile.common
 
-CORE_DIR  = ..
+CORE_DIR  ?= .
 INCLUDES  = ${PLAT_INCDIR}
 
-include Makefile.common
+include $(CORE_DIR)/Makefile.common
 
 #################
 # Toolchain setup
@@ -34,11 +34,12 @@ SOEXT  = .${EXT}.${SO}
 # Platform setup
 
 STATIC_LINKING = ${STATIC_LINKING}
-PLATFORM       = ${PLATFORM}
+platform       = ${PLATFORM}
 PLATDEFS       = ${PLAT_DEFS}
 PLATCFLAGS     = ${PLAT_CFLAGS}
 PLATCXXFLAGS   = ${PLAT_CXXFLAGS}
 PLATLDFLAGS    = ${PLAT_LDFLAGS}
+PLATLDXFLAGS   = ${PLAT_LDXFLAGS}
 
 ################
 # libretro setup
@@ -47,6 +48,7 @@ RETRODEFS     = -D__LIBRETRO__
 RETROCFLAGS   =
 RETROCXXFLAGS =
 RETROLDFLAGS  =
+RETROLDXFLAGS =
 
 #################
 # Final variables
@@ -55,6 +57,7 @@ DEFINES  = $(PLATDEFS) $(RETRODEFS)
 CFLAGS   = $(PLATCFLAGS) $(RETROCFLAGS) $(DEFINES) $(INCLUDES)
 CXXFLAGS = $(PLATCXXFLAGS) $(RETROCXXFLAGS) $(DEFINES) $(INCLUDES)
 LDFLAGS  = $(PLATLDFLAGS) $(RETROLDFLAGS)
+LDXFLAGS = $(PLATLDXFLAGS) $(RETROLDXFLAGS)
 
 ########
 # Tuning
@@ -63,6 +66,7 @@ ifeq ($(DEBUG), 1)
   CFLAGS   += -O0 -g
   CXXFLAGS += -O0 -g
   LDFLAGS  += -g
+  LDXFLAGS += -g
 else
   CFLAGS   += -O3 -DNDEBUG
   CXXFLAGS += -O3 -DNDEBUG
@@ -76,7 +80,7 @@ endif
 ###############
 # Include rules
 
-include Makefile.rules
+include $(CORE_DIR)/Makefile.rules
 ]]
 
 local host = 'linux-x86_64'
@@ -95,11 +99,12 @@ local platforms = {
     EXT           = 'android_arm64_v8a',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-arm64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   android_x86_64 = {
@@ -112,11 +117,12 @@ local platforms = {
     EXT           = 'android_x86_64',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/libs/x86_64/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-x86_64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/libs/x86_64/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   android_mips64 = {
@@ -129,11 +135,12 @@ local platforms = {
     EXT           = 'android_mips64',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/libs/mips64/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes -fomit-frame-pointer -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-21/arch-mips64 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS  = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.9/libs/mips64/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   android_arm_v7a = {
@@ -146,11 +153,12 @@ local platforms = {
     EXT           = 'armeabi-v7a',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/armeabi/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-3/arch-arm -lgcc -no-canonical-prefixes -march=armv7-a -Wl,--fix-cortex-a8 -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-3/arch-arm -lgcc -no-canonical-prefixes -march=armv7-a -Wl,--fix-cortex-a8 -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/armeabi-v7a/thumb/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   android_arm_v5te = {
@@ -163,11 +171,12 @@ local platforms = {
     EXT           = 'armeabi',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/armeabi/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -ffunction-sections -funwind-tables -fstack-protector -no-canonical-prefixes -march=armv5te -mtune=xscale -msoft-float -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-3/arch-arm -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-3/arch-arm -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/armeabi/thumb/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   android_x86 = {
@@ -180,11 +189,12 @@ local platforms = {
     EXT           = 'x86',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-9/arch-x86/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-9/arch-x86/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/x86/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-ffunction-sections -funwind-tables -no-canonical-prefixes -fstack-protector -fomit-frame-pointer -fstrict-aliasing -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-9/arch-x86 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-9/arch-x86 -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/x86/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   android_mips = {
@@ -197,11 +207,12 @@ local platforms = {
     EXT           = 'android_mips',
     SO            = 'so',
     PLATFORM      = 'android',
-    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-9/arch-mips/usr/include',
+    PLAT_INCDIR   = '-I$(NDK_ROOT_DIR)/platforms/android-9/arch-mips/usr/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/mips/include -I$(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/include/backward',
     PLAT_DEFS     = '-DANDROID -DINLINE=inline -DHAVE_STDINT_H -DBSPF_UNIX -DHAVE_INTTYPES -DLSB_FIRST',
     PLAT_CFLAGS   = '-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes -fomit-frame-pointer -funswitch-loops -finline-limit=300 -Wa,--noexecstack -Wformat -Werror=format-security',
-    PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-9/arch-mips -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm'
+    PLAT_CXXFLAGS = '${PLAT_CFLAGS} -fno-exceptions -fno-rtti',
+    PLAT_LDFLAGS  = '-shared --sysroot=$(NDK_ROOT_DIR)/platforms/android-9/arch-mips -lgcc -no-canonical-prefixes -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -lc -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS} $(NDK_ROOT_DIR)/sources/cxx-stl/gnu-libstdc++/4.8/libs/mips/libgnustl_static.a',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   linux_x86 = {
@@ -218,7 +229,8 @@ local platforms = {
     PLAT_DEFS     = '',
     PLAT_CFLAGS   = '-m32 -fpic -fstrict-aliasing',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-m32 -shared -lm'
+    PLAT_LDFLAGS  = '-m32 -shared -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS}',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   linux_x86_64 = {
@@ -235,7 +247,8 @@ local platforms = {
     PLAT_DEFS     = '',
     PLAT_CFLAGS   = '-m64 -fpic -fstrict-aliasing',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-m64 -shared -lm'
+    PLAT_LDFLAGS  = '-m64 -shared -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS}',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   windows_x86 = {
@@ -252,7 +265,8 @@ local platforms = {
     PLAT_DEFS     = '',
     PLAT_CFLAGS   = '-fstrict-aliasing',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared -lm'
+    PLAT_LDFLAGS  = '-shared -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS}',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   windows_x86_64 = {
@@ -269,7 +283,8 @@ local platforms = {
     PLAT_DEFS     = '',
     PLAT_CFLAGS   = '-fpic -fstrict-aliasing',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared -lm'
+    PLAT_LDFLAGS  = '-shared -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS}',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   mingw32 = {
@@ -286,7 +301,8 @@ local platforms = {
     PLAT_DEFS     = '',
     PLAT_CFLAGS   = '-m32 -fpic -fstrict-aliasing',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared -lm'
+    PLAT_LDFLAGS  = '-shared -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS}',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   mingw64 = {
@@ -303,7 +319,8 @@ local platforms = {
     PLAT_DEFS     = '',
     PLAT_CFLAGS   = '-m64 -fpic -fstrict-aliasing',
     PLAT_CXXFLAGS = '${PLAT_CFLAGS}',
-    PLAT_LDFLAGS  = '-shared -lm'
+    PLAT_LDFLAGS  = '-shared -lm',
+    PLAT_LDXFLAGS = '${PLAT_LDFLAGS}',
   },
   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   wii = {
@@ -321,6 +338,7 @@ local platforms = {
     PLAT_CFLAGS    = '-m32 -fstrict-aliasing -mrvl -mcpu=750 -meabi -mhard-float',
     PLAT_CXXFLAGS  = '${PLAT_CFLAGS}',
     PLAT_LDFLAGS   = '-shared -lm',
+    PLAT_LDXFLAGS  = '${PLAT_LDFLAGS}',
     STATIC_LINKING = '1'
   },
 }

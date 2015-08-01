@@ -10,10 +10,10 @@ LOG_PERFORMANCE = 1
 ####################################
 # Variable setup for Makefile.common
 
-CORE_DIR  = ..
+CORE_DIR  = .
 INCLUDES  = -I$(NDK_ROOT_DIR)/platforms/android-3/arch-arm/usr/include
 
-include Makefile.common
+include $(CORE_DIR)/Makefile.common
 
 #################
 # Toolchain setup
@@ -75,4 +75,4 @@ endif
 ###############
 # Include rules
 
-include Makefile.rules
+include $(CORE_DIR)/Makefile.rules

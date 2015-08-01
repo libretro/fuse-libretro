@@ -1,3 +1,20 @@
+CORE_DIR := build
+
+ifeq ($(platform),android-armeabi-v7a)
+include $(CORE_DIR)/Makefile.armeabi-v7a
+else ifeq ($(platform),android-armeabi)
+include $(CORE_DIR)/Makefile.armeabi
+else ifeq ($(platform),android-arm64_v8a)
+include $(CORE_DIR)/Makefile.android_arm64_v8a
+else ifeq ($(platform),android-mips64)
+include $(CORE_DIR)/Makefile.android_mips64
+else ifeq ($(platform),android-mips)
+include $(CORE_DIR)/Makefile.android_mips
+else ifeq ($(platform),android-x86_64)
+include $(CORE_DIR)/Makefile.android_x86_64
+else ifeq ($(platform),android-x86)
+include $(CORE_DIR)/Makefile.x86
+else
 TARGET_NAME := fuse
 
 LOG_PERFORMANCE = 1
@@ -240,7 +257,6 @@ else
 
 endif
 
-CORE_DIR := .
 
 ifeq ($(HAVE_COMPAT), 1)
 	PLATFORM_DEFINES += -DHAVE_COMPAT
@@ -327,4 +343,5 @@ clean:
 	rm -f $(TARGET)
 
 .PHONY: clean clean-objs FORCE
+endif
 endif
