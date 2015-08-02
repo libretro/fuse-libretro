@@ -1,5 +1,6 @@
 ##############
-# Install devkitppc and libogc
+# Works on hosts Linux
+# Install devkitppc
 
 #############
 # User config
@@ -7,13 +8,29 @@
 DEBUG = 0
 LOG_PERFORMANCE = 1
 
+##########################
+# Checks the host platform
+
+HOST_PLATFORM = linux
+ifeq ($(shell uname -a),)
+  HOST_PLATFORM = windows
+else ifneq ($(findstring MINGW,$(shell uname -a)),)
+  HOST_PLATFORM = windows
+else ifneq ($(findstring Darwin,$(shell uname -a)),)
+  HOST_PLATFORM = darwin
+else ifneq ($(findstring win,$(shell uname -a)),)
+  HOST_PLATFORM = windows
+endif
+
+
 ####################################
 # Variable setup for Makefile.common
 
-CORE_DIR  ?= .
-INCLUDES  = 
+CORE_DIR  ?= ..
+BUILD_DIR ?= .
+INCLUDES   = 
 
-include $(CORE_DIR)/Makefile.common
+include $(BUILD_DIR)/Makefile.common
 
 #################
 # Toolchain setup
@@ -33,11 +50,12 @@ SOEXT  = .wii.so
 # Platform setup
 
 STATIC_LINKING = 1
-PLATFORM       = wii
+platform       = wii
 PLATDEFS       = -DGEKKO -DHW_RVL
 PLATCFLAGS     = -m32 -fstrict-aliasing -mrvl -mcpu=750 -meabi -mhard-float
 PLATCXXFLAGS   = -m32 -fstrict-aliasing -mrvl -mcpu=750 -meabi -mhard-float
 PLATLDFLAGS    = -shared -lm
+PLATLDXFLAGS   = -shared -lm
 
 ################
 # libretro setup
@@ -46,6 +64,7 @@ RETRODEFS     = -D__LIBRETRO__
 RETROCFLAGS   =
 RETROCXXFLAGS =
 RETROLDFLAGS  =
+RETROLDXFLAGS =
 
 #################
 # Final variables
@@ -54,6 +73,7 @@ DEFINES  = $(PLATDEFS) $(RETRODEFS)
 CFLAGS   = $(PLATCFLAGS) $(RETROCFLAGS) $(DEFINES) $(INCLUDES)
 CXXFLAGS = $(PLATCXXFLAGS) $(RETROCXXFLAGS) $(DEFINES) $(INCLUDES)
 LDFLAGS  = $(PLATLDFLAGS) $(RETROLDFLAGS)
+LDXFLAGS = $(PLATLDXFLAGS) $(RETROLDXFLAGS)
 
 ########
 # Tuning
@@ -62,6 +82,7 @@ ifeq ($(DEBUG), 1)
   CFLAGS   += -O0 -g
   CXXFLAGS += -O0 -g
   LDFLAGS  += -g
+  LDXFLAGS += -g
 else
   CFLAGS   += -O3 -DNDEBUG
   CXXFLAGS += -O3 -DNDEBUG
@@ -75,4 +96,4 @@ endif
 ###############
 # Include rules
 
-include $(CORE_DIR)/Makefile.rules
+include $(BUILD_DIR)/Makefile.rules

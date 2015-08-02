@@ -1,4 +1,5 @@
 ##############
+# Works on hosts Linux
 # apt-get install mingw-w64
 
 #############
@@ -7,37 +8,54 @@
 DEBUG = 0
 LOG_PERFORMANCE = 1
 
+##########################
+# Checks the host platform
+
+HOST_PLATFORM = linux
+ifeq ($(shell uname -a),)
+  HOST_PLATFORM = windows
+else ifneq ($(findstring MINGW,$(shell uname -a)),)
+  HOST_PLATFORM = windows
+else ifneq ($(findstring Darwin,$(shell uname -a)),)
+  HOST_PLATFORM = darwin
+else ifneq ($(findstring win,$(shell uname -a)),)
+  HOST_PLATFORM = windows
+endif
+
+
 ####################################
 # Variable setup for Makefile.common
 
-CORE_DIR  ?= .
-INCLUDES  = 
+CORE_DIR  ?= ..
+BUILD_DIR ?= .
+INCLUDES   = 
 
-include $(CORE_DIR)/Makefile.common
+include $(BUILD_DIR)/Makefile.common
 
 #################
 # Toolchain setup
 
-CC  = x86_64-w64-mingw32-gcc
-CXX = x86_64-w64-mingw32-g++
-AS  = x86_64-w64-mingw32-as
-AR  = x86_64-w64-mingw32-ar
+CC  = i686-w64-mingw32-gcc
+CXX = i686-w64-mingw32-g++
+AS  = i686-w64-mingw32-as
+AR  = i686-w64-mingw32-ar
 
 ############
 # Extensions
 
-OBJEXT = .windows_x86_64.o
-SOEXT  = .windows_x86_64.dll
+OBJEXT = .windows_x86.o
+SOEXT  = .windows_x86.dll
 
 ################
 # Platform setup
 
 STATIC_LINKING = 0
-PLATFORM       = win
+platform       = win
 PLATDEFS       = 
-PLATCFLAGS     = -fpic -fstrict-aliasing
-PLATCXXFLAGS   = -fpic -fstrict-aliasing
+PLATCFLAGS     = -fstrict-aliasing
+PLATCXXFLAGS   = -fstrict-aliasing
 PLATLDFLAGS    = -shared -lm
+PLATLDXFLAGS   = -shared -lm
 
 ################
 # libretro setup
@@ -46,6 +64,7 @@ RETRODEFS     = -D__LIBRETRO__
 RETROCFLAGS   =
 RETROCXXFLAGS =
 RETROLDFLAGS  =
+RETROLDXFLAGS =
 
 #################
 # Final variables
@@ -54,6 +73,7 @@ DEFINES  = $(PLATDEFS) $(RETRODEFS)
 CFLAGS   = $(PLATCFLAGS) $(RETROCFLAGS) $(DEFINES) $(INCLUDES)
 CXXFLAGS = $(PLATCXXFLAGS) $(RETROCXXFLAGS) $(DEFINES) $(INCLUDES)
 LDFLAGS  = $(PLATLDFLAGS) $(RETROLDFLAGS)
+LDXFLAGS = $(PLATLDXFLAGS) $(RETROLDXFLAGS)
 
 ########
 # Tuning
@@ -62,6 +82,7 @@ ifeq ($(DEBUG), 1)
   CFLAGS   += -O0 -g
   CXXFLAGS += -O0 -g
   LDFLAGS  += -g
+  LDXFLAGS += -g
 else
   CFLAGS   += -O3 -DNDEBUG
   CXXFLAGS += -O3 -DNDEBUG
@@ -75,4 +96,4 @@ endif
 ###############
 # Include rules
 
-include $(CORE_DIR)/Makefile.rules
+include $(BUILD_DIR)/Makefile.rules
