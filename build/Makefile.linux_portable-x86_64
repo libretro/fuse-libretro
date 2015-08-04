@@ -43,8 +43,8 @@ AR  = ar
 ############
 # Extensions
 
-OBJEXT = .linux_x86_64.o
-SOEXT  = .linux_x86_64.so
+OBJEXT = .linux_portable-x86_64.o
+SOEXT  = .linux_portable-x86_64.so
 
 ################
 # Platform setup
