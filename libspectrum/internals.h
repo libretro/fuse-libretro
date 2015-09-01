@@ -108,7 +108,7 @@ extern const char *libspectrum_tzx_signature;
 
 /* Convert a 48K memory dump into separate RAM pages */
 
-int libspectrum_split_to_48k_pages( libspectrum_snap *snap,
+libspectrum_error libspectrum_split_to_48k_pages( libspectrum_snap *snap,
 				    const libspectrum_byte* data );
 
 /* Sizes of some of the arrays in the snap structure */
