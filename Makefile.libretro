@@ -1,42 +1,44 @@
 CORE_DIR  = .
 BUILD_DIR = build
 
-ifeq ($(platform),linux-portable_x86)
-include $(BUILD_DIR)/Makefile.linux-portable_x86
-else ifeq ($(platform),android_arm64-v8a)
-include $(BUILD_DIR)/Makefile.android_arm64-v8a
-else ifeq ($(platform),linux_x86)
-include $(BUILD_DIR)/Makefile.linux_x86
-else ifeq ($(platform),android_x86_64)
-include $(BUILD_DIR)/Makefile.android_x86_64
-else ifeq ($(platform),osx_x86)
-include $(BUILD_DIR)/Makefile.osx_x86
-else ifeq ($(platform),android_armeabi-v7a)
-include $(BUILD_DIR)/Makefile.android_armeabi-v7a
-else ifeq ($(platform),android_mips)
-include $(BUILD_DIR)/Makefile.android_mips
-else ifeq ($(platform),android_x86)
-include $(BUILD_DIR)/Makefile.android_x86
-else ifeq ($(platform),windows_x86)
-include $(BUILD_DIR)/Makefile.windows_x86
+ifeq ($(platform),vita_arm)
+include $(BUILD_DIR)/Makefile.vita_arm
+else ifeq ($(platform),android_mips64)
+include $(BUILD_DIR)/Makefile.android_mips64
+else ifeq ($(platform),windows_x86_64)
+include $(BUILD_DIR)/Makefile.windows_x86_64
 else ifeq ($(platform),wii_ppc)
 include $(BUILD_DIR)/Makefile.wii_ppc
+else ifeq ($(platform),android_armeabi-v7a)
+include $(BUILD_DIR)/Makefile.android_armeabi-v7a
+else ifeq ($(platform),android_x86_64)
+include $(BUILD_DIR)/Makefile.android_x86_64
 else ifeq ($(platform),mingw_x86_64)
 include $(BUILD_DIR)/Makefile.mingw_x86_64
 else ifeq ($(platform),mingw_x86)
 include $(BUILD_DIR)/Makefile.mingw_x86
-else ifeq ($(platform),android_armeabi)
-include $(BUILD_DIR)/Makefile.android_armeabi
-else ifeq ($(platform),windows_x86_64)
-include $(BUILD_DIR)/Makefile.windows_x86_64
-else ifeq ($(platform),linux-portable_x86_64)
-include $(BUILD_DIR)/Makefile.linux-portable_x86_64
-else ifeq ($(platform),android_mips64)
-include $(BUILD_DIR)/Makefile.android_mips64
 else ifeq ($(platform),osx_x86_64)
 include $(BUILD_DIR)/Makefile.osx_x86_64
+else ifeq ($(platform),osx_x86)
+include $(BUILD_DIR)/Makefile.osx_x86
+else ifeq ($(platform),android_x86)
+include $(BUILD_DIR)/Makefile.android_x86
 else ifeq ($(platform),linux_x86_64)
 include $(BUILD_DIR)/Makefile.linux_x86_64
+else ifeq ($(platform),linux-portable_x86_64)
+include $(BUILD_DIR)/Makefile.linux-portable_x86_64
+else ifeq ($(platform),linux-portable_x86)
+include $(BUILD_DIR)/Makefile.linux-portable_x86
+else ifeq ($(platform),linux_x86)
+include $(BUILD_DIR)/Makefile.linux_x86
+else ifeq ($(platform),android_mips)
+include $(BUILD_DIR)/Makefile.android_mips
+else ifeq ($(platform),android_armeabi)
+include $(BUILD_DIR)/Makefile.android_armeabi
+else ifeq ($(platform),windows_x86)
+include $(BUILD_DIR)/Makefile.windows_x86
+else ifeq ($(platform),android_arm64-v8a)
+include $(BUILD_DIR)/Makefile.android_arm64-v8a
 else
 
 TARGET_NAME := fuse
