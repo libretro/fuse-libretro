@@ -33,7 +33,7 @@ AR  = $(VITASDK_ROOT_DIR)/bin/arm-vita-eabi-ar
 # Extensions
 
 OBJEXT = .vita_arm.o
-SOEXT  = .vita_arm..so
+SOEXT  = .vita_arm.so
 
 ################
 # Platform setup
