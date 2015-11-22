@@ -71,8 +71,6 @@ int ui_event(void)
       }
    };
 
-   //log_cb( RETRO_LOG_DEBUG, "%s\n", __FUNCTION__ );
-   
    if (keyb_send != 0 && perf_cb.get_time_usec() >= keyb_send)
    {
        keyb_event.type = INPUT_EVENT_KEYRELEASE;
@@ -80,7 +78,25 @@ int ui_event(void)
        keyb_send = 0;
    }
 
-   int16_t is_down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
+   unsigned port;
+   int16_t is_down = 0;
+   
+   for (port = 0; port < MAX_PADS; port++)
+   {
+      unsigned device = input_devices[port];
+      
+      switch (device)
+      {
+         case RETRO_DEVICE_CURSOR_JOYSTICK:
+         case RETRO_DEVICE_KEMPSTON_JOYSTICK:
+         case RETRO_DEVICE_SINCLAIR1_JOYSTICK:
+         case RETRO_DEVICE_SINCLAIR2_JOYSTICK:
+         case RETRO_DEVICE_TIMEX1_JOYSTICK:
+         case RETRO_DEVICE_TIMEX2_JOYSTICK:
+         case RETRO_DEVICE_FULLER_JOYSTICK:
+            is_down |= input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
+      }
+   }
    
    if (is_down)
    {
@@ -97,7 +113,7 @@ int ui_event(void)
    
    if (!keyb_overlay)
    {
-      unsigned port, id;
+      unsigned id;
       input_event_t fuse_event;
       
       for (port = 0; port < MAX_PADS; port++)
