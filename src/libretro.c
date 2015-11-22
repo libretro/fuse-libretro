@@ -24,16 +24,6 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
    (void)fmt;
 }
 
-#define RETRO_DEVICE_SPECTRUM_KEYBOARD RETRO_DEVICE_KEYBOARD
-
-#define RETRO_DEVICE_CURSOR_JOYSTICK    RETRO_DEVICE_JOYPAD
-#define RETRO_DEVICE_KEMPSTON_JOYSTICK  RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 1)
-#define RETRO_DEVICE_SINCLAIR1_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 2)
-#define RETRO_DEVICE_SINCLAIR2_JOYSTICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 3)
-#define RETRO_DEVICE_TIMEX1_JOYSTICK    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 4)
-#define RETRO_DEVICE_TIMEX2_JOYSTICK    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 5)
-#define RETRO_DEVICE_FULLER_JOYSTICK    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 6)
-
 #define UPDATE_AV_INFO  1
 #define UPDATE_GEOMETRY 2
 #define UPDATE_MACHINE  4
@@ -899,6 +889,7 @@ void retro_deinit(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
+   log_cb(RETRO_LOG_INFO, "port %u device %08x\n", port, device);
    switch (device)
    {
       case RETRO_DEVICE_CURSOR_JOYSTICK:
@@ -908,8 +899,6 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
       case RETRO_DEVICE_TIMEX1_JOYSTICK:
       case RETRO_DEVICE_TIMEX2_JOYSTICK:
       case RETRO_DEVICE_FULLER_JOYSTICK:
-         input_devices[port] = device;
-         
          if (port == 0)
          {
             settings_current.joystick_1_output = get_joystick(device);
@@ -919,27 +908,10 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
             settings_current.joystick_2_output = get_joystick(device);
          }
          
-         break;
+         /* fallthrough */
       
-      case RETRO_DEVICE_SPECTRUM_KEYBOARD:
-         input_devices[port] = device;
-         break;
-         
       default:
-         if (port == 0)
-         {
-            input_devices[port] = RETRO_DEVICE_CURSOR_JOYSTICK;
-            settings_current.joystick_1_output = get_joystick(RETRO_DEVICE_CURSOR_JOYSTICK);
-         }
-         else if (port == 1)
-         {
-            input_devices[port] = RETRO_DEVICE_KEMPSTON_JOYSTICK;
-            settings_current.joystick_1_output = get_joystick(RETRO_DEVICE_KEMPSTON_JOYSTICK);
-         }
-         else
-         {
-            input_devices[port] = RETRO_DEVICE_SPECTRUM_KEYBOARD;
-         }
+         input_devices[port] = device;
          break;
    }
 }

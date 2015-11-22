@@ -102,11 +102,24 @@ int ui_event(void)
       
       for (port = 0; port < MAX_PADS; port++)
       {
-         for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
+         unsigned device = input_devices[port];
+         int is_joystick = 0;
+         
+         switch (device)
          {
-            unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
-            
-            if (device == RETRO_DEVICE_JOYPAD)
+            case RETRO_DEVICE_CURSOR_JOYSTICK:
+            case RETRO_DEVICE_KEMPSTON_JOYSTICK:
+            case RETRO_DEVICE_SINCLAIR1_JOYSTICK:
+            case RETRO_DEVICE_SINCLAIR2_JOYSTICK:
+            case RETRO_DEVICE_TIMEX1_JOYSTICK:
+            case RETRO_DEVICE_TIMEX2_JOYSTICK:
+            case RETRO_DEVICE_FULLER_JOYSTICK:
+               is_joystick = 1;
+         }
+         
+         if (is_joystick)
+         {
+            for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
             {
                is_down = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, map[id]);
                
@@ -166,11 +179,11 @@ int ui_event(void)
       
       for (port = 0; port < MAX_PADS; port++)
       {
-         for (id = 0; keysyms_map[id].ui; id++)
+         unsigned device = input_devices[port];
+         
+         if (device == RETRO_DEVICE_SPECTRUM_KEYBOARD)
          {
-            unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
-            
-            if (device == RETRO_DEVICE_KEYBOARD)
+            for (id = 0; keysyms_map[id].ui; id++)
             {
                unsigned ui = keysyms_map[id].ui;
                is_down = input_state_cb(port, RETRO_DEVICE_KEYBOARD, 0, ui);
@@ -211,11 +224,11 @@ int ui_event(void)
       
       for (port = 0; port < MAX_PADS; port++)
       {
-         for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
+         unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
+         
+         if (device == RETRO_DEVICE_JOYPAD)
          {
-            unsigned device = input_devices[port] & RETRO_DEVICE_MASK;
-            
-            if (device == RETRO_DEVICE_JOYPAD)
+            for (id = 0; id < sizeof(map) / sizeof(map[0]); id++)
             {
                is_down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, map[id]);
                
