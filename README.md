@@ -9,7 +9,6 @@ There are hundreds of free, legally available ZX Spectrum games at [World of Spe
 
 ## Emulated Machines
 
-1. Spectrum 16K
 1. Spectrum 48K
 1. Spectrum 48K (NTSC)
 1. Spectrum 128K
@@ -44,7 +43,7 @@ The core options available on the frontend are:
 * Transparent Keyboard Overlay (enabled|disabled): If the keyboard overlay is transparent or opaque
 * Time to Release Key in ms (100|300|500|1000): How much time to keep a key pressed before releasing it (used when a key is pressed using the keyboard overlay)
 
-## Controllers
+## Input Devices
 
 There are seven types of joysticks emulated:
 
@@ -58,13 +57,16 @@ There are seven types of joysticks emulated:
 
 Users can configure their joystick types in the input configuration on the front end. However, **fuse-libretro** allows for two joysticks at maximum so only users one and two can actually use theirs in the emulation.
 
-By default, **fuse-libretro** maps port 0 to a Cursor joystick, port 1 to a Kempston joystick, and port 2 to the keyboard, so you should be able to use the core without bothering to configure the input settings.
+Users 1 and 2 can choose any of the joysticks as their device types, user 3 can only choose the Sinclair Keyboard.
 
-Buttons A, X and Y are mapped to the joystick's fire button, and button B is mapped to the UP directional button.
+Buttons A, X and Y are mapped to the joystick's fire button, and button B is mapped to the UP directional button. Buttons L1 and R1 are mapped to RETURN and SPACE, respectively. The SELECT button brings up the embedded, on-screen keyboard which is useful if you only have controllers attached to your box.
 
-## Keyboard
+There are some conflicts in the way the input devices interact because of the use of the physical keyboard keys as joystick buttons. For a good gaming experience, set the user device types as follows:
 
-Keyboard is fully emulated, but **fuse-libretro** features a keyboard overlay that allows you to bring up a ZX Spectrum keyboard on the screen and use the controller to select and "press" keys. Press "select" on the controller to bring up the keyboard overlay.
+* For joystick games: Set user 1 to a joystick type. Optionally, set user 2 to another joystick type (local cooperative games). Set user 3 to none. This way, you can use L1 as RETURN, R1 as SPACE, and SELECT to bring the embedded keyboard.
+* For keyboard games: Set users 1 and 2 to none, and user 3 to Sinclair Keyboard. You won't have any joystick and the embedded keyboard won't work, but the entire physical keyboard will be available for you to type in those text adventure commands.
+
+If you set a joystick along with the keyboard, the joystick will work just fine except for the bindings to RETURN and SPACE, and the keyboard won't register the keys assigned to the Cursor joystick, or to the L1 and R1 buttons for all other joystick types.
 
 ## Supported Formats
 
