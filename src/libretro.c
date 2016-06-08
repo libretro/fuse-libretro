@@ -66,13 +66,14 @@ static unsigned soft_width, soft_height;
 static int hide_border;
 static int keyb_transparent;
 static const machine_t* machine;
+static double frame_time;
 
 // allow access to variables declared here
+double total_time_ms;
 retro_environment_t env_cb;
 retro_log_printf_t log_cb = dummy_log;
 retro_audio_sample_batch_t audio_cb;
 retro_input_state_t input_state_cb;
-struct retro_perf_callback perf_cb;
 uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
 unsigned hard_width, hard_height;
 int show_frame, some_audio;
@@ -252,16 +253,6 @@ static const struct retro_variable core_vars[] =
    { NULL, NULL },
 };
  
-#ifdef LOG_PERFORMANCE
-#define RETRO_PERFORMANCE_INIT(name)  static struct retro_perf_counter name = {#name}; if (!name.registered) perf_cb.perf_register(&(name))
-#define RETRO_PERFORMANCE_START(name) perf_cb.perf_start(&(name))
-#define RETRO_PERFORMANCE_STOP(name)  perf_cb.perf_stop(&(name))
-#else
-#define RETRO_PERFORMANCE_INIT(name)
-#define RETRO_PERFORMANCE_START(name)
-#define RETRO_PERFORMANCE_STOP(name)
-#endif
-
 int update_variables(int force)
 {
    int flags = 0;
@@ -289,6 +280,7 @@ int update_variables(int force)
          }
          
          machine = new_machine;
+         frame_time = 1000.0 / ( machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0 );
          flags |= UPDATE_MACHINE;
       }
       
@@ -454,14 +446,9 @@ void retro_init(void)
    {
       log_cb = log.log;
    }
-
-   // Always get the perf interface because we need it in compat_timer_get_time
-   // and compat_timer_sleep.
-   if (!env_cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf_cb))
-   {
-      perf_cb.get_time_usec = NULL;
-   }
    
+   total_time_ms = 0.0;
+
    // Set default controllers
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK );
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
@@ -526,13 +513,7 @@ extern const char* fuse_gitstamp;
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-   log_cb( RETRO_LOG_ERROR, "\n%s", fuse_gitstamp );
-   
-   if (!perf_cb.get_time_usec)
-   {
-      log_cb(RETRO_LOG_ERROR, "Fuse needs the perf interface");
-      return false;
-   }
+   log_cb( RETRO_LOG_INFO, "\n%s", fuse_gitstamp );
    
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
 
@@ -855,6 +836,7 @@ void retro_run(void)
       }
    }
    
+   total_time_ms += frame_time;
    show_frame = some_audio = 0;
    
    /*
@@ -881,10 +863,6 @@ void retro_run(void)
 void retro_deinit(void)
 {
    fuse_end();
-
-#ifdef LOG_PERFORMANCE
-   perf_cb.perf_log();
-#endif
 }
 
 void retro_set_controller_port_device(unsigned port, unsigned device)

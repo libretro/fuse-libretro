@@ -5,11 +5,10 @@
 #include <input.h>
 #include <ui/ui.h>
 
-extern struct retro_perf_callback perf_cb;
-extern int64_t keyb_send;
-extern input_event_t keyb_event;
-extern int select_pressed;
-extern int keyb_overlay;
+static int64_t get_time_usec()
+{
+   return (int64_t)( total_time_ms * 1000.0 );
+}
 
 int ui_init(int *argc, char ***argv)
 {
@@ -71,7 +70,7 @@ int ui_event(void)
       }
    };
 
-   if (keyb_send != 0 && perf_cb.get_time_usec() >= keyb_send)
+   if (keyb_send != 0 && get_time_usec() >= keyb_send)
    {
        keyb_event.type = INPUT_EVENT_KEYRELEASE;
        input_event(&keyb_event);
@@ -270,7 +269,7 @@ int ui_event(void)
                               keyb_event.types.key.spectrum_key = keyb_layout[keyb_y][keyb_x];
                               input_event(&keyb_event);
                               
-                              keyb_send = perf_cb.get_time_usec() + keyb_hold_time;
+                              keyb_send = get_time_usec() + keyb_hold_time;
                            }
                            return 0;
                      }

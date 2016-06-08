@@ -26,11 +26,11 @@
 #define MAX_PADS   3
 
 // From the core
+extern double total_time_ms;
 extern retro_environment_t env_cb;
 extern retro_log_printf_t log_cb;
 extern retro_audio_sample_batch_t audio_cb;
 extern retro_input_state_t input_state_cb;
-extern struct retro_perf_callback perf_cb;
 extern uint16_t image_buffer[MAX_WIDTH * MAX_HEIGHT];
 extern unsigned hard_width, hard_height;
 extern int show_frame, some_audio;
