@@ -34,6 +34,7 @@ AR  = $(VITASDK)/bin/arm-vita-eabi-ar
 
 OBJEXT = .vita_arm.o
 SOEXT  = .vita_arm.so
+LIBEXT = .vita_arm.a
 
 ################
 # Platform setup
@@ -41,8 +42,8 @@ SOEXT  = .vita_arm.so
 STATIC_LINKING = 1
 platform       = vita
 PLATDEFS       = -DVITA
-PLATCFLAGS     =
-PLATCXXFLAGS   =
+PLATCFLAGS     = 
+PLATCXXFLAGS   = 
 PLATLDFLAGS    = -shared -lm
 PLATLDXFLAGS   = -shared -lm
 
@@ -85,7 +86,7 @@ endif
 
 CORE_DIR  ?= ..
 BUILD_DIR ?= .
-INCLUDES   =
+INCLUDES   = 
 
 include $(BUILD_DIR)/Makefile.common
 
