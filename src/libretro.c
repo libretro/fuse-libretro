@@ -447,6 +447,7 @@ void retro_init(void)
       log_cb = log.log;
    }
    
+   machine = machine_list;
    total_time_ms = 0.0;
 
    // Set default controllers
@@ -526,7 +527,6 @@ bool retro_load_game(const struct retro_game_info *info)
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(joypad_state, 0, sizeof(joypad_state));
    memset(keyb_state, 0, sizeof(keyb_state));
-   machine = NULL;
    hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;
    keyb_x = keyb_y = 0;
