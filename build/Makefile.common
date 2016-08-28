@@ -9,6 +9,7 @@ INCLUDES += -I$(CORE_DIR) \
 
 SOURCES_C += $(CORE_DIR)/src/libretro.c
 SOURCES_C += $(CORE_DIR)/src/coreopt.c
+SOURCES_C += $(CORE_DIR)/src/missing.c
 SOURCES_C += $(CORE_DIR)/src/version.c
 
 SOURCES_C += $(CORE_DIR)/src/fuse/scalers16.c
