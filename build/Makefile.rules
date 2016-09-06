@@ -21,11 +21,6 @@ OBJS    = $(SOURCES_C:.c=$(OBJEXT)) $(SOURCES_CXX:.cpp=$(OBJEXT))
 %$(OBJEXT): %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS)
 
-# Make sure yacc and lex are never invoked
-%.c: %.y
-
-%.c: %.l
-
 all: $(TARGET)
 
 $(TARGET): $(HEADERS) $(OBJS)
@@ -51,3 +46,6 @@ clean: clean-objs
 	rm -f $(TARGET)
 
 .PHONY: clean-objs clean dist-clean FORCE
+
+# Remove all built-in implicit rules
+.SUFFIXES:

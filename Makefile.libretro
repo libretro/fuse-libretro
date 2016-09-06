@@ -356,11 +356,6 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCLUDES)
 %.o: %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
 
-# Make sure yacc and lex are never invoked
-%.c: %.y
-
-%.c: %.l
-
 ifeq ($(platform), theos_ios)
 COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
 $(LIBRARY_NAME)_CFLAGS += $(CFLAGS) $(COMMON_FLAGS)
@@ -395,6 +390,9 @@ clean:
 	rm -f $(TARGET)
 
 .PHONY: clean clean-objs FORCE
+
+# Remove all built-in implicit rules
+.SUFFIXES:
 endif
 
 endif
