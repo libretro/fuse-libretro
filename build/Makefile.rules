@@ -21,6 +21,11 @@ OBJS    = $(SOURCES_C:.c=$(OBJEXT)) $(SOURCES_CXX:.cpp=$(OBJEXT))
 %$(OBJEXT): %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS)
 
+# Make sure yacc and lex are never invoked
+%.c: %.y
+
+%.c: %.l
+
 all: $(TARGET)
 
 $(TARGET): $(HEADERS) $(OBJS)
