@@ -2741,6 +2741,9 @@ read_config_file( settings_info *settings )
 
   /* See if the file exists; if doesn't, it's not a problem */
   if( stat( path, &stat_info ) ) {
+#if defined(VITA)
+    return 0;
+#else
     if( errno == ENOENT ) {
       return 0;
     } else {
@@ -2748,6 +2751,7 @@ read_config_file( settings_info *settings )
 		strerror( errno ) );
       return 1;
     }
+#endif
   }
 
   error = utils_read_file( path, &file );
