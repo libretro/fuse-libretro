@@ -20,3 +20,13 @@ int chdir( const char* path)
 }
 
 #endif
+
+#ifdef __CELLOS_LV2__
+
+int isatty(int fd)
+{
+  (void)fd;
+  return 1;
+}
+
+#endif
