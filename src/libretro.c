@@ -393,7 +393,10 @@ static int get_joystick(unsigned device)
 void retro_get_system_info(struct retro_system_info *info)
 {
    info->library_name = PACKAGE_NAME;
-   info->library_version = PACKAGE_VERSION;
+#ifndef GIT_VERSION
+#define GIT_VERSION ""
+#endif
+   info->library_version = PACKAGE_VERSION GIT_VERSION;
    info->need_fullpath = false;
    info->block_extract = false;
    info->valid_extensions = "tzx|tap|z80|rzx|scl|trd";
