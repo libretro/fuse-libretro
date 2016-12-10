@@ -390,13 +390,14 @@ static int get_joystick(unsigned device)
    return 0;
 }
 
+const char *fuse_githash;
+static char version[] = PACKAGE_VERSION " .......";
+
 void retro_get_system_info(struct retro_system_info *info)
 {
+   memcpy(version + sizeof(PACKAGE_VERSION), fuse_githash, 7);
    info->library_name = PACKAGE_NAME;
-#ifndef GIT_VERSION
-#define GIT_VERSION ""
-#endif
-   info->library_version = PACKAGE_VERSION GIT_VERSION;
+   info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
    info->valid_extensions = "tzx|tap|z80|rzx|scl|trd";
