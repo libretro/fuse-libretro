@@ -325,8 +325,8 @@ else ifeq ($(platform), vita)
 	CXX = arm-vita-eabi-g++$(EXE_EXT)
 	AR = arm-vita-eabi-ar$(EXE_EXT)
 	STATIC_LINKING = 1
-	CFLAGS += -DVITA
-	CXXFLAGS += -DVITA
+	CFLAGS += -DVITA -ftree-vectorize -mfloat-abi=hard -ffast-math -fsingle-precision-constant -funroll-loops -fno-short-enums
+	CXXFLAGS += -DVITA -ftree-vectorize -mfloat-abi=hard -ffast-math -fsingle-precision-constant -funroll-loops -fno-short-enums
 
 # Windows
 else
