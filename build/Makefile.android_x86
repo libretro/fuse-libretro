@@ -24,10 +24,10 @@ TARGET_PLATFORM = android_x86
 #################
 # Toolchain setup
 
-CC  = $(NDK_ROOT_DIR)/toolchains/x86-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-gcc
-CXX = $(NDK_ROOT_DIR)/toolchains/x86-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-g++
-AS  = $(NDK_ROOT_DIR)/toolchains/x86-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-as
-AR  = $(NDK_ROOT_DIR)/toolchains/x86-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-ar
+CC  = $(NDK_ROOT_DIR)/toolchains/x86-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-gcc
+CXX = $(NDK_ROOT_DIR)/toolchains/x86-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-g++
+AS  = $(NDK_ROOT_DIR)/toolchains/x86-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-as
+AR  = $(NDK_ROOT_DIR)/toolchains/x86-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/i686-linux-android-ar
 
 ############
 # Extensions

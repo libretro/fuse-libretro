@@ -24,10 +24,10 @@ TARGET_PLATFORM = android_armeabi-v7a
 #################
 # Toolchain setup
 
-CC  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-gcc
-CXX = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-g++
-AS  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-as
-AR  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.8/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-ar
+CC  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-gcc
+CXX = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-g++
+AS  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-as
+AR  = $(NDK_ROOT_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(HOST_PLATFORM)-x86_64/bin/arm-linux-androideabi-ar
 
 ############
 # Extensions
