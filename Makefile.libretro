@@ -308,6 +308,26 @@ else ifneq (,$(findstring armv,$(platform)))
 else ifeq ($(platform), emscripten)
 	TARGET := $(TARGET_NAME)_libretro_emscripten.bc
 
+# CTR (3DS)
+else ifeq ($(platform), ctr)
+	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	CC = $(DEVKITARM)/bin/arm-none-eabi-gcc$(EXE_EXT)
+	CXX = $(DEVKITARM)/bin/arm-none-eabi-g++$(EXE_EXT)
+	AR = $(DEVKITARM)/bin/arm-none-eabi-ar$(EXE_EXT)
+	STATIC_LINKING = 1
+	CFLAGS += -D_3DS
+	CXXFLAGS += -D_3DS
+
+# Vita
+else ifeq ($(platform), vita)
+	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	CC = arm-vita-eabi-gcc$(EXE_EXT)
+	CXX = arm-vita-eabi-g++$(EXE_EXT)
+	AR = arm-vita-eabi-ar$(EXE_EXT)
+	STATIC_LINKING = 1
+	CFLAGS += -DVITA
+	CXXFLAGS += -DVITA
+
 # Windows
 else
 	TARGET := $(TARGET_NAME)_libretro.dll

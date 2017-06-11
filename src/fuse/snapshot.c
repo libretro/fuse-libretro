@@ -2,6 +2,7 @@
 
 #include <libretro.h>
 #include <externs.h>
+#include <string.h>
 
 libspectrum_error fuse_libspectrum_snap_write( libspectrum_byte **buffer, size_t *length, int *out_flags, libspectrum_snap *snap, libspectrum_id_t type, libspectrum_creator *creator, int in_flags );
 
