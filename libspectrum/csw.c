@@ -30,6 +30,15 @@
 #include "internals.h"
 #include "tape_block.h"
 
+#ifdef HAVE_ZLIB_H
+libspectrum_error
+libspectrum_zlib_compress( const libspectrum_byte *data, size_t length,
+			   libspectrum_byte **gzptr, size_t *gzlength );
+libspectrum_error 
+libspectrum_zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
+			  libspectrum_byte **outptr, size_t *outlength );
+#endif
+
 /* The .csw file signature (first 23 bytes) */
 const char *libspectrum_csw_signature = "Compressed Square Wave\x1a";
 
