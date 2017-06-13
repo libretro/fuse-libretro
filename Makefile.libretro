@@ -318,6 +318,16 @@ else ifeq ($(platform), ctr)
 	CFLAGS += -D_3DS
 	CXXFLAGS += -D_3DS
 
+   CFLAGS += -DARM11
+   CFLAGS += -march=armv6k -mtune=mpcore -mfloat-abi=hard
+   CFLAGS += -Wall -mword-relocations
+   CFLAGS += -fomit-frame-pointer -ffast-math
+
+   CXXFLAGS += -DARM11
+   CXXFLAGS += -march=armv6k -mtune=mpcore -mfloat-abi=hard
+   CXXFLAGS += -Wall -mword-relocations
+   CXXFLAGS += -fomit-frame-pointer -ffast-math
+
 # Vita
 else ifeq ($(platform), vita)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
