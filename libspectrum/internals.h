@@ -102,6 +102,14 @@ libspectrum_error
 libspectrum_bzip2_inflate( const libspectrum_byte *bzptr, size_t bzlength,
 			   libspectrum_byte **outptr, size_t *outlength );
 
+libspectrum_error
+libspectrum_zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
+        libspectrum_byte **outptr, size_t *outlength );
+
+libspectrum_error
+libspectrum_zlib_compress( const libspectrum_byte *data, size_t length,
+         libspectrum_byte **gzptr, size_t *gzlength );
+
 /* The TZX file signature */
 
 extern const char *libspectrum_tzx_signature;
