@@ -18,6 +18,10 @@
 #  define ZLIB_INTERNAL
 #endif
 
+#ifdef _IOS_ARM64
+#include <unistd.h>
+#endif
+
 #include <stdio.h>
 #include "zlib.h"
 #ifdef STDC
