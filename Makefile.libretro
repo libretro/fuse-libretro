@@ -206,7 +206,8 @@ else ifeq ($(platform), ps3)
 	PLATFORM_DEFINES := -D__CELLOS_LV2__
 	STATIC_LINKING = 1
 	HAVE_COMPAT = 1
-
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+	
 # sncps3
 else ifeq ($(platform), sncps3)
 	TARGET := $(TARGET_NAME)_libretro_ps3.a
@@ -217,7 +218,8 @@ else ifeq ($(platform), sncps3)
 	PLATFORM_DEFINES := -D__CELLOS_LV2__
 	STATIC_LINKING = 1
 	HAVE_COMPAT = 1
-
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+	
 # Lightweight PS3 Homebrew SDK
 else ifeq ($(platform), psl1ght)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
@@ -228,7 +230,8 @@ else ifeq ($(platform), psl1ght)
 	PLATFORM_DEFINES := -D__CELLOS_LV2__
 	STATIC_LINKING = 1
 	HAVE_COMPAT = 1
-
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+	
 # PSP
 else ifeq ($(platform), psp1)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
@@ -264,7 +267,8 @@ else ifeq ($(platform), ngc)
 	PLATFORM_DEFINES += -U__INT32_TYPE__ -U __UINT32_TYPE__ -D__INT32_TYPE__=int
 	STATIC_LINKING = 1
 	HAVE_COMPAT = 1
-
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+	
 # Nintendo Wii
 else ifeq ($(platform), wii)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
@@ -276,7 +280,8 @@ else ifeq ($(platform), wii)
 	PLATFORM_DEFINES += -U__INT32_TYPE__ -U __UINT32_TYPE__ -D__INT32_TYPE__=int
 	STATIC_LINKING = 1
 	HAVE_COMPAT = 1
-
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+	
 # Nintendo WiiU
 else ifeq ($(platform), wiiu)
 	TARGET := $(TARGET_NAME)_libretro_$(platform).a
@@ -288,7 +293,8 @@ else ifeq ($(platform), wiiu)
 	PLATFORM_DEFINES += -U__INT32_TYPE__ -U __UINT32_TYPE__ -D__INT32_TYPE__=int
 	STATIC_LINKING = 1
 	HAVE_COMPAT = 1
-
+	CFLAGS += -DWORDS_BIGENDIAN -DMSB_FIRST
+	
 # ARM
 else ifneq (,$(findstring armv,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro.so
