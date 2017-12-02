@@ -483,7 +483,7 @@ static libspectrum_id_t identify_file(const void* data, size_t size)
    return LIBSPECTRUM_ID_DISK_TRD;
 }
 
-static libspectrum_id_t indentify_file_get_ext(const void* data, size_t size, const char** ext)
+static libspectrum_id_t identify_file_get_ext(const void* data, size_t size, const char** ext)
 {
    libspectrum_id_t type = identify_file(data, size);
 
@@ -559,7 +559,7 @@ bool retro_load_game(const struct retro_game_info *info)
          memcpy(tape_data, info->data, tape_size);
 
          const char* ext;
-         libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
+         libspectrum_id_t type = identify_file_get_ext(tape_data, tape_size, &ext);
 
          char filename[32];
          snprintf(filename, sizeof(filename), "*%s", ext);
@@ -894,7 +894,11 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          /* fallthrough */
 
       default:
-         input_devices[port] = device;
+         if (port < MAX_PADS)
+         {
+            //check is required, without it port >= MAX_PADS will cause a buffer overflow
+            input_devices[port] = device;
+         }
          break;
    }
 }
@@ -902,7 +906,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 void retro_reset(void)
 {
    const char* ext;
-   libspectrum_id_t type = indentify_file_get_ext(tape_data, tape_size, &ext);
+   libspectrum_id_t type = identify_file_get_ext(tape_data, tape_size, &ext);
 
    char filename[32];
    snprintf(filename, sizeof(filename), "*%s", ext);
