@@ -27,6 +27,13 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 #define UPDATE_AV_INFO  1
 #define UPDATE_GEOMETRY 2
 #define UPDATE_MACHINE  4
+#define SPECTRUMKEYS "<none>|0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|Enter|Caps|Symbol|Space"
+
+static const int spectrum_keys_map[] = { INPUT_KEY_NONE, INPUT_KEY_0, INPUT_KEY_1, INPUT_KEY_2, INPUT_KEY_3, INPUT_KEY_4, INPUT_KEY_5, INPUT_KEY_6, INPUT_KEY_7, INPUT_KEY_8, INPUT_KEY_9,
+      INPUT_KEY_a, INPUT_KEY_b, INPUT_KEY_c, INPUT_KEY_d, INPUT_KEY_e, INPUT_KEY_f, INPUT_KEY_g, INPUT_KEY_h, INPUT_KEY_i, INPUT_KEY_j,
+      INPUT_KEY_k, INPUT_KEY_l, INPUT_KEY_m, INPUT_KEY_n, INPUT_KEY_o, INPUT_KEY_p, INPUT_KEY_q, INPUT_KEY_r, INPUT_KEY_s, INPUT_KEY_t,
+      INPUT_KEY_u, INPUT_KEY_v, INPUT_KEY_w, INPUT_KEY_x, INPUT_KEY_y, INPUT_KEY_z,
+      INPUT_KEY_Return, INPUT_KEY_Shift_L, INPUT_KEY_Control_R, INPUT_KEY_space, };
 
 typedef struct
 {
@@ -85,12 +92,13 @@ int select_pressed;
 int keyb_overlay;
 unsigned keyb_x;
 unsigned keyb_y;
-bool joypad_state[MAX_PADS][10];
+bool joypad_state[MAX_PADS][16];
 bool keyb_state[RETROK_LAST];
 void*  snapshot_buffer;
 size_t snapshot_size;
 void* tape_data;
 size_t tape_size;
+int joymap[16];
 
 static const struct { unsigned x; unsigned y; } keyb_positions[4] = {
    { 32, 40 }, { 40, 88 }, { 48, 136 }, { 32, 184 }
@@ -237,7 +245,7 @@ keysyms_map_t keysyms_map[] = {
    { RETROK_RMETA,     INPUT_KEY_Meta_R      },
    { RETROK_LSUPER,    INPUT_KEY_Super_L     },
    { RETROK_RSUPER,    INPUT_KEY_Super_R     },
-   { 0, 0 }	// End marker: DO NOT MOVE!
+   { 0, 0 }    // End marker: DO NOT MOVE!
 };
 
 static const struct retro_variable core_vars[] =
@@ -250,6 +258,21 @@ static const struct retro_variable core_vars[] =
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
+   { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_down",    "Joypad Down mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_start",   "Joypad Start mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_a",       "Joypad A button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_b",       "Joypad B button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_x",       "Joypad X button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_y",       "Joypad Y button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_l",       "Joypad L button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_r",       "Joypad R button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_l2",      "Joypad L2 button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_r2",      "Joypad R2 button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_l3",      "Joypad L3 button mapping; " SPECTRUMKEYS },
+   { "fuse_joypad_r3",      "Joypad R3 button mapping; " SPECTRUMKEYS },
    { NULL, NULL },
 };
 
@@ -370,6 +393,52 @@ int update_variables(int force)
       int option = coreopt(env_cb, core_vars, "fuse_key_hold_time", &value);
       keyb_hold_time = option >= 0 ? strtoll(value, NULL, 10) * 1000LL : 500000LL;
    }
+
+   const char* value;
+   int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_UP ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_down", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_DOWN ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_left", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_LEFT ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_right", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_RIGHT ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_a", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_A ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_b", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_B ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_x", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_X ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_y", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_Y ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_l", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_L ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_r", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_R ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_l2", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_L2 ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_r2", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_R2 ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_l3", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_L3 ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_r3", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_R3 ] = spectrum_keys_map[option];
+
+   option = coreopt(env_cb, core_vars, "fuse_joypad_start", &value );
+   joymap[ RETRO_DEVICE_ID_JOYPAD_START ] = spectrum_keys_map[option];
 
    return flags;
 }

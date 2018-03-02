@@ -17,8 +17,15 @@ int ui_init(int *argc, char ***argv)
    return 0;
 }
 
-static input_key translate(unsigned index)
+static input_key translate(unsigned index, int port, bool *keyboard_event)
 {
+   *keyboard_event = (index == RETRO_DEVICE_ID_JOYPAD_L || index == RETRO_DEVICE_ID_JOYPAD_R);
+   // if there's a keyboard mapping override joystick input if player 1 only
+   if (index < (sizeof(joymap) / sizeof(joymap[0])) && port == 0 && joymap[index] != INPUT_KEY_NONE) {
+      *keyboard_event = true;
+      return joymap[index];
+   }
+
    switch (index)
    {
       case RETRO_DEVICE_ID_JOYPAD_UP:    return INPUT_JOYSTICK_UP;
@@ -32,7 +39,7 @@ static input_key translate(unsigned index)
       case RETRO_DEVICE_ID_JOYPAD_L:     return INPUT_KEY_Return;
       case RETRO_DEVICE_ID_JOYPAD_R:     return INPUT_KEY_space;
    }
-   
+
    return INPUT_KEY_NONE;
 }
 
@@ -48,7 +55,12 @@ int ui_event(void)
       RETRO_DEVICE_ID_JOYPAD_X,
       RETRO_DEVICE_ID_JOYPAD_Y,
       RETRO_DEVICE_ID_JOYPAD_L,
-      RETRO_DEVICE_ID_JOYPAD_R
+      RETRO_DEVICE_ID_JOYPAD_R,
+      RETRO_DEVICE_ID_JOYPAD_L2,
+      RETRO_DEVICE_ID_JOYPAD_R2,
+      RETRO_DEVICE_ID_JOYPAD_L3,
+      RETRO_DEVICE_ID_JOYPAD_R3,
+      RETRO_DEVICE_ID_JOYPAD_START
    };
    
    static const input_key keyb_layout[4][10] = {
@@ -66,7 +78,7 @@ int ui_event(void)
       },
       {
          INPUT_KEY_Shift_L, INPUT_KEY_z, INPUT_KEY_x, INPUT_KEY_c, INPUT_KEY_v,
-         INPUT_KEY_b, INPUT_KEY_n, INPUT_KEY_m, INPUT_KEY_Shift_R, INPUT_KEY_space
+         INPUT_KEY_b, INPUT_KEY_n, INPUT_KEY_m, INPUT_KEY_Control_R, INPUT_KEY_space
       }
    };
 
@@ -114,6 +126,7 @@ int ui_event(void)
    {
       unsigned id;
       input_event_t fuse_event;
+      input_key button;
       
       for (port = 0; port < MAX_PADS; port++)
       {
@@ -138,14 +151,16 @@ int ui_event(void)
             {
                is_down = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, map[id]);
                
+               bool keyboard_event;
+               button = translate(map[id], port, &keyboard_event);
+
                if (is_down)
                {
                   if (!joypad_state[port][id])
                   {
                      joypad_state[port][id] = true;
-                     input_key button = translate(map[id]);
-                 
-                     if (button == INPUT_KEY_Return || button == INPUT_KEY_space)
+
+                     if (keyboard_event)
                      {
                         fuse_event.type = INPUT_EVENT_KEYPRESS;
                         fuse_event.types.key.native_key = button;
@@ -168,9 +183,8 @@ int ui_event(void)
                   if (joypad_state[port][id])
                   {
                      joypad_state[port][id] = false;
-                     input_key button = translate(map[id]);
                  
-                     if (button == INPUT_KEY_Return || button == INPUT_KEY_space)
+                     if (keyboard_event)
                      {
                         fuse_event.type = INPUT_EVENT_KEYRELEASE;
                         fuse_event.types.key.native_key = button;
