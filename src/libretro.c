@@ -64,6 +64,8 @@ static const machine_t machine_list[] =
    { LIBSPECTRUM_MACHINE_SCORP,    "scorpion",     0 },
 };
 
+static int fuse_init_called = 0;
+
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
 
@@ -611,6 +613,8 @@ bool retro_load_game(const struct retro_game_info *info)
       "fuse",
    };
 
+   fuse_init_called = 1;
+
    if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
    {
       if (info->size != 0)
@@ -936,7 +940,11 @@ void retro_run(void)
 
 void retro_deinit(void)
 {
-   fuse_end();
+   if ( fuse_init_called )
+   {
+      fuse_init_called = 0;
+      fuse_end();
+   }
 }
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
