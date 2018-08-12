@@ -17,7 +17,6 @@
 #include <peripherals/if1.h>
 #include <peripherals/disk/opus.h>
 #include <peripherals/disk/disciple.h>
-#include <spectrum.h>
 
 static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -680,15 +679,11 @@ bool retro_load_game(const struct retro_game_info *info)
 
 size_t retro_get_memory_size(unsigned id)
 {
-   if ( id == RETRO_MEMORY_SYSTEM_RAM )
-      return SPECTRUM_RAM_PAGES * 0x4000 ;
    return 0;
 }
 
 void *retro_get_memory_data(unsigned id)
 {
-   if ( id == RETRO_MEMORY_SYSTEM_RAM )
-      return &(RAM[0][0]);
    return NULL;
 }
 
