@@ -5,11 +5,13 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 // Fuse includes
 #include <libspectrum.h>
 #include <externs.h>
 #include <utils.h>
+#include <spectrum.h>
 #include <keyboard.h>
 #include <machines/specplus3.h>
 #include <peripherals/disk/beta.h>
@@ -17,6 +19,7 @@
 #include <peripherals/if1.h>
 #include <peripherals/disk/opus.h>
 #include <peripherals/disk/disciple.h>
+#include <pokefinder/pokemem.h>
 
 static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -28,6 +31,14 @@ static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 #define UPDATE_GEOMETRY 2
 #define UPDATE_MACHINE  4
 #define SPECTRUMKEYS "<none>|0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|Enter|Caps|Symbol|Space"
+
+typedef struct cheat_t cheat_t;
+
+struct cheat_t
+{
+   cheat_t* next;
+   poke_t poke;
+};
 
 static const int spectrum_keys_map[] = { INPUT_KEY_NONE, INPUT_KEY_0, INPUT_KEY_1, INPUT_KEY_2, INPUT_KEY_3, INPUT_KEY_4, INPUT_KEY_5, INPUT_KEY_6, INPUT_KEY_7, INPUT_KEY_8, INPUT_KEY_9,
       INPUT_KEY_a, INPUT_KEY_b, INPUT_KEY_c, INPUT_KEY_d, INPUT_KEY_e, INPUT_KEY_f, INPUT_KEY_g, INPUT_KEY_h, INPUT_KEY_i, INPUT_KEY_j,
@@ -76,6 +87,7 @@ static int hide_border;
 static int keyb_transparent;
 static const machine_t* machine;
 static double frame_time;
+static cheat_t* active_cheats;
 
 // allow access to variables declared here
 double total_time_ms;
@@ -524,6 +536,7 @@ void retro_init(void)
 
    machine = machine_list;
    total_time_ms = 0.0;
+   active_cheats = NULL;
 
    // Set default controllers
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK );
@@ -589,7 +602,7 @@ extern const char* fuse_gitstamp;
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-   log_cb( RETRO_LOG_INFO, "\n%s", fuse_gitstamp );
+   log_cb( RETRO_LOG_INFO, "\n%s\n", fuse_gitstamp );
 
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
 
@@ -624,7 +637,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
          if (!tape_data)
          {
-            log_cb(RETRO_LOG_ERROR, "Could not allocate memory for the tape");
+            log_cb(RETRO_LOG_ERROR, "Could not allocate memory for the tape\n");
             fuse_end();
             return false;
          }
@@ -940,6 +953,18 @@ void retro_run(void)
 
 void retro_deinit(void)
 {
+   cheat_t* cheat = active_cheats;
+   cheat_t* next = NULL;
+
+   while (cheat != NULL)
+   {
+      next = cheat->next;
+      free((void*)cheat);
+      cheat = next;
+   }
+
+   active_cheats = NULL;
+
    if ( fuse_init_called )
    {
       fuse_init_called = 0;
@@ -1023,13 +1048,103 @@ bool retro_unserialize(const void *data, size_t size)
 
 void retro_cheat_reset(void)
 {
+   cheat_t* cheat = active_cheats;
+   cheat_t* next = NULL;
+
+   while (cheat != NULL)
+   {
+      if (cheat->poke.bank == 8)
+         writebyte_internal(cheat->poke.address, cheat->poke.restore);
+      else
+         RAM[cheat->poke.bank][cheat->poke.address & 0x3fff] = cheat->poke.restore;
+      
+      next = cheat->next;
+      free((void*)cheat);
+      cheat = next;
+   }
+
+   active_cheats = NULL;
 }
 
-void retro_cheat_set(unsigned a, bool b, const char *c)
+static void skip_spaces(const char** c)
 {
-   (void)a;
+   while (isspace(**c))
+      (*c)++;
+}
+
+static unsigned parse_unsigned(const char** c)
+{
+   char* end;
+   unsigned value = (unsigned)strtol(*c, &end, 10);
+   *c = end;
+   return value;
+}
+
+void retro_cheat_set(unsigned index, bool b, const char* code)
+{
+   cheat_t* cheat = NULL;
+   unsigned bank = 0, address = 0, value = 0, original = 0;
+   const char* saved_code = code;
+
    (void)b;
-   (void)c;
+
+   do
+   {
+      if (*code == 'M' || *code == 'Z')
+      {
+         code++;
+         skip_spaces(&code);
+         bank = parse_unsigned(&code);
+         skip_spaces(&code);
+         address = parse_unsigned(&code);
+         skip_spaces(&code);
+         value = parse_unsigned(&code);
+         skip_spaces(&code);
+         original = parse_unsigned(&code);
+
+         if (value > 255)
+         {
+            /* We don't support user-provided values for now */
+            continue;
+         }
+
+         cheat = (cheat_t*)calloc(1, sizeof(*cheat));
+
+         if (cheat == NULL)
+            return;
+         
+         cheat->next = active_cheats;
+         active_cheats = cheat;
+
+         if (bank == 8)
+         {
+            if (original == 0)
+               original = readbyte_internal(address);
+
+            writebyte_internal(address, value);
+         }
+         else
+         {
+            if (original == 0)
+               original = RAM[ bank ][ address ];
+            
+            RAM[bank][address & 0x3fff] = value;
+         }
+
+         cheat->poke.bank = bank;
+         cheat->poke.address = address;
+         cheat->poke.value = value;
+         cheat->poke.restore = original;
+
+         log_cb(RETRO_LOG_INFO, "Enabled cheat #%u: %s\n", index, saved_code);
+      }
+      else
+         break;
+
+      if (*code != '\\' || code[1] != 'n')
+         break;
+   }
+   while (1);
 }
 
 bool retro_load_game_special(unsigned a, const struct retro_game_info *b, size_t c)
