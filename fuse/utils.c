@@ -133,9 +133,9 @@ utils_open_file( const char *filename, int autoload,
 
   case LIBSPECTRUM_CLASS_DISK_TRDOS:
 
-    machine_select( LIBSPECTRUM_MACHINE_PENT512 );
-    beta_disk_insert( BETA_DRIVE_A, filename, autoload );
-    machine_reset( 1 );
+    error = machine_select( LIBSPECTRUM_MACHINE_PENT512 ); if( error ) break;
+    error = beta_disk_insert( BETA_DRIVE_A, filename, autoload ); if( error ) break;
+    error = machine_reset( 1 );
     break;
 
   case LIBSPECTRUM_CLASS_DISK_GENERIC:
