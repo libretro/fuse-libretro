@@ -1143,6 +1143,8 @@ void retro_cheat_set(unsigned index, bool b, const char* code)
 
       if (*code != '\\' || code[1] != 'n')
          break;
+
+      code += 2;
    }
    while (1);
 }
