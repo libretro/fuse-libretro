@@ -473,12 +473,18 @@ static int get_joystick(unsigned device)
    return 0;
 }
 
+#ifdef GIT_VERSION
+static char version[] = PACKAGE_VERSION " " GIT_VERSION;
+#else
 const char *fuse_githash;
 static char version[] = PACKAGE_VERSION " .......";
+#endif
 
 void retro_get_system_info(struct retro_system_info *info)
 {
+#ifndef GIT_VERSION
    memcpy(version + sizeof(PACKAGE_VERSION), fuse_githash, 7);
+#endif
    info->library_name = PACKAGE_NAME;
    info->library_version = version;
    info->need_fullpath = false;
@@ -598,11 +604,15 @@ static libspectrum_id_t identify_file_get_ext(const void* data, size_t size, con
    return type;
 }
 
+#ifndef GIT_VERSION
 extern const char* fuse_gitstamp;
+#endif
 
 bool retro_load_game(const struct retro_game_info *info)
 {
+#ifndef GIT_VERSION
    log_cb( RETRO_LOG_INFO, "\n%s\n", fuse_gitstamp );
+#endif
 
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
 
