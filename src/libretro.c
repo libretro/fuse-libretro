@@ -694,6 +694,21 @@ bool retro_load_game(const struct retro_game_info *info)
          if1_mdr_writeprotect( i, 0 );
       }
 
+      // Set up memory map interface
+      struct retro_memory_descriptor desc[MEMORY_PAGES_IN_64K];
+      memset(desc, 0, sizeof(desc));
+
+      for (i = 0; i < MEMORY_PAGES_IN_64K; i++)
+      {
+         desc[i].start  = i * MEMORY_PAGE_SIZE;
+         desc[i].len    = MEMORY_PAGE_SIZE;
+         desc[i].select = 0;
+         desc[i].ptr    = memory_map_read[i].page;
+      }
+      struct retro_memory_map memory_map = {desc, MEMORY_PAGES_IN_64K};
+
+      env_cb(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, &memory_map);
+
       return true;
    }
 
