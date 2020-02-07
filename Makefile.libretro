@@ -204,6 +204,15 @@ ifeq ($(platform),ios-arm64)
 	PLATFORM_DEFINES += -D_IOS_ARM64
 endif
 
+else ifeq ($(platform), tvos-arm64)
+	TARGET := $(TARGET_NAME)_libretro_tvos.dylib
+	fpic := -fPIC
+	SHARED := -dynamiclib
+	ifeq ($(IOSSDK),)
+		IOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
+	endif
+	PLATFORM_DEFINES += -D_IOS_ARM64
+
 # Theos
 else ifeq ($(platform), theos_ios)
 	DEPLOYMENT_IOSVERSION = 5.0
