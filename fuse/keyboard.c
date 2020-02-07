@@ -289,7 +289,7 @@ void fuse_keyboard_init(void)
 
   key_text = g_hash_table_new( g_int_hash, g_int_equal );
 
-  for( ptr4 = key_text_table; ptr4->key != -1; ptr4++ )
+  for( ptr4 = key_text_table; ptr4->key != (keyboard_key_name)(-1); ptr4++ )
     g_hash_table_insert( key_text, &( ptr4->key ), &( ptr4->text ) );
 
 }
