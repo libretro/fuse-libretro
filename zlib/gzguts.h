@@ -18,7 +18,7 @@
 #  define ZLIB_INTERNAL
 #endif
 
-#ifdef _IOS_ARM64
+#if defined(_IOS_ARM64) || defined(EMSCRIPTEN)
 #include <unistd.h>
 #endif
 
