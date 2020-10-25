@@ -57,7 +57,7 @@
 #include "utils.h"
 
 /* The name of our configuration file */
-#ifdef WIN32
+#if defined (WIN32) || defined (__CELLOS_LV2__)
 #define CONFIG_FILE_NAME "fuse.cfg"
 #else				/* #ifdef WIN32 */
 #define CONFIG_FILE_NAME ".fuserc"
@@ -2380,7 +2380,7 @@ read_config_file( settings_info *settings )
 
   /* See if the file exists; if doesn't, it's not a problem */
   if( stat( path, &stat_info ) ) {
-#if defined(VITA)
+#if defined(VITA) || defined (__CELLOS_LV2__)
     return 0;
 #else
     if( errno == ENOENT ) {

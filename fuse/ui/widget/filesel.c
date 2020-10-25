@@ -45,6 +45,11 @@
 #include "utils.h"
 #include "widget_internals.h"
 
+#ifdef __CELLOS_LV2__
+#define getcwd(x, y) NULL
+#define chdir(x) 0
+#endif
+
 #if defined AMIGA || defined __MORPHOS__
 #include <proto/asl.h>
 #include <proto/dos.h>

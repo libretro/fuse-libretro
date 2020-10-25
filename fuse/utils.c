@@ -30,9 +30,7 @@
 #include <libgen.h>
 #endif				/* #ifdef HAVE_LIBGEN_H */
 #include <string.h>
-#ifndef __CELLOS_LV2__
 #include <unistd.h>
-#endif
 #include <sys/stat.h>
 #include <ui/ui.h>
 
@@ -424,7 +422,14 @@ utils_read_auxiliary_file( const char *filename, utils_file *file,
   int error;
   compat_fd fd;
 
+#ifdef __CELLOS_LV2__
+  char fullpath[256];
+  sprintf(fullpath, "%s/%s", compat_get_home_path(),filename);
+  fd = utils_find_auxiliary_file( fullpath, type );
+#else
   fd = utils_find_auxiliary_file( filename, type );
+#endif
+  if( fd == COMPAT_FILE_OPEN_FAILED ) printf("COMPAT_FILE_OPEN_FAILED\n");
   if( fd == COMPAT_FILE_OPEN_FAILED ) return -1;
 
   error = utils_read_fd( fd, filename, file );
@@ -438,7 +443,7 @@ int
 utils_read_screen( const char *filename, utils_file *screen )
 {
   int error;
-
+  
   error = utils_read_auxiliary_file( filename, screen, UTILS_AUXILIARY_LIB );
   if( error == -1 ) {
     ui_error( UI_ERROR_ERROR, "couldn't find screen picture ('%s')",

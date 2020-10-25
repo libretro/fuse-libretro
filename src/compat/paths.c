@@ -12,7 +12,11 @@ const char *compat_get_temp_path(void)
 
 const char *compat_get_home_path(void)
 {
+#ifdef __CELLOS_LV2__
+   return "/dev_hdd0/game/SSNE10000/USRDIR/cores/system";
+#else
    return "";
+#endif
 }
 
 int compat_is_absolute_path(const char *path)
