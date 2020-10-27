@@ -23,6 +23,10 @@
 
 /* end standard C headers. */
 
+#ifdef __CELLOS_LV2__
+#define isatty(x) 0
+#endif
+
 /* flex integer type definitions */
 
 #ifndef FLEXINT_H
