@@ -414,8 +414,6 @@ else
 	CC_AS ?= gcc
 	CXX ?= g++
 	SHARED := -shared -static-libgcc -static-libstdc++ -Wl,-no-undefined -Wl,-version-script=build/link.T
-	#LIBS += -lshlwapi
-	HAVE_WIN32_MSX_MANAGER = 1
 
 endif
 
