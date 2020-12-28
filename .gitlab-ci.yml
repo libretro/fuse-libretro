@@ -47,6 +47,10 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/wii-static.yml'
 
+  # Nintendo WiiU
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/wiiu-static.yml'
+
 # Stages for building
 stages:
   - build-prepare
@@ -114,6 +118,12 @@ libretro-build-wii:
     - .libretro-wii-static-retroarch-master
     - .core-defs
 
+# Nintendo WiiU
+libretro-build-wiiu:
+  extends:
+    - .libretro-wiiu-static-retroarch-master
+    - .core-defs
+
 # PlayStation Portable
 libretro-build-psp:
   extends:
@@ -123,5 +133,5 @@ libretro-build-psp:
 # PlayStation Vita
 libretro-build-vita:
   extends:
-    - .core-defs
     - .libretro-vita-static-retroarch-master
+    - .core-defs
