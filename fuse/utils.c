@@ -30,7 +30,6 @@
 #include <libgen.h>
 #endif				/* #ifdef HAVE_LIBGEN_H */
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <ui/ui.h>
 
