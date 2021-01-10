@@ -121,9 +121,9 @@ android-x86:
     
 ################################### CONSOLES #################################
 # Nintendo 3DS
-libretro-build-3ds:
+libretro-build-ctr:
   extends:
-    - .libretro-vita-static-retroarch-master
+    - .libretro-ctr-static-retroarch-master
     - .core-defs
     
 # Nintendo GameCube
