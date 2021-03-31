@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
-## Copyright (c) 2001-2004 Philip Kendall
-
-## $Id: Makefile.am 3944 2009-01-10 18:17:04Z pak21 $
+## Copyright (c) 2001-2013 Philip Kendall
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,25 +20,12 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+noinst_HEADERS += \
+                  ui/ui.h \
+                  ui/uidisplay.h \
+                  ui/uijoystick.h \
+                  ui/uimedia.h
 
-AM_CPPFLAGS = -I$(srcdir)/..
-
-SUBDIRS = @UI@ @WIDGET@ scaler
-
-DIST_SUBDIRS = fb \
-	       gtk \
-	       scaler \
-	       sdl \
-	       svga \
-	       widget \
-	       wii \
-	       win32 \
-	       xlib
-
-noinst_HEADERS = ui.h \
-		 uidisplay.h \
-		 uijoystick.h
-
-EXTRA_DIST = options.dat \
-	     uijoystick.c
+EXTRA_DIST += \
+              ui/options.dat \
+              ui/uijoystick.c

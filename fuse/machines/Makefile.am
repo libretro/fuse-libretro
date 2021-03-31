@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2004 Philip Kendall
-
-## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,37 +20,31 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+fuse_SOURCES += \
+                machines/machines_periph.c \
+                machines/pentagon.c \
+                machines/pentagon512.c \
+                machines/pentagon1024.c \
+                machines/scorpion.c \
+                machines/spec128.c \
+                machines/spec16.c \
+                machines/spec48.c \
+                machines/spec48_ntsc.c \
+                machines/specplus2.c \
+                machines/spec_se.c \
+                machines/specplus2a.c \
+                machines/specplus3.c \
+                machines/specplus3e.c \
+                machines/tc2048.c \
+                machines/tc2068.c \
+                machines/ts2068.c
 
-AM_CPPFLAGS = -I$(srcdir)/..
-
-AM_CPPFLAGS += @LIBSPEC_CFLAGS@ @GTK_CFLAGS@ @GLIB_CFLAGS@
-
-noinst_LIBRARIES = libmachines.a
-
-libmachines_a_SOURCES = machines_periph.c \
-                        pentagon.c \
-			pentagon512.c \
-			pentagon1024.c \
-			scorpion.c \
-			spec128.c \
-			spec16.c \
-			spec48.c \
-			spec48_ntsc.c \
-			specplus2.c \
-			spec_se.c \
-			specplus2a.c \
-			specplus3.c \
-			specplus3e.c \
-			tc2048.c \
-			tc2068.c \
-			ts2068.c
-
-noinst_HEADERS = machines.h \
-		 machines_periph.h \
-		 pentagon.h \
-		 scorpion.h \
-		 spec128.h \
-		 spec48.h \
-		 specplus3.h \
-		 tc2068.h
+noinst_HEADERS += \
+                  machines/machines.h \
+                  machines/machines_periph.h \
+                  machines/pentagon.h \
+                  machines/scorpion.h \
+                  machines/spec128.h \
+                  machines/spec48.h \
+                  machines/specplus3.h \
+                  machines/tc2068.h

@@ -1,7 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## Copyright (c) 2001-2013 Philip Kendall
-
-## $Id: Makefile.am 5002 2013-05-26 16:18:52Z sbaldovi $
+## Copyright (c) 2001-2018 Philip Kendall
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -28,6 +26,7 @@ ACLOCAL_AMFLAGS = -I m4
 lib_LTLIBRARIES = libspectrum.la
 
 libspectrum_la_SOURCES = bzip2.c \
+			 buffer.c \
 			 creator.c \
 			 crypto.c \
 			 csw.c \
@@ -36,6 +35,7 @@ libspectrum_la_SOURCES = bzip2.c \
 			 libspectrum.c \
                          memory.c \
 			 microdrive.c \
+			 mmc.c \
 			 plusd.c \
 			 pzx_read.c \
 			 rzx.c \
@@ -60,10 +60,23 @@ libspectrum_la_SOURCES = bzip2.c \
                          windres.rc \
 			 z80.c \
 			 z80em.c \
-			 zlib.c \
 			 zxs.c
 
-libspectrum_la_LDFLAGS = -version-info 9:0:1 -no-undefined @WINDRES_LDFLAGS@
+if HAVE_ZLIB
+libspectrum_la_SOURCES += zip.c \
+                          zlib.c
+endif
+
+## The version info is made of three components: current, revision and age
+## We update the version when we release according to the guide at
+## https://autotools.io/libtool/version.html
+## The rules of thumb, when dealing with these values are:
+## * Increase the current value whenever an interface has been added, removed or
+##   changed.
+## * Always increase the revision value.
+## * Increase the age value only if the changes made to the ABI are backward
+##   compatible.
+libspectrum_la_LDFLAGS = -version-info 17:15:8 -no-undefined @WINDRES_LDFLAGS@
 
 libspectrum_la_LIBADD = @AUDIOFILE_LIBS@ @GLIB_LIBS@ -lm
 
@@ -72,41 +85,49 @@ libspectrum_la_DEPENDENCIES = @WINDRES_OBJ@
 BUILT_SOURCES = libspectrum.h snap_accessors.c tape_accessors.c tape_set.c
 
 nodist_include_HEADERS = libspectrum.h
-noinst_HEADERS = internals.h
+noinst_HEADERS = internals.h \
+			 zip.h
 
 noinst_PROGRAMS =
 noinst_DATA =
 
-AM_CFLAGS = -DLIBSPECTRUM_EXPORTS
+# Install the pkg-config file; the directory is set using
+# PKG_INSTALLDIR in configure.ac.
+pkgconfig_DATA = libspectrum.pc
+
+AM_CFLAGS = -DLIBSPECTRUM_EXPORTS -fvisibility=hidden
 
 make-perl$(EXEEXT): $(srcdir)/make-perl.c config.h
-	$(CC_FOR_BUILD) -I. $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	$(AM_V_CC)$(CC_FOR_BUILD) -I. -o $@ $<
 
 libspectrum.h: libspectrum.h.in generate.pl snap_accessors.txt tape_accessors.txt config.h
-	@PERL@ -p generate.pl $(srcdir) $(srcdir)/libspectrum.h.in > $@.tmp && mv $@.tmp $@
+	$(AM_V_GEN)$(PERL) -p generate.pl $(srcdir) $(srcdir)/libspectrum.h.in > $@.tmp && mv $@.tmp $@
 
 generate.pl: make-perl$(EXEEXT) generate.pl.in
-	./make-perl$(EXEEXT) > $@
-	cat $(srcdir)/generate.pl.in >> $@
+	$(AM_V_GEN)./make-perl$(EXEEXT) > $@
+	$(AM_V_at)cat $(srcdir)/generate.pl.in >> $@
 
 snap_accessors.c: accessor.pl snap_accessors.txt
-	@PERL@ $(srcdir)/accessor.pl $(srcdir)/snap_accessors.txt > $@.tmp && mv $@.tmp $@
+	$(AM_V_GEN)$(PERL) $(srcdir)/accessor.pl $(srcdir)/snap_accessors.txt > $@.tmp && mv $@.tmp $@
 
 tape_accessors.c: tape_accessors.pl tape_accessors.txt
-	@PERL@ $(srcdir)/tape_accessors.pl $(srcdir)/tape_accessors.txt > $@.tmp && mv $@.tmp $@
+	$(AM_V_GEN)$(PERL) $(srcdir)/tape_accessors.pl $(srcdir)/tape_accessors.txt > $@.tmp && mv $@.tmp $@
 
 tape_set.c: tape_set.pl tape_accessors.txt
-	@PERL@ $(srcdir)/tape_set.pl $(srcdir)/tape_accessors.txt > $@.tmp && mv $@.tmp $@
+	$(AM_V_GEN)$(PERL) $(srcdir)/tape_set.pl $(srcdir)/tape_accessors.txt > $@.tmp && mv $@.tmp $@
 
 windres.o: windres.rc
-	@WINDRES@ -I. $(srcdir)/windres.rc windres.o
+	$(AM_V_GEN)$(WINDRES) -I. $(srcdir)/windres.rc windres.o
 
 AM_CPPFLAGS = @GLIB_CFLAGS@ @AUDIOFILE_CFLAGS@
 
 EXTRA_DIST = accessor.pl \
+	     buffer_license.txt \
 	     dll.c \
 	     generate.pl.in \
 	     m4/audiofile.m4 \
+	     m4/ax_create_stdint_h.m4 \
+	     m4/pkg.m4 \
 	     make-perl.c \
 	     tape_accessors.pl \
 	     tape_accessors.txt \
@@ -123,6 +144,5 @@ CLEANFILES = libspectrum.h \
 	     make-perl$(EXEEXT)
 
 include doc/Makefile.am
-include hacking/Makefile.am
 include myglib/Makefile.am
 include test/Makefile.am

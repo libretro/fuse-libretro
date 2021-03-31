@@ -1,7 +1,6 @@
 /* browse.c: tape browser dialog box
    Copyright (c) 2002-2008 Philip Kendall, Marek Januszewski
-
-   $Id: browse.c 3768 2008-09-07 01:33:19Z specu $
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -72,7 +71,7 @@ static void
 dialog_init( HWND hwndDlg )
 {
   size_t i;
-  TCHAR *titles[3] = { "", "Block type", "Data" };
+  LPCTSTR titles[3] = { _T( "" ), _T( "Block type" ), _T( "Data" ) };
   int titles_widths[3] = { 16, 115, 150 };
 
   /* set extended listview style to select full row, when an item is selected */
@@ -92,7 +91,7 @@ dialog_init( HWND hwndDlg )
     if( i != 0 )
       lvc.mask |= LVCF_SUBITEM;
     lvc.cx = titles_widths[i];
-    lvc.pszText = titles[i];
+    lvc.pszText = (LPTSTR)titles[i];
     SendDlgItemMessage( hwndDlg, IDC_BROWSE_LV, LVM_INSERTCOLUMN, i,
                         ( LPARAM ) &lvc );
   }

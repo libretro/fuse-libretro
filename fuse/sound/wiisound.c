@@ -1,8 +1,6 @@
 /* wiisound.c: Wii sound routines
    Copyright (c) 2008-2009 Bjoern Giesler, Philip Kendall
 
-   $Id: wiisound.c 3945 2009-01-10 18:44:42Z zubzero $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

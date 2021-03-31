@@ -1,7 +1,6 @@
 /* scld.h: Routines for handling the Timex SCLD
    Copyright (c) 2002-2004 Fredrick Meunier, Witold Filipczyk
-
-   $Id: scld.h 4724 2012-07-08 13:38:21Z fredm $
+   Copyright (c) 2015 Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,7 +26,7 @@
 #define FUSE_SCLD_H
 
 #ifndef FUSE_MEMORY_H
-#include "../memory.h"
+#include "memory_pages.h"
 #endif				/* #ifndef FUSE_MEMORY_H */
 
 #define STANDARD        0x00 /* standard Spectrum */
@@ -124,7 +123,7 @@ extern memory_page * timex_home[MEMORY_PAGES_IN_64K];
 extern memory_page timex_exrom[MEMORY_PAGES_IN_64K];
 extern memory_page timex_dock[MEMORY_PAGES_IN_64K];
 
-void scld_init( void );
+void scld_register_startup( void );
 
 void scld_dec_write( libspectrum_word port, libspectrum_byte b );
 void scld_hsr_write( libspectrum_word port, libspectrum_byte b );
@@ -138,5 +137,9 @@ libspectrum_byte hires_convert_dec( libspectrum_byte attr );
 
 void scld_home_map_16k( libspectrum_word address, memory_page source[],
                         int page_num );
+
+/* Set contention for SCLD, contended in home, Dock and Exrom in the 0x4000 -
+   0x7FFF range */
+void scld_set_exrom_dock_contention( void );
 
 #endif                  /* #ifndef FUSE_SCLD_H */

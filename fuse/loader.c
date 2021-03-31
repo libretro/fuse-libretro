@@ -1,8 +1,6 @@
 /* loader.c: loader detection
    Copyright (c) 2006 Philip Kendall
 
-   $Id: loader.c 3941 2009-01-09 22:38:21Z pak21 $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -27,7 +25,8 @@
 
 #include "event.h"
 #include "loader.h"
-#include "memory.h"
+#include "memory_pages.h"
+#include "rzx.h"
 #include "settings.h"
 #include "spectrum.h"
 #include "tape.h"
@@ -74,6 +73,7 @@ static void
 do_acceleration( void )
 {
   if( length_known1 ) {
+    /* B is used to indicate the length of the pulses */
     int set_b_high = length_long1;
     set_b_high ^= ( acceleration_mode == ACCELERATION_MODE_DECREASING );
     if( set_b_high ) {
@@ -81,12 +81,18 @@ do_acceleration( void )
     } else {
       z80.bc.b.h = 0x00;
     }
+
+    /* Bit 5 of C is used to indicate the current microphone level */
+    z80.bc.b.l = (z80.bc.b.l & ~0x20) | (tape_microphone ? 0x00 : 0x20);
+
     z80.af.b.l |= 0x01;
+
+    /* Simulate the RET at the end of the edge-finding loop */
     z80.pc.b.l = readbyte_internal( z80.sp.w ); z80.sp.w++;
     z80.pc.b.h = readbyte_internal( z80.sp.w ); z80.sp.w++;
 
     event_remove_type( tape_edge_event );
-    tape_next_edge( tstates, 0, NULL );
+    tape_next_edge( tstates, 1 );
 
     successive_reads = 0;
   }
@@ -104,12 +110,14 @@ acceleration_detector( libspectrum_word pc )
     switch( state ) {
     case 0:
       switch( b ) {
+      case 0x03: state = 28; break;     /* Data byte of JR NZ, ... - Alkatraz */
       case 0x04: state = 1; break;	/* INC B - Many loaders */
       default: state = 13; break;	/* Possible Digital Integration */
       }
       break;
     case 1:
       switch( b ) {
+      case 0x20: state = 40; break;     /* JR NZ - variant Alkatraz */
       case 0xc8: state = 2; break;	/* RET Z */
       default: return ACCELERATION_MODE_NONE;
       }
@@ -124,6 +132,7 @@ acceleration_detector( libspectrum_word pc )
       switch( b ) {
       case 0x00:			/* Search Loader */
       case 0x7f:			/* ROM loader and variants */
+      case 0xff:                        /* Dinaload */
 	state = 4; break;		/* Data byte */
       default: return ACCELERATION_MODE_NONE;
       }
@@ -272,6 +281,7 @@ acceleration_detector( libspectrum_word pc )
       break;
     case 26:
       switch( b ) {
+      case 0x28: state = 12; break;     /* JR Z - Space Crusade */
       case 0xd8: state = 27; break;	/* RET C */
       default: return ACCELERATION_MODE_NONE;
       }
@@ -282,7 +292,91 @@ acceleration_detector( libspectrum_word pc )
       default: return ACCELERATION_MODE_NONE;
       }
       break;
-	
+
+    /* Alkatraz */
+
+    case 28:
+      switch( b ) {
+      case 0xc3: state = 29; break;     /* JP nnnn */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 29:
+      state = 30; break;                /* First data byte of JP */
+    case 30:
+      state = 31; break;                /* Second data byte of JP */
+    case 31:
+      switch( b ) {
+      case 0xdb: state = 32; break;	/* IN A,(nn) */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 32:
+      switch( b ) {
+      case 0xfe: state = 33; break;	/* Data byte */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 33:
+      switch( b ) {
+      case 0x1f: state = 34; break;	/* RRA */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 34:
+      switch( b ) {
+      case 0xc8: state = 35; break;	/* RET Z */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 35:
+      switch( b ) {
+      case 0xa9: state = 36; break;	/* XOR C */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 36:
+      switch( b ) {
+      case 0xe6: state = 37; break;	/* AND nn */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 37:
+      switch( b ) {
+      case 0x20: state = 38; break;	/* Data byte */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 38:
+      switch( b ) {
+      case 0x28: state = 39; break;	/* JR Z,nn */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 39:
+      switch( b ) {
+      case 0xf1:                        /* Normal data byte */
+      case 0xf3:                        /* Variant data byte */
+        return ACCELERATION_MODE_INCREASING;
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+
+    /* "Variant" Alkatraz */
+
+    case 40:
+      switch( b ) {
+      case 0x01: state = 41; break;     /* Data byte of JR NZ */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+    case 41:
+      switch( b ) {
+      case 0xc9: state = 31; break;     /* RET */
+      default: return ACCELERATION_MODE_NONE;
+      }
+      break;
+
     default:
       /* Can't happen */
       break;
@@ -346,13 +440,14 @@ loader_detect_loader( void )
 
   }
 
-  if( settings_current.accelerate_loader && tape_is_playing() )
+  if( settings_current.accelerate_loader && tape_is_playing() &&
+      !rzx_recording )
     check_for_acceleration();
 
 }
 
 void
-loader_set_acceleration_flags( int flags )
+loader_set_acceleration_flags( int flags, int from_acceleration )
 {
   if( flags & LIBSPECTRUM_TAPE_FLAGS_LENGTH_SHORT ) {
     length_known2 = 1;
@@ -362,5 +457,12 @@ loader_set_acceleration_flags( int flags )
     length_long2 = 1;
   } else {
     length_known2 = 0;
+  }
+
+  /* If this tape edge occurred due to normal timings rather than
+     our tape acceleration, turn off acceleration for the next edge
+     or we miss an edge. See [bugs:#387] for more details */
+  if( !from_acceleration ) {
+    length_known1 = 0;
   }
 }

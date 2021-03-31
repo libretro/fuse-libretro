@@ -5,8 +5,6 @@
 
 # Copyright (c) 2004,2008 Philip Kendall, Gergely Szasz
 
-# $Id: cpp-perl.pl 3985 2009-03-03 12:05:34Z fredm $
-
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or

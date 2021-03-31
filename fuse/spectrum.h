@@ -1,7 +1,5 @@
 /* spectrum.h: Spectrum 48K specific routines
-   Copyright (c) 1999-2011 Philip Kendall, Darren Salt
-
-   $Id: spectrum.h 4638 2012-01-21 12:52:14Z fredm $
+   Copyright (c) 1999-2016 Philip Kendall, Darren Salt
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +28,7 @@
 
 #include <libspectrum.h>
 
-#include "memory.h"
+#include "memory_pages.h"
 
 /* How many tstates have elapsed since the last interrupt? (or more
    precisely, since the ULA last pulled the /INT line to the Z80 low) */
@@ -81,7 +79,7 @@ libspectrum_byte spectrum_unattached_port_none( void );
 
 extern int spectrum_frame_event;
 
-void spectrum_init( void );
+void spectrum_register_startup( void );
 int spectrum_frame( void );
 
 #endif			/* #ifndef FUSE_SPECTRUM_H */

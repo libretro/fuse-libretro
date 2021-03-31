@@ -27,6 +27,12 @@ SOURCES_C += $(CORE_DIR)/src/compat/paths.c
 SOURCES_C += $(CORE_DIR)/src/compat/sound.c
 SOURCES_C += $(CORE_DIR)/src/compat/timer.c
 SOURCES_C += $(CORE_DIR)/src/compat/ui.c
+#SOURCES_C += $(CORE_DIR)/src/compat/socket.c
+
+SOURCES_C += $(CORE_DIR)/src/fuse/getopt.c
+SOURCES_C += $(CORE_DIR)/src/fuse/getopt1.c
+
+SOURCES_C += $(CORE_DIR)/fuse/infrastructure/startup_manager.c
 
 SOURCES_C += $(CORE_DIR)/fuse/debugger/breakpoint.c
 SOURCES_C += $(CORE_DIR)/fuse/debugger/command.c
@@ -37,6 +43,7 @@ SOURCES_C += $(CORE_DIR)/fuse/debugger/disassemble.c
 SOURCES_C += $(CORE_DIR)/fuse/debugger/event.c
 SOURCES_C += $(CORE_DIR)/fuse/debugger/expression.c
 SOURCES_C += $(CORE_DIR)/fuse/debugger/variable.c
+SOURCES_C += $(CORE_DIR)/fuse/debugger/system_variable.c
 
 SOURCES_C += $(CORE_DIR)/fuse/machines/machines_periph.c
 SOURCES_C += $(CORE_DIR)/fuse/machines/pentagon.c
@@ -65,6 +72,8 @@ SOURCES_C += $(CORE_DIR)/fuse/peripherals/disk/opus.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/disk/plusd.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/disk/upd_fdc.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/disk/wd_fdc.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/disk/didaktik.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/disk/trdos.c
 
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/flash/am29f010.c
 
@@ -73,8 +82,13 @@ SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/ide.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/simpleide.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/zxatasp.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/zxcf.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/divmmc.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/divxxx.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/ide/zxmmc.c
 
 #SOURCES_C += $(CORE_DIR)/fuse/peripherals/nic/enc28j60.c
+#SOURCES_C += $(CORE_DIR)/fuse/peripherals/nic/w5100.c
+#SOURCES_C += $(CORE_DIR)/fuse/peripherals/nic/w5100_socket.c
 
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/ay.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/dck.c
@@ -90,6 +104,10 @@ SOURCES_C += $(CORE_DIR)/fuse/peripherals/speccyboot.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/specdrum.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/spectranet.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/ula.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/multiface.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/ttx2000s.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/usource.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/covox.c
 
 SOURCES_C += $(CORE_DIR)/fuse/pokefinder/pokefinder.c
 SOURCES_C += $(CORE_DIR)/fuse/pokefinder/pokemem.c
@@ -115,6 +133,8 @@ SOURCES_C += $(CORE_DIR)/fuse/ui/widget/roms.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/select.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/text.c
 SOURCES_C += $(CORE_DIR)/fuse/ui/widget/widget.c
+SOURCES_C += $(CORE_DIR)/fuse/ui/widget/about.c
+SOURCES_C += $(CORE_DIR)/fuse/ui/widget/binary.c
 
 SOURCES_C += $(CORE_DIR)/fuse/ui/scaler/scaler.c
 
@@ -122,6 +142,7 @@ SOURCES_C += $(CORE_DIR)/fuse/unittests/unittests.c
 
 SOURCES_C += $(CORE_DIR)/fuse/z80/z80.c
 SOURCES_C += $(CORE_DIR)/fuse/z80/z80_ops.c
+SOURCES_C += $(CORE_DIR)/fuse/z80/z80_debugger_variables.c
 
 SOURCES_C += $(CORE_DIR)/fuse/display.c
 SOURCES_C += $(CORE_DIR)/fuse/event.c
@@ -130,7 +151,7 @@ SOURCES_C += $(CORE_DIR)/fuse/input.c
 SOURCES_C += $(CORE_DIR)/fuse/keyboard.c
 SOURCES_C += $(CORE_DIR)/fuse/loader.c
 SOURCES_C += $(CORE_DIR)/fuse/machine.c
-SOURCES_C += $(CORE_DIR)/fuse/memory.c
+SOURCES_C += $(CORE_DIR)/fuse/memory_pages.c
 SOURCES_C += $(CORE_DIR)/fuse/mempool.c
 SOURCES_C += $(CORE_DIR)/fuse/menu.c
 SOURCES_C += $(CORE_DIR)/fuse/movie.c
@@ -150,7 +171,11 @@ SOURCES_C += $(CORE_DIR)/fuse/tape.c
 SOURCES_C += $(CORE_DIR)/src/fuse/ui.c
 SOURCES_C += $(CORE_DIR)/fuse/uidisplay.c
 SOURCES_C += $(CORE_DIR)/src/fuse/utils.c
+SOURCES_C += $(CORE_DIR)/fuse/phantom_typist.c
+SOURCES_C += $(CORE_DIR)/fuse/uimedia.c
+SOURCES_C += $(CORE_DIR)/fuse/svg.c
 
+SOURCES_C += $(CORE_DIR)/libspectrum/buffer.c
 SOURCES_C += $(CORE_DIR)/libspectrum/bzip2.c
 SOURCES_C += $(CORE_DIR)/libspectrum/creator.c
 SOURCES_C += $(CORE_DIR)/libspectrum/crypto.c
@@ -189,6 +214,8 @@ SOURCES_C += $(CORE_DIR)/libspectrum/z80.c
 SOURCES_C += $(CORE_DIR)/libspectrum/z80em.c
 SOURCES_C += $(CORE_DIR)/libspectrum/zlib.c
 SOURCES_C += $(CORE_DIR)/libspectrum/zxs.c
+SOURCES_C += $(CORE_DIR)/libspectrum/mmc.c
+SOURCES_C += $(CORE_DIR)/libspectrum/zip.c
 
 SOURCES_C += $(CORE_DIR)/zlib/adler32.c
 SOURCES_C += $(CORE_DIR)/zlib/compress.c

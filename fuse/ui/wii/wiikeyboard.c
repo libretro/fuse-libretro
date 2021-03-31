@@ -1,8 +1,6 @@
 /* wiikeyboard.c: routines for dealing with the Wii USB keyboard
    Copyright (c) 2008 Bjoern Giesler
 
-   $Id: wiikeyboard.c 4109 2009-12-27 06:15:10Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

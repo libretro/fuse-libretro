@@ -1,8 +1,6 @@
 /* timer.c: Win32 speed routines for Fuse
    Copyright (c) 1999-2008 Philip Kendall, Marek Januszewski, Fredrick Meunier
 
-   $Id: timer.c 4365 2011-04-14 00:38:54Z zubzero $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

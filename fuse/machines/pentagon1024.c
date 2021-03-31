@@ -2,8 +2,6 @@
                   be a post-1996 Pentagon (a 1024k v2.2 1024SL?).
    Copyright (c) 1999-2011 Philip Kendall and Fredrick Meunier
 
-   $Id: pentagon1024.c 4638 2012-01-21 12:52:14Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -32,7 +30,7 @@
 #include "machine.h"
 #include "machines.h"
 #include "machines_periph.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "pentagon.h"
 #include "periph.h"
 #include "peripherals/disk/beta.h"
@@ -103,6 +101,8 @@ pentagon1024_reset(void)
 
   /* Later style Betadisk 128 interface */
   periph_set_present( PERIPH_TYPE_BETA128_PENTAGON_LATE, PERIPH_PRESENT_ALWAYS );
+
+  periph_set_present( PERIPH_TYPE_COVOX_FB, PERIPH_PRESENT_OPTIONAL );
 
   periph_update();
 

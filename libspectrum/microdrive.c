@@ -1,7 +1,5 @@
 /* microdrive.c: Routines for handling microdrive images
-   Copyright (c) 2004-2005 Philip Kendall
-
-   $Id: microdrive.c 3701 2008-06-30 20:32:56Z pak21 $
+   Copyright (c) 2004-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <string.h>
 
@@ -66,7 +64,7 @@ static const size_t MDR_LENGTH = LIBSPECTRUM_MICRODRIVE_CARTRIDGE_LENGTH + 1;
 libspectrum_microdrive*
 libspectrum_microdrive_alloc( void )
 {
-  return libspectrum_malloc( sizeof( libspectrum_microdrive ) );
+  return libspectrum_new( libspectrum_microdrive, 1 );
 }
 
 /* Free a microdrive image */
@@ -289,7 +287,7 @@ libspectrum_microdrive_mdr_write( const libspectrum_microdrive *microdrive,
 				  libspectrum_byte **buffer, size_t *length )
 {
   *length = microdrive->cartridge_len * LIBSPECTRUM_MICRODRIVE_BLOCK_LEN;
-  *buffer = libspectrum_malloc( ( *length + 1 ) * sizeof( **buffer ) );
+  *buffer = libspectrum_new( libspectrum_byte, *length + 1 );
 
   memcpy( *buffer, microdrive->data, *length );
 

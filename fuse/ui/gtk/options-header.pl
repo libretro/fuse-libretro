@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
 # options-header.pl: generate options dialog boxes
-# $Id: options-header.pl 4694 2012-05-06 06:42:44Z fredm $
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

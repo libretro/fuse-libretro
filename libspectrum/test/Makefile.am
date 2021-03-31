@@ -1,7 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## Copyright (c) 2007 Philip Kendall
-
-## $Id: Makefile.am 4220 2010-12-17 10:54:29Z fredm $
+## Copyright (c) 2007,2015 Philip Kendall
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,12 +19,15 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-noinst_PROGRAMS += test/test
+check_PROGRAMS = test/test
+
+TESTS = $(check_PROGRAMS)
 
 test_test_SOURCES = \
 	test/edges.c \
+	test/szx.c \
 	test/test.c \
-	test/test15.c
+	test/test_edges.c
 
 test_test_CFLAGS = -DSRCDIR='"$(srcdir)"'
 
@@ -35,7 +36,7 @@ noinst_DATA += test/complete-tzx.tzx
 noinst_HEADERS += test/test.h
 
 test/complete-tzx.tzx: test/complete-tzx.pl
-	perl $< > $@.tmp && mv $@.tmp $@
+	$(AM_V_GEN)$(PERL) $< > $@.tmp && mv $@.tmp $@
 
 test_test_LDADD = libspectrum.la
 
@@ -44,7 +45,7 @@ EXTRA_DIST += \
 	test/complete-tzx.pl \
 	test/empty-drb.tzx \
 	test/empty.csw \
-        test/empty.szx \
+	test/empty.szx \
 	test/empty.z80 \
 	test/invalid-archiveinfo.tzx \
 	test/invalid-custominfo.tzx \
@@ -58,11 +59,37 @@ EXTRA_DIST += \
 	test/loop.tzx \
 	test/loop2.tzx \
 	test/loopend.tzx \
-        test/plus3.z80 \
+	test/no-pilot-gdb.tzx \
+	test/plus3.z80 \
+	test/random.szx \
+	test/raw-data-block.tzx \
 	test/sp-2000.sna.gz \
 	test/sp-ffff.sna.gz \
+	test/standard-tap.tap \
+	test/szx-chunks/AMXM.szx \
+	test/szx-chunks/ATRP.szx \
+	test/szx-chunks/ATRP-uncompressed.szx.gz \
+	test/szx-chunks/AY.szx \
+	test/szx-chunks/CFRP.szx \
+	test/szx-chunks/CFRP-uncompressed.szx.gz \
+	test/szx-chunks/COVX.szx \
+	test/szx-chunks/DRUM.szx \
+	test/szx-chunks/JOY.szx \
+	test/szx-chunks/KEYB.szx \
+	test/szx-chunks/RAMP.szx \
+	test/szx-chunks/RAMP-uncompressed.szx.gz \
+	test/szx-chunks/SCLD.szx \
+	test/szx-chunks/SIDE.szx \
+	test/szx-chunks/SPCR.szx \
+	test/szx-chunks/Z80R.szx \
+	test/szx-chunks/ZMMC.szx \
+	test/szx-chunks/ZXAT.szx \
+	test/szx-chunks/ZXCF.szx \
+	test/szx-chunks/ZXPR.szx \
+	test/trailing-pause-block.tzx \
 	test/turbo-zeropilot.tzx \
-	test/writeprotected.mdr
+	test/writeprotected.mdr \
+	test/zero-tail.pzx
 
 CLEANFILES += \
 	test/.libs/test \

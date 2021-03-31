@@ -1,8 +1,7 @@
 /* joystick.h: Joystick emulation support
-   Copyright (c) 2001-2004 Russell Marks, Philip Kendall
+   Copyright (c) 2001-2016 Russell Marks, Philip Kendall
    Copyright (c) 2003 Darren Salt
-
-   $Id: joystick.h 4288 2011-02-03 21:06:22Z pak21 $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -32,9 +31,7 @@
 /* Number of joysticks known about & initialised */
 extern int joysticks_supported;
 
-/* Init/shutdown functions. Errors aren't important here */
-void fuse_joystick_init( void );
-void fuse_joystick_end( void );
+void joystick_register_startup( void );
 
 /* A constant to identify the joystick emulated via the keyboard */
 #define JOYSTICK_KEYBOARD 2
@@ -75,10 +72,10 @@ int joystick_press( int which, joystick_button button, int press );
 
 /* Interface-specific read functions */
 libspectrum_byte joystick_kempston_read ( libspectrum_word port,
-					  int *attached );
+					  libspectrum_byte *attached );
 libspectrum_byte joystick_timex_read ( libspectrum_word port,
 				       libspectrum_byte which );
 libspectrum_byte joystick_fuller_read ( libspectrum_word port,
-					int *attached );
+					libspectrum_byte *attached );
 
 #endif			/* #ifndef FUSE_JOYSTICK_H */

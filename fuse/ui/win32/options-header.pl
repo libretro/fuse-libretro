@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
 # options-header.pl: generate options dialog boxes
-# $Id: options-header.pl 4694 2012-05-06 06:42:44Z fredm $
 
 # Copyright (c) 2001-2007 Philip Kendall, Stuart Brady, Marek Januszewski
 

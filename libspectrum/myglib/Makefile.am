@@ -1,8 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2004 Philip Kendall
 
-## $Id: Makefile.am 3653 2008-06-07 10:29:37Z pak21 $
-
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
@@ -26,6 +24,10 @@ libspectrum_la_SOURCES += \
 	myglib/garray.c \
 	myglib/ghash.c \
 	myglib/gslist.c
+if HAVE_LOCK
+libspectrum_la_SOURCES += \
+	myglib/glock.c
+endif
 endif
 
 EXTRA_DIST += myglib/Makefile.am

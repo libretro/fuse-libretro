@@ -1,7 +1,5 @@
 /* ula.h: ULA routines
-   Copyright (c) 1999-2004 Philip Kendall, Darren Salt
-
-   $Id: ula.h 4640 2012-01-21 13:26:35Z pak21 $
+   Copyright (c) 1999-2016 Philip Kendall, Darren Salt
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,7 +32,7 @@ extern libspectrum_byte ula_contention[ ULA_CONTENTION_SIZE ];
 /* And how much when it is inactive */
 extern libspectrum_byte ula_contention_no_mreq[ ULA_CONTENTION_SIZE ];
 
-void ula_init( void );
+void ula_register_startup( void );
 
 libspectrum_byte ula_last_byte( void );
 

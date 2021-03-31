@@ -1,8 +1,6 @@
 /* specplus2.c: Spectrum +2 specific routines
    Copyright (c) 1999-2011 Philip Kendall
 
-   $Id: specplus2.c 4924 2013-05-05 07:40:02Z sbaldovi $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

@@ -1,8 +1,7 @@
 /* z80em.c: Routines for handling Z80Em raw audio files
+   Copyright (c) 2015 Stuart Brady
    Copyright (c) 2002 Darren Salt
    Based on tap.c, copyright (c) 2001 Philip Kendall
-
-   $Id: z80em.c 3708 2008-07-01 08:07:01Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,7 +23,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 #include <string.h>
 
 #include "internals.h"
@@ -63,7 +62,7 @@ libspectrum_z80em_read( libspectrum_tape *tape,
 
   /* Claim memory for the data (it's one big lump) */
   z80em_block->length = length;
-  z80em_block->data = libspectrum_malloc( length );
+  z80em_block->data = libspectrum_new( libspectrum_byte, length );
 
   /* Copy the data across */
   memcpy( z80em_block->data, buffer, length );

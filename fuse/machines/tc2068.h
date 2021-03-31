@@ -1,7 +1,6 @@
 /* tc2068.h: Timex TC2068 specific routines
-   Copyright (c) 2004 Fredrick Meunier
-
-   $Id: tc2068.h 4624 2012-01-09 20:59:35Z pak21 $
+   Copyright (c) 2004,2015 Fredrick Meunier
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -32,12 +31,12 @@
 
 int tc2068_init( fuse_machine_info *machine );
 void tc2068_tc2048_common_display_setup( void );
-int tc2068_tc2048_common_reset( void );
+void tc2068_tc2048_common_reset( void );
 
 libspectrum_byte tc2068_ay_registerport_read( libspectrum_word port,
-                                              int *attached );
+                                              libspectrum_byte *attached );
 libspectrum_byte tc2068_ay_dataport_read( libspectrum_word port,
-                                          int *attached );
+                                          libspectrum_byte *attached );
 
 int tc2068_memory_map( void );
 

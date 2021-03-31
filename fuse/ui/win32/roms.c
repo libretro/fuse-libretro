@@ -1,7 +1,6 @@
 /* roms.c: ROM selector dialog box
    Copyright (c) 2003-2008 Philip Kendall, Marek Januszewski
-
-   $Id: roms.c 4785 2012-12-07 23:56:40Z sbaldovi $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,7 +33,8 @@
 #include "ui/ui.h"
 #include "win32internals.h"
 
-static void add_rom( HWND hwndDlg, size_t start, size_t row );
+static void add_rom( HWND hwndDlg, size_t start, size_t row,
+		     int is_peripheral );
 static void select_new_rom( HWND hedit );
 static void roms_done( HWND hwndDlg, LONG_PTR lParam );
 static INT_PTR CALLBACK roms_proc( HWND hwndDlg, UINT uMsg,
@@ -46,17 +46,19 @@ static void roms_init( HWND hwndDlg, LPARAM lParam );
           dialog for example */
 
 /* The edit boxes used to display the current ROMs */
-HWND rom[ SETTINGS_ROM_COUNT ];
+static HWND rom[ SETTINGS_ROM_COUNT ];
 
 struct callback_info {
 
   size_t start, n;
+  int is_peripheral;
   TCHAR title[ 256 ];
 
 };
 
 int
-menu_select_roms_with_title( const char *title, size_t start, size_t n )
+menu_select_roms_with_title( const char *title, size_t start, size_t n,
+			     int is_peripheral )
 {
   struct callback_info info;
 
@@ -66,6 +68,7 @@ menu_select_roms_with_title( const char *title, size_t start, size_t n )
   _sntprintf( info.title, 256, "Fuse - Select ROMs - %s", title );
   info.start = start;
   info.n = n;
+  info.is_peripheral = is_peripheral;
 
   DialogBoxParam( fuse_hInstance, MAKEINTRESOURCE( IDD_ROMS ), fuse_hWnd,
                   ( DLGPROC ) roms_proc, ( LPARAM ) &info );
@@ -128,7 +131,8 @@ roms_init( HWND hwndDlg, LPARAM lParam )
 
   info = ( struct callback_info * ) lParam;
   
-  for( i = 0; i < info->n; i++ ) add_rom( hwndDlg, info->start, i );
+  for( i = 0; i < info->n; i++ )
+    add_rom( hwndDlg, info->start, i, info->is_peripheral );
 
   /* Move the OK and Cancel buttons */
   RECT rect;
@@ -175,15 +179,15 @@ roms_init( HWND hwndDlg, LPARAM lParam )
 }
 
 static void
-add_rom( HWND hwndDlg, size_t start, size_t row )
+add_rom( HWND hwndDlg, size_t start, size_t row, int is_peripheral )
 {
   RECT rect;
   HFONT font;
   HWND hgroup, hedit, hbutton;
   TCHAR buffer[ 80 ], **setting;
 
-  _sntprintf( buffer, 80, "ROM %d", row );
-  
+  _sntprintf( buffer, 80, "ROM %lu", (unsigned long)row );
+
   font = ( HFONT ) SendMessage( hwndDlg, WM_GETFONT, 0, 0 );
   
   /* create a groupbox */
@@ -198,7 +202,8 @@ add_rom( HWND hwndDlg, size_t start, size_t row )
   SendMessage( hgroup, WM_SETFONT, ( WPARAM ) font, FALSE );
 
   /* create an edit */
-  setting = settings_get_rom_setting( &settings_current, start + row );
+  setting = settings_get_rom_setting( &settings_current, start + row,
+				      is_peripheral );
 
   rect.left = 5; rect.top = ( row * 30 ) + 10;
   rect.right = 5 + 110; rect.bottom = ( row * 30 ) + 10 + 14;
@@ -251,7 +256,8 @@ roms_done( HWND hwndDlg, LONG_PTR lParam )
 
   for( i = 0; i < info->n; i++ ) {
 
-    setting = settings_get_rom_setting( &settings_current, info->start + i );
+    setting = settings_get_rom_setting( &settings_current, info->start + i,
+					info->is_peripheral );
 
     string_len = SendMessage( rom[i], WM_GETTEXTLENGTH, 0, 0 );
     string = malloc( sizeof( TCHAR ) * ( string_len + 1 ) );

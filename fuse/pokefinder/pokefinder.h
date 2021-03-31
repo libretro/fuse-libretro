@@ -1,8 +1,6 @@
 /* pokefinder.h: help with finding pokes
    Copyright (c) 2003-2004 Philip Kendall
 
-   $Id: pokefinder.h 4640 2012-01-21 13:26:35Z pak21 $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -27,8 +25,6 @@
 #define FUSE_POKEFINDER_H
 
 #include <libspectrum.h>
-
-#include "../memory.h"
 
 extern libspectrum_byte pokefinder_possible[][ MEMORY_PAGE_SIZE ];
 extern libspectrum_byte pokefinder_impossible[][ MEMORY_PAGE_SIZE / 8 ];

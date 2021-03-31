@@ -1,7 +1,5 @@
 /* crypto.c: crytography-related functions
-   Copyright (c) 2002-2005 Philip Kendall
-
-   $Id: crypto.c 3698 2008-06-30 15:12:02Z pak21 $
+   Copyright (c) 2002-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #ifdef HAVE_GCRYPT_H
 
@@ -31,12 +29,12 @@
 
 #include "internals.h"
 
-static const char *private_key_format =
+static const char * const private_key_format =
   "(key-data (private-key (dsa (p %m) (q %m) (g %m) (y %m) (x %m))))";
-static const char *public_key_format =
+static const char * const public_key_format =
   "(key-data (public-key (dsa (p %m) (q %m) (g %m) (y %m))))";
-static const char *hash_format = "(data (flags raw) (value %m))";
-static const char *signature_format = "(sig-val (dsa (r %m) (s %m)))";
+static const char * const hash_format = "(data (flags raw) (value %m))";
+static const char * const signature_format = "(sig-val (dsa (r %m) (s %m)))";
 
 #define HASH_ALGORITHM GCRY_MD_SHA1
 #define MPI_COUNT 5
@@ -120,7 +118,7 @@ get_hash( gcry_sexp_t *hash, const libspectrum_byte *data, size_t data_length )
   gcry_mpi_t hash_mpi;
   
   digest_length = gcry_md_get_algo_dlen( HASH_ALGORITHM );
-  digest = libspectrum_malloc( digest_length );
+  digest = libspectrum_new( unsigned char, digest_length );
 
   gcry_md_hash_buffer( HASH_ALGORITHM, digest, data, data_length );
 
@@ -270,7 +268,7 @@ serialise_mpis( libspectrum_byte **signature, size_t *signature_length,
 
   length += length_s; *signature_length = length;
 
-  *signature = libspectrum_malloc( length );
+  *signature = libspectrum_new( libspectrum_byte, length );
 
   error = gcry_mpi_print( GCRYMPI_FMT_PGP, *signature, length, &length, r );
   if( error ) {
