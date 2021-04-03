@@ -344,8 +344,12 @@ settings_init( int *first_arg, int argc, char **argv )
   error = read_config_file( &settings_current );
   if( error ) return error;
 
-  error = settings_command_line( &settings_current, first_arg, argc, argv );
-  if( error ) return error;
+  if( argc > 1 ) {
+    error = settings_command_line( &settings_current, first_arg, argc, argv );
+    if( error ) return error;
+  } else {
+    *first_arg = 1;
+  }
 
   return 0;
 }

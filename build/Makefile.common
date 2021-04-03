@@ -29,8 +29,8 @@ SOURCES_C += $(CORE_DIR)/src/compat/timer.c
 SOURCES_C += $(CORE_DIR)/src/compat/ui.c
 #SOURCES_C += $(CORE_DIR)/src/compat/socket.c
 
-SOURCES_C += $(CORE_DIR)/src/fuse/getopt.c
-SOURCES_C += $(CORE_DIR)/src/fuse/getopt1.c
+#SOURCES_C += $(CORE_DIR)/src/fuse/getopt.c
+#SOURCES_C += $(CORE_DIR)/src/fuse/getopt1.c
 
 SOURCES_C += $(CORE_DIR)/fuse/infrastructure/startup_manager.c
 
