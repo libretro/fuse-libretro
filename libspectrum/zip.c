@@ -355,7 +355,7 @@ dump_entry_stat( struct libspectrum_zip *z, zip_stat *info )
 }
 
 /* Jump to next entry in the archive */
-int
+libspectrum_error
 libspectrum_zip_next( struct libspectrum_zip *z, zip_stat *info )
 {
   if( !z || z->state == ARCHIVE_CLOSED ) return 1;
