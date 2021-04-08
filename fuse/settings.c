@@ -64,6 +64,8 @@
 #define CONFIG_FILE_NAME ".fuserc"
 #endif				/* #ifdef WIN32 */
 
+#define getopt_long(argc, argv, optstring, longopts, longindex) (-1)
+
 /* The current settings of options, etc */
 settings_info settings_current;
 
