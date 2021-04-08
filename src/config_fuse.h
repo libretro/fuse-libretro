@@ -44,7 +44,7 @@
 /* #undef HAVE_GETEUID */
 
 /* Define to 1 if you have the `getopt_long' function. */
-#define HAVE_GETOPT_LONG 1
+/* #undef HAVE_GETOPT_LONG */
 
 /* Defined if gpm in use */
 /* #undef HAVE_GPM_H */
