@@ -1,4 +1,4 @@
-The Free Unix Spectrum Emulator (Fuse) 1.6.0
+The Free Unix Spectrum Emulator (Fuse) 1.1.1
 ============================================
 
 Fuse (the Free Unix Spectrum Emulator) was originally, and somewhat
@@ -17,24 +17,15 @@ What Fuse does have:
   Scorpion ZS 256 emulation.
 * Runs at true Speccy speed on any computer you're likely to try it on.
 * Support for loading from .tzx files, including accelerated loading.
-* Sound (on systems supporting the Open Sound System, SDL, OpenBSD/
-  Solaris's /dev/audio, CoreAudio or PulseAudio).
+* Sound (on systems supporting the Open Sound System, SDL, or OpenBSD/
+  Solaris's /dev/audio).
 * Emulation of most of the common joysticks used on the Spectrum
   (including Kempston, Sinclair and Cursor joysticks).
 * Emulation of some of the printers you could attach to a Spectrum.
 * Support for the RZX input recording file format, including
   rollback and 'competition mode'.
-* Emulation of the Currah µSource, Interface 1, Kempston mouse,
-  Multiface One/128/3 and TTX2000S interfaces.
-* Emulation of the Covox, Fuller audio box, Melodik and SpecDrum audio
-  interfaces.
-* Emulation of the DivIDE, DivMMC, Spectrum +3e, ZXATASP, ZXCF and ZXMMC
-  storage interfaces.
-* Emulation of the Beta 128, +D, Didaktik 80/40, DISCiPLE and Opus Discovery
-  disk interfaces.
-* Emulation of the Spectranet and SpeccyBoot network interfaces.
-* Emulation of the TTX2000 S Teletext adapter.
-* Support for the Recreated ZX Spectrum Bluetooth keyboard.
+* Emulation of the DivIDE, Interface 1, Kempston mouse, Spectrum +3e,
+  ZXATASP, ZXCF, Beta 128, Opus Discovery, +D and DISCiPLE interfaces.
 
 Help! <xyz> doesn't work
 ------------------------
@@ -51,7 +42,7 @@ Unix, Linux, BSD, etc.
 
 Required:
 
-* X, SDL, svgalib or framebuffer support. If you have GTK, you'll get
+* X, SDL, svgalib or framebuffer support. If you have GTK+, you'll get
   a (much) nicer user interface under X.
 * libspectrum: this is available from
   http://fuse-emulator.sourceforge.net/libspectrum.php
@@ -114,4 +105,6 @@ Usenet newsgroup `comp.sys.sinclair' or the World of Spectrum forums
 <http://www.worldofspectrum.org/forums/>.
 
 Philip Kendall <philip-fuse@shadowmagic.org.uk>
-27th February, 2021
+24th May, 2013
+
+$Id: README 4995 2013-05-24 19:54:19Z zubzero $

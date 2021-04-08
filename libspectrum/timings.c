@@ -1,6 +1,7 @@
 /* timings.c: Timing routines
    Copyright (c) 2003 Philip Kendall
-   Copyright (c) 2016 Stuart Brady
+
+   $Id: timings.c 4866 2013-01-30 19:39:05Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,13 +23,21 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <string.h>
 
 #include "internals.h"
 
-typedef struct timings_frame_t {
+/* The frame timings of a machine */
+typedef struct timings_t {
+
+  /* Processor speed in Hz */
+  libspectrum_dword processor_speed;
+
+  /* AY clock speed in Hz */
+  libspectrum_dword ay_speed;
+
   /* Line timings in tstates */
   libspectrum_word left_border, horizontal_screen, right_border,
 	           horizontal_retrace;
@@ -43,123 +52,49 @@ typedef struct timings_frame_t {
   /* How long after interrupt is the top-level pixel of the main screen
      displayed */
   libspectrum_dword top_left_pixel;
-} timings_frame_t;
-
-static const timings_frame_t timings_frame_ferranti_5c_6c =
-{
-  24, 128, 24, 48, /* Horizontal, 224 clocks per line */
-  48, 192, 48, 24, /* Vertical, 312 lines per frame */
-  32, 14336
-};
-
-static const timings_frame_t timings_frame_ferranti_60hz =
-{
-  24, 128, 24, 48, /* Horizontal, 224 clocks per line */
-  24, 192, 25, 23, /* Vertical, 264 lines per frame */
-  32, 8960
-};
-
-static const timings_frame_t timings_frame_ferranti_7c =
-{
-  24, 128, 24, 52, /* Horizontal, 228 clocks per line */
-  48, 192, 48, 23, /* Vertical, 311 lines per frame */
-  36, 14362
-};
-
-static const timings_frame_t timings_frame_amstrad_asic =
-{
-  24, 128, 24, 52, /* Horizontal, 228 clocks per line */
-  48, 192, 48, 23, /* Vertical, 311 lines per frame */
-  32, 14365
-};
-
-static const timings_frame_t timings_frame_timex_scld_50hz =
-{
-  24, 128, 24, 48, /* Horizontal, 224 clocks per line */
-  48, 192, 48, 24, /* Vertical, 312 lines per frame */
-  32, 14321
-};
-
-static const timings_frame_t timings_frame_timex_scld_60hz =
-{
-  24, 128, 24, 48, /* Horizontal, 224 clocks per line */
-  24, 192, 25, 21, /* Vertical, 262 lines per frame */
-  32, 9169
-};
-
-static const timings_frame_t timings_frame_se =
-{
-  24, 128, 24, 48, /* Horizontal, 224 clocks per line */
-  47, 192, 48, 25, /* Vertical, 312 lines per frame */
-  32, 14336
-};
-
-static const timings_frame_t timings_frame_pentagon =
-{
-  36, 128, 28, 32, /* Horizontal, 224 clocks per line */
-  64, 192, 48, 16, /* Vertical 320 lines per frame */
-  36, 17988
-};
-
-static const timings_frame_t timings_frame_scorpion =
-{
-  24, 128, 32, 40, /* Horizontal, 224 clocks per line */
-  48, 192, 48, 24, /* Vertical, 312 lines per frame */
-  36, 14336
-};
-
-/* The frame timings of a machine */
-typedef struct timings_t {
-
-  /* Processor speed in Hz */
-  libspectrum_dword processor_speed;
-
-  /* AY clock speed in Hz */
-  libspectrum_dword ay_speed;
-
-  const timings_frame_t *frame_timings;
 
 } timings_t;
 
 /* The actual data from which the full timings are constructed */
-static const timings_t base_timings[] = {
+static timings_t base_timings[] = {
 
+                   /* /- Horizonal -\  /-- Vertical -\ */
   /* 48K */
-  { 3500000,       0, &timings_frame_ferranti_5c_6c },
+  { 3500000,       0, 24, 128, 24, 48, 48, 192, 48, 24, 32, 14336 },
   /* TC2048 */
-  { 3500000,       0, &timings_frame_timex_scld_50hz },
+  { 3500000,       0, 24, 128, 24, 48, 48, 192, 48, 24, 32, 14321 },
   /* 128K */
-  { 3546900, 1773400, &timings_frame_ferranti_7c },
+  { 3546900, 1773400, 24, 128, 24, 52, 48, 192, 48, 23, 36, 14362 },
   /* +2 */
-  { 3546900, 1773400, &timings_frame_ferranti_7c },
+  { 3546900, 1773400, 24, 128, 24, 52, 48, 192, 48, 23, 36, 14362 },
   /* Pentagon */
-  { 3584000, 1792000, &timings_frame_pentagon },
+  { 3584000, 1792000, 36, 128, 28, 32, 64, 192, 48, 16, 36, 17988 },
   /* +2A */
-  { 3546900, 1773400, &timings_frame_amstrad_asic },
+  { 3546900, 1773400, 24, 128, 24, 52, 48, 192, 48, 23, 32, 14365 },
   /* +3 */
-  { 3546900, 1773400, &timings_frame_amstrad_asic },
+  { 3546900, 1773400, 24, 128, 24, 52, 48, 192, 48, 23, 32, 14365 },
   /* Unknown machine */
-  { 0, 0, NULL },
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
   /* 16K */
-  { 3500000,       0, &timings_frame_ferranti_5c_6c },
+  { 3500000,       0, 24, 128, 24, 48, 48, 192, 48, 24, 32, 14336 },
   /* TC2068 */
-  { 3500000, 1750000, &timings_frame_timex_scld_50hz },
+  { 3500000, 1750000, 24, 128, 24, 48, 48, 192, 48, 24, 32, 14321 },
   /* Scorpion */
-  { 3500000, 1750000, &timings_frame_scorpion },
+  { 3500000, 1750000, 24, 128, 32, 40, 48, 192, 48, 24, 36, 14336 },
   /* +3e */
-  { 3546900, 1773400, &timings_frame_amstrad_asic },
+  { 3546900, 1773400, 24, 128, 24, 52, 48, 192, 48, 23, 32, 14365 },
   /* SE */
-  { 3500000, 1750000, &timings_frame_se },
+  { 3500000, 1750000, 24, 128, 24, 48, 47, 192, 48, 25, 32, 14336 },
   /* TS2068 */
-  { 3528000, 1764000, &timings_frame_timex_scld_60hz },
+  { 3528000, 1764000, 24, 128, 24, 48, 24, 192, 25, 21, 32,  9169 },
   /* Pentagon 512K */
-  { 3584000, 1792000, &timings_frame_pentagon },
+  { 3584000, 1792000, 36, 128, 28, 32, 64, 192, 48, 16, 36, 17988 },
   /* Pentagon 1024K */
-  { 3584000, 1792000, &timings_frame_pentagon },
+  { 3584000, 1792000, 36, 128, 28, 32, 64, 192, 48, 16, 36, 17988 },
   /* 48K NTSC */
-  { 3527500,       0, &timings_frame_ferranti_60hz },
+  { 3527500,       0, 24, 128, 24, 48, 24, 192, 25, 23, 32,  8960 },
   /* 128Ke */
-  { 3546900, 1773400, &timings_frame_amstrad_asic },
+  { 3546900, 1773400, 24, 128, 24, 52, 48, 192, 48, 23, 32, 14365 },
 };
 
 libspectrum_dword
@@ -177,106 +112,84 @@ libspectrum_timings_ay_speed( libspectrum_machine machine )
 libspectrum_word
 libspectrum_timings_left_border( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->left_border;
+  return base_timings[ machine ].left_border;
 }
 
 libspectrum_word
 libspectrum_timings_horizontal_screen( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->horizontal_screen;
+  return base_timings[ machine ].horizontal_screen;
 }
 
 libspectrum_word
 libspectrum_timings_right_border( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->right_border;
+  return base_timings[ machine ].right_border;
 }
 
 libspectrum_word
 libspectrum_timings_horizontal_retrace( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->horizontal_retrace;
+  return base_timings[ machine ].horizontal_retrace;
 }
 
 libspectrum_word
 libspectrum_timings_top_border( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->top_border;
+  return base_timings[ machine ].top_border;
 }
 
 libspectrum_word
 libspectrum_timings_vertical_screen( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->vertical_screen;
+  return base_timings[ machine ].vertical_screen;
 }
 
 libspectrum_word
 libspectrum_timings_bottom_border( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->bottom_border;
+  return base_timings[ machine ].bottom_border;
 }
 
 libspectrum_word
 libspectrum_timings_vertical_retrace( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->vertical_retrace;
+  return base_timings[ machine ].vertical_retrace;
 }
 
 libspectrum_word
 libspectrum_timings_interrupt_length( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->interrupt_length;
+  return base_timings[ machine ].interrupt_length;
 }
 
 libspectrum_word
 libspectrum_timings_top_left_pixel( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->top_left_pixel;
+  return base_timings[ machine ].top_left_pixel;
 }
 
 libspectrum_word
 libspectrum_timings_tstates_per_line( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->left_border + f->horizontal_screen + f->right_border +
-	 f->horizontal_retrace;
+  return base_timings[ machine ].left_border        +
+         base_timings[ machine ].horizontal_screen  +
+         base_timings[ machine ].right_border       +
+	 base_timings[ machine ].horizontal_retrace;
 }
 
 libspectrum_word
 libspectrum_timings_lines_per_frame( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
-  return f->top_border + f->vertical_screen + f->bottom_border +
-	 f->vertical_retrace;
+  return base_timings[ machine ].top_border       +
+	 base_timings[ machine ].vertical_screen  +
+	 base_timings[ machine ].bottom_border    +
+	 base_timings[ machine ].vertical_retrace;
 }
 
 libspectrum_dword
 libspectrum_timings_tstates_per_frame( libspectrum_machine machine )
 {
-  const timings_frame_t *f = base_timings[ machine ].frame_timings;
-  if( !f ) return 0;
   return libspectrum_timings_tstates_per_line( machine ) *
     ( (libspectrum_dword)libspectrum_timings_lines_per_frame( machine ) );
 }

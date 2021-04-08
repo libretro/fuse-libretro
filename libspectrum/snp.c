@@ -1,6 +1,8 @@
 /* snp.c: Routines for handling .snp snapshots
    Copyright (c) 1998,2003 Philip Kendall
 
+   $Id: snp.c 2890 2007-05-26 19:31:43Z zubzero $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -21,7 +23,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include "internals.h"
 

@@ -1,6 +1,8 @@
 /* about.c: about dialog box
    Copyright (c) 2011 Philip Kendall
 
+   $Id: about.c 4740 2012-10-10 12:48:21Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -35,9 +37,6 @@
 
 static INT_PTR CALLBACK dialog_proc( HWND hwndDlg, UINT uMsg,
                                      WPARAM wParam, LPARAM lParam );
-
-/* About window handle */
-HWND fuse_hABOWnd;
 
 static HFONT hBoldFont;
 

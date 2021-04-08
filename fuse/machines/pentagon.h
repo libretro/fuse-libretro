@@ -1,6 +1,7 @@
 /* pentagon.h: Pentagon specific routines
    Copyright (c) 1999-2007 Philip Kendall and Fredrick Meunier
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: pentagon.h 4280 2011-01-26 23:29:51Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,9 +31,9 @@
 #include "machine.h"
 
 libspectrum_byte pentagon_select_1f_read( libspectrum_word port,
-					  libspectrum_byte *attached );
+					  int *attached );
 libspectrum_byte pentagon_select_ff_read( libspectrum_word port,
-					  libspectrum_byte *attached );
+					  int *attached );
 int pentagon_port_from_ula( libspectrum_word port );
 int pentagon_port_contended( libspectrum_word port );
 

@@ -1,6 +1,7 @@
 /* ui.h: General UI event handling routines
-   Copyright (c) 2000-2015 Philip Kendall
-   Copyright (c) 2016 BogDan Vatra
+   Copyright (c) 2000-2004 Philip Kendall
+
+   $Id: ui.h 4664 2012-02-12 11:51:01Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -36,11 +37,9 @@
 #include "compat.h"
 #include "machines/specplus3.h"
 #include "peripherals/disk/beta.h"
-#include "peripherals/disk/didaktik.h"
 #include "peripherals/disk/disciple.h"
 #include "peripherals/disk/opus.h"
 #include "peripherals/disk/plusd.h"
-#include "svg.h"
 #include "ui/scaler/scaler.h"
 
 /* The various severities of error level, increasing downwards */
@@ -61,10 +60,8 @@ int ui_end(void);
 int ui_error( ui_error_level severity, const char *format, ... )
      GCC_PRINTF( 2, 3 );
 libspectrum_error ui_libspectrum_error( libspectrum_error error,
-					const char *format, va_list ap )
-     GCC_PRINTF( 2, 0 );
-int ui_verror( ui_error_level severity, const char *format, va_list ap )
-     GCC_PRINTF( 2, 0 );
+					const char *format, va_list ap );
+int ui_verror( ui_error_level severity, const char *format, va_list ap );
 int ui_error_specific( ui_error_level severity, const char *message );
 void ui_error_frame( void );
 
@@ -73,7 +70,6 @@ int ui_debugger_activate( void );
 int ui_debugger_deactivate( int interruptable );
 int ui_debugger_update( void );
 int ui_debugger_disassemble( libspectrum_word address );
-void ui_breakpoints_updated( void );
 
 /* Reset anything in the UI which needs to be reset on machine selection */
 int ui_widgets_reset( void );
@@ -119,6 +115,12 @@ int ui_mouse_release( int suspend ); /* UI: ungrab, return 0 if done */
 /* Write the current tape out */
 int ui_tape_write( void );
 
+/* Write a +3, Beta or +D disk out */
+int ui_plus3_disk_write( specplus3_drive_number which, int saveas );
+int ui_beta_disk_write( beta_drive_number which, int saveas );
+int ui_opus_disk_write( opus_drive_number which, int saveas );
+int ui_plusd_disk_write( plusd_drive_number which, int saveas );
+int ui_disciple_disk_write( disciple_drive_number which, int saveas );
 int ui_mdr_write( int which, int saveas );
 
 /* Get a rollback point from the given list */
@@ -128,13 +130,9 @@ int ui_get_rollback_point( GSList *points );
 
 typedef enum ui_menu_item {
 
-  UI_MENU_ITEM_INVALID = 0,
-  UI_MENU_ITEM_FILE_SVG_CAPTURE,
   UI_MENU_ITEM_FILE_MOVIE_RECORDING,
   UI_MENU_ITEM_FILE_MOVIE_PAUSE,
   UI_MENU_ITEM_MACHINE_PROFILER,
-  UI_MENU_ITEM_MACHINE_MULTIFACE,
-  UI_MENU_ITEM_MACHINE_DIDAKTIK80_SNAP,
   UI_MENU_ITEM_MEDIA_CARTRIDGE,
   UI_MENU_ITEM_MEDIA_CARTRIDGE_DOCK,
   UI_MENU_ITEM_MEDIA_CARTRIDGE_DOCK_EJECT,
@@ -195,15 +193,6 @@ typedef enum ui_menu_item {
   UI_MENU_ITEM_MEDIA_DISK_PLUSD_2_EJECT,
   UI_MENU_ITEM_MEDIA_DISK_PLUSD_2_FLIP_SET,
   UI_MENU_ITEM_MEDIA_DISK_PLUSD_2_WP_SET,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_A,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_A_EJECT,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_A_FLIP_SET,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_A_WP_SET,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_B,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_B_EJECT,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_B_FLIP_SET,
-  UI_MENU_ITEM_MEDIA_DISK_DIDAKTIK_B_WP_SET,
   UI_MENU_ITEM_MEDIA_DISK_DISCIPLE,
   UI_MENU_ITEM_MEDIA_DISK_DISCIPLE_1,
   UI_MENU_ITEM_MEDIA_DISK_DISCIPLE_1_EJECT,
@@ -234,10 +223,6 @@ typedef enum ui_menu_item {
   UI_MENU_ITEM_MEDIA_IDE_DIVIDE,
   UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT,
   UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT,
-  UI_MENU_ITEM_MEDIA_IDE_DIVMMC,
-  UI_MENU_ITEM_MEDIA_IDE_DIVMMC_EJECT,
-  UI_MENU_ITEM_MEDIA_IDE_ZXMMC,
-  UI_MENU_ITEM_MEDIA_IDE_ZXMMC_EJECT,
   UI_MENU_ITEM_RECORDING,
   UI_MENU_ITEM_RECORDING_ROLLBACK,
   UI_MENU_ITEM_AY_LOGGING,

@@ -1,7 +1,8 @@
 /* scaler.c: code for selecting (etc) scalers
  * Copyright (C) 2003 Fredrick Meunier, Philip Kendall
- * Copyright (c) 2015 Sergio Baldoví
  * 
+ * $Id: scaler.c 4633 2012-01-19 23:26:10Z pak21 $
+ *
  * Originally taken from ScummVM - Scumm Interpreter
  * Copyright (C) 2001  Ludvig Strigeus
  * Copyright (C) 2001/2002 The ScummVM project
@@ -83,9 +84,7 @@ static const struct scaler_info available_scalers[] = {
   { "Double size",     "2x",	     SCALER_FLAGS_NONE,	       2.0, 
     scaler_Normal2x_16,   scaler_Normal2x_32,   NULL                },
   { "Triple size",     "3x",	     SCALER_FLAGS_NONE,	       3.0, 
-    scaler_Normal3x_16,   scaler_Normal3x_32,   NULL                },
-  { "Quadruple size",  "4x",	     SCALER_FLAGS_NONE,	       4.0,
-    scaler_Normal4x_16,   scaler_Normal4x_32,   NULL                },
+    scaler_Normal3x_16,   scaler_Normal3x_32,   NULL		    },
   { "2xSaI",	       "2xsai",	     SCALER_FLAGS_EXPAND,      2.0, 
     scaler_2xSaI_16,      scaler_2xSaI_32,      expand_sai          },
   { "Super 2xSaI",     "super2xsai", SCALER_FLAGS_EXPAND,      2.0, 
@@ -100,30 +99,22 @@ static const struct scaler_info available_scalers[] = {
     scaler_TV2x_16,       scaler_TV2x_32,       NULL                },
   { "TV 3x",	       "tv3x",	     SCALER_FLAGS_NONE,        3.0, 
     scaler_TV3x_16,       scaler_TV3x_32,       NULL                },
-  { "TV 4x",	       "tv4x",	     SCALER_FLAGS_NONE,        4.0,
-    scaler_TV4x_16,       scaler_TV4x_32,       NULL                },
   { "Timex TV",	       "timextv",    SCALER_FLAGS_NONE,        1.0, 
     scaler_TimexTV_16,    scaler_TimexTV_32,    NULL                },
   { "Dot Matrix",      "dotmatrix",  SCALER_FLAGS_EXPAND,      2.0,
     scaler_DotMatrix_16,  scaler_DotMatrix_32,  expand_dotmatrix    },
   { "Timex 1.5x",      "timex15x",   SCALER_FLAGS_NONE,        1.5,
     scaler_Timex1_5x_16,  scaler_Timex1_5x_32,  NULL                },
-  { "Timex 2x",        "timex2x",    SCALER_FLAGS_NONE,        2.0,
-    scaler_Normal2x_16,  scaler_Normal2x_32,    NULL                },
   { "PAL TV",	       "paltv",     SCALER_FLAGS_EXPAND,       1.0,
     scaler_PalTV_16,  	  scaler_PalTV_32,      expand_pal1         },
   { "PAL TV 2x",       "paltv2x",   SCALER_FLAGS_EXPAND,       2.0,
     scaler_PalTV2x_16,    scaler_PalTV2x_32,    expand_pal          },
   { "PAL TV 3x",       "paltv3x",   SCALER_FLAGS_EXPAND,       3.0,
     scaler_PalTV3x_16,    scaler_PalTV3x_32,    expand_pal          },
-  { "PAL TV 4x",       "paltv4x",   SCALER_FLAGS_EXPAND,       4.0,
-    scaler_PalTV4x_16,    scaler_PalTV4x_32,    expand_pal          },
   { "HQ 2x",           "hq2x",      SCALER_FLAGS_EXPAND,       2.0,
     scaler_HQ2x_16,       scaler_HQ2x_32,       expand_1            },
   { "HQ 3x",           "hq3x",      SCALER_FLAGS_EXPAND,       3.0,
     scaler_HQ3x_16,       scaler_HQ3x_32,       expand_1            },
-  { "HQ 4x",           "hq4x",      SCALER_FLAGS_EXPAND,       4.0,
-    scaler_HQ4x_16,       scaler_HQ4x_32,       expand_1            },
 };
 
 scaler_type current_scaler = SCALER_NUM;
@@ -140,7 +131,7 @@ scaler_select_scaler( scaler_type scaler )
 
   current_scaler = scaler;
 
-  if( settings_current.start_scaler_mode ) libspectrum_free( settings_current.start_scaler_mode );
+  if( settings_current.start_scaler_mode ) free( settings_current.start_scaler_mode );
   settings_current.start_scaler_mode =
     utils_safe_strdup( available_scalers[current_scaler].id );
 

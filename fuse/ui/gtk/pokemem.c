@@ -1,5 +1,7 @@
-/* pokemem.c: GTK interface that handles pok files
-   Copyright (c) 2011-2015 Philip Kendall, Sergio Baldoví
+/* pokemem.c: GTK+ interface that handles pok files
+   Copyright (c) 2011 Philip Kendall, Sergio Baldoví
+
+   $Id: pokemem.c 4962 2013-05-19 05:25:15Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -155,8 +157,8 @@ create_dialog( void )
 
   /* Create Add button for custom pokes */
   static const gtkstock_button
-    add  = { "_Add", G_CALLBACK( pokemem_add_custom_poke ), NULL, NULL,
-             0, 0, 0, 0, GTK_RESPONSE_NONE };
+    add  = { "Add", G_CALLBACK( pokemem_add_custom_poke ), NULL, NULL,
+             0, 0, 0, 0 };
   gtkstock_create_button( GTK_WIDGET( hbox ), accel_group, &add );
 
   label = gtk_label_new( "Choose active POKES:" );
@@ -182,6 +184,7 @@ create_dialog( void )
                              (gpointer) &dialog,
                              G_CALLBACK( pokemem_close ),
                              G_CALLBACK( pokemem_close ) );
+  gtk_accel_group_disconnect_key( accel_group, GDK_KEY_Return, 0 );
 
   /* Users shouldn't be able to resize this window */
   gtk_window_set_resizable( GTK_WINDOW( dialog ), FALSE );
@@ -199,10 +202,7 @@ create_and_fill_treeview( void )
   GtkTreeModel *model;
 
   poke_list = gtk_tree_view_new();
-
-#if !GTK_CHECK_VERSION( 3, 0, 0 )
   gtk_tree_view_set_rules_hint( GTK_TREE_VIEW( poke_list ), TRUE );
-#endif
 
   store = gtk_list_store_new( NUM_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING,
                               G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_BOOLEAN,

@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
-## Copyright (c) 2003-2013 Philip Kendall
-## Copyright (c) 2015 Sergio Baldoví
+## Copyright (c) 2003-2012 Philip Kendall
+
+## $Id: Makefile.am 4738 2012-10-03 13:15:31Z fredm $
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -20,91 +21,18 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
+AM_CPPFLAGS += -I$(srcdir)/compat
+
+DIST_SUBDIRS += compat/amiga \
+	       compat/linux \
+	       compat/morphos \
+	       compat/unix \
+	       compat/wii \
+	       compat/win32
+
+EXTRA_fuse_SOURCES += compat/dirname.c \
+		compat/getopt.c \
+		compat/getopt1.c \
+		compat/mkstemp.c
+
 noinst_HEADERS += compat/getopt.h
-
-if COMPAT_DIRNAME
-fuse_SOURCES += compat/dirname.c
-endif
-
-if COMPAT_GETOPT
-fuse_SOURCES += compat/getopt.c compat/getopt1.c
-endif
-
-## Amiga routines
-if COMPAT_AMIGA
-fuse_SOURCES += \
-                compat/unix/dir.c \
-                compat/unix/file.c \
-                compat/amiga/osname.c \
-                compat/amiga/paths.c \
-                compat/unix/timer.c
-endif
-
-## Linux routines
-if COMPAT_LINUX
-fuse_SOURCES += \
-                compat/unix/dir.c \
-                compat/unix/file.c \
-                compat/unix/osname.c \
-                compat/linux/relative_paths.c \
-                compat/unix/paths.c \
-                compat/unix/timer.c
-
-if HAVE_SOCKETS
-fuse_SOURCES += compat/unix/socket.c
-endif
-endif
-
-## Morphos routines
-if COMPAT_MORPHOS
-fuse_SOURCES += \
-                compat/unix/dir.c \
-                compat/unix/file.c \
-                compat/morphos/osname.c \
-                compat/amiga/paths.c \
-                compat/unix/timer.c
-endif
-
-## Unix routines
-if COMPAT_UNIX
-fuse_SOURCES += \
-                compat/unix/dir.c \
-                compat/unix/file.c \
-                compat/unix/osname.c \
-                compat/unix/relative_paths.c \
-                compat/unix/paths.c \
-                compat/unix/timer.c
-
-if HAVE_SOCKETS
-fuse_SOURCES += compat/unix/socket.c
-endif
-endif
-
-## Wii routines
-if COMPAT_WII
-fuse_SOURCES += \
-                compat/wii/dir.c \
-                compat/unix/file.c \
-                compat/wii/osname.c \
-                compat/wii/paths.c \
-                compat/wii/timer.c
-endif
-
-## Windows routines
-if COMPAT_WIN32
-fuse_SOURCES += \
-                compat/unix/dir.c \
-                compat/unix/file.c \
-                compat/win32/osname.c \
-                compat/win32/paths.c \
-                compat/win32/timer.c
-
-if HAVE_SOCKETS
-fuse_SOURCES += compat/win32/socket.c
-endif
-endif
-
-## SpeccyBoot routines
-if HAVE_TUNTAP
-fuse_SOURCES += compat/unix/tuntap.c
-endif

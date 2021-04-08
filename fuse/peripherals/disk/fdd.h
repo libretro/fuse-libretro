@@ -1,6 +1,7 @@
 /* fdd.h: Routines for emulating floppy disk drives
-   Copyright (c) 2007-2016 Gergely Szasz, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2007-2010 Gergely Szasz
+
+   $Id: fdd.h 4893 2013-02-23 15:49:39Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,6 +26,8 @@
 #ifndef FUSE_FDD_H
 #define FUSE_FDD_H
 
+#include <config.h>
+
 #include "event.h"
 #include "disk.h"
 
@@ -34,7 +37,7 @@ typedef enum fdd_error_t {
   FDD_DATA,
   FDD_RDONLY,
   FDD_NONE,		/* FDD not exist (disabled) */
-
+  
   FDD_LAST_ERROR,
 } fdd_error_t;
 
@@ -63,6 +66,11 @@ typedef enum fdd_type_t {
   FDD_IBMPC,
 } fdd_type_t;
 
+typedef enum fdd_write_t {
+  FDD_READ = 0,
+  FDD_WRITE,
+} fdd_write_t;
+
 typedef enum fdd_dir_t {
   FDD_STEP_OUT = 0,
   FDD_STEP_IN = 1,
@@ -80,21 +88,13 @@ typedef struct fdd_t {
   int data;		/* read/write to data byte 0x00nn or 0xffnn */
   int marks;		/* read/write other marks 0x01 -> FM 0x02 -> WEAK */
 
-  disk_t disk;		/* disk */
+  disk_t *disk;		/* pointer to inserted disk */
   int loaded;		/* disk loaded */
   int upsidedown;	/* flipped disk */
   int selected;		/* Drive Select line active */
   int ready;		/* some disk drive offer a ready signal */
-  int dskchg;		/* disk change signal */
-  int hdout;		/* High Density signal */
 
   fdd_error_t status;
-
-/* WD/FD 177X may wait for an index or RDY->/RDY or /RDY->RDY 
-   we do not need more, just a subroutine and a pointer to fdc_struct 
-*/
-  void ( *fdc_index ) ( void *fdc );
-  void *fdc;		/* if not NULL FDC wait for an index pulse */
 
 /*--private section, fdc may never use it */
   int unreadable;	/* disk unreadable in this drive */
@@ -104,7 +104,7 @@ typedef struct fdd_t {
   int c_bpt;		/* current track length in bytes */
   int motoron;		/* motor on */
   int loadhead;		/* head loaded */
-  int index_pulse;	/* 'second' index hole, for index status */
+
 } fdd_t;
 
 typedef struct fdd_params_t {
@@ -115,13 +115,14 @@ typedef struct fdd_params_t {
 
 extern const fdd_params_t fdd_params[];
 
-void fdd_register_startup( void );
+/* initialize the event codes */
+void fdd_init_events( void );
 
 const char *fdd_strerror( int error );
 /* initialize the fdd_t struct, and set fdd_heads and cylinders (e.g. 2/83 ) */
 int fdd_init( fdd_t *d, fdd_type_t type, const fdd_params_t *dt, int reinit );
 /* load the given disk into the fdd. if upsidedown = 1, floppy upsidedown in drive :) */
-int fdd_load( fdd_t *d, int upsidedown );
+int fdd_load( fdd_t *d, disk_t *disk, int upsidedown );
 /* unload the disk from fdd */
 void fdd_unload( fdd_t *d );
 /* set fdd head */
@@ -136,17 +137,12 @@ void fdd_head_load( fdd_t *d, int load );
 void fdd_select( fdd_t *d, int select );
 /* select (1) or unselect (0) FDD */
 void fdd_flip( fdd_t *d, int upsidedown );
-/* Read the next byte from disk. The byte will go into d->data.
-   If d->data = 0xffnn then this byte was recorded with different clock 'mark'.
-   d->idx is set if we reach the 'index hole'.  0x0100 is read if the disk is
-   unreadable, the motor is not on, or the head is not loaded.
+/* read or write next 1 byte from disk. if read, the read byte go into
+   d->data, if write d->data written to disk. if d->data = 0xffnn then this
+   byte recorded with different clock 'mark'. set d->idx if reach 'index hole'
+   read 0x0100 if disk unreadable or not motor on and/or head not loaded.
 */
-int fdd_read_data( fdd_t *d );
-/* Write the next byte to disk. The byte is taken from d->data.
-   If d->data = 0xffnn then this byte recorded with different clock 'mark'.
-   d->idx is set if we reach the 'index hole'.
-*/
-int fdd_write_data( fdd_t *d );
+int fdd_read_write_data( fdd_t *d, fdd_write_t write );
 /* set write protect status on loaded disk */
 void fdd_wrprot( fdd_t *d, int wrprot );
 /* to reach index hole */

@@ -2,6 +2,8 @@
    Copyright (c) 1999-2004 Philip Kendall and Fredrick Meunier
    Copyright (c) 2004 Stuart Brady
 
+   $Id: scorpion.h 3115 2007-08-19 02:49:14Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

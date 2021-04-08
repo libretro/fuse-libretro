@@ -1,5 +1,7 @@
 /* expression.c: A numeric expression
-   Copyright (c) 2003-2016 Philip Kendall
+   Copyright (c) 2003-2008 Philip Kendall
+
+   $Id: expression.c 4633 2012-01-19 23:26:10Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -36,9 +38,9 @@
 typedef enum expression_type {
 
   DEBUGGER_EXPRESSION_TYPE_INTEGER,
+  DEBUGGER_EXPRESSION_TYPE_REGISTER,
   DEBUGGER_EXPRESSION_TYPE_UNARYOP,
   DEBUGGER_EXPRESSION_TYPE_BINARYOP,
-  DEBUGGER_EXPRESSION_TYPE_SYSVAR,
   DEBUGGER_EXPRESSION_TYPE_VARIABLE,
 
 } expression_type;
@@ -56,7 +58,6 @@ enum precedence_t {
   PRECEDENCE_ADDITION,
   PRECEDENCE_MULTIPLICATION,
   PRECEDENCE_NEGATE,
-  PRECEDENCE_DEREFERENCE,
 
   PRECEDENCE_ATOMIC,
   /* Highest precedence */
@@ -84,10 +85,10 @@ struct debugger_expression {
 
   union {
     int integer;
+    int reg;
     struct unaryop_type unaryop;
     struct binaryop_type binaryop;
     char *variable;
-    int system_variable;
   } types;
 
 };
@@ -109,9 +110,6 @@ unaryop_precedence( int operation )
   switch( operation ) {
 
   case '!': case '~': case '-': return PRECEDENCE_NEGATE;
-
-  case DEBUGGER_TOKEN_DEREFERENCE:
-    return PRECEDENCE_DEREFERENCE;
 
   default:
     ui_error( UI_ERROR_ERROR, "unknown unary operator %d", operation );
@@ -152,11 +150,33 @@ debugger_expression_new_number( libspectrum_dword number, int pool )
 {
   debugger_expression *exp;
 
-  exp = mempool_new( pool, debugger_expression, 1 );
+  exp = mempool_alloc( pool, sizeof( *exp ) );
+  if( !exp ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return NULL;
+  }
 
   exp->type = DEBUGGER_EXPRESSION_TYPE_INTEGER;
   exp->precedence = PRECEDENCE_ATOMIC;
   exp->types.integer = number;
+
+  return exp;
+}
+
+debugger_expression*
+debugger_expression_new_register( int which, int pool )
+{
+  debugger_expression *exp;
+
+  exp = mempool_alloc( pool, sizeof( *exp ) );
+  if( !exp ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return NULL;
+  }
+
+  exp->type = DEBUGGER_EXPRESSION_TYPE_REGISTER;
+  exp->precedence = PRECEDENCE_ATOMIC;
+  exp->types.reg = which;
 
   return exp;
 }
@@ -167,7 +187,11 @@ debugger_expression_new_binaryop( int operation, debugger_expression *operand1,
 {
   debugger_expression *exp;
 
-  exp = mempool_new( pool, debugger_expression, 1 );
+  exp = mempool_alloc( pool, sizeof( *exp ) );
+  if( !exp ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return NULL;
+  }
 
   exp->type = DEBUGGER_EXPRESSION_TYPE_BINARYOP;
   exp->precedence = binaryop_precedence( operation );
@@ -179,13 +203,18 @@ debugger_expression_new_binaryop( int operation, debugger_expression *operand1,
   return exp;
 }
 
+
 debugger_expression*
 debugger_expression_new_unaryop( int operation, debugger_expression *operand,
 				 int pool )
 {
   debugger_expression *exp;
 
-  exp = mempool_new( pool, debugger_expression, 1 );
+  exp = mempool_alloc( pool, sizeof( *exp ) );
+  if( !exp ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return NULL;
+  }
 
   exp->type = DEBUGGER_EXPRESSION_TYPE_UNARYOP;
   exp->precedence = unaryop_precedence( operation );
@@ -197,38 +226,24 @@ debugger_expression_new_unaryop( int operation, debugger_expression *operand,
 }
 
 debugger_expression*
-debugger_expression_new_system_variable( const char *type, const char *detail,
-                                         int pool )
-{
-  debugger_expression *exp;
-  int system_variable;
-
-  system_variable = debugger_system_variable_find( type, detail );
-  if( system_variable == -1 ) {
-    ui_error( UI_ERROR_WARNING, "System variable %s:%s not known", type,
-              detail );
-    return NULL;
-  }
-
-  exp = mempool_new( pool, debugger_expression, 1 );
-
-  exp->type = DEBUGGER_EXPRESSION_TYPE_SYSVAR;
-  exp->precedence = PRECEDENCE_ATOMIC;
-  exp->types.system_variable = system_variable;
-
-  return exp;
-}
-
-debugger_expression*
 debugger_expression_new_variable( const char *name, int pool )
 {
   debugger_expression *exp;
 
-  exp = mempool_new( pool, debugger_expression, 1 );
+  exp = mempool_alloc( pool, sizeof( *exp ) );
+  if( !exp ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return NULL;
+  }
 
   exp->type = DEBUGGER_EXPRESSION_TYPE_VARIABLE;
   exp->precedence = PRECEDENCE_ATOMIC;
+
   exp->types.variable = mempool_strdup( pool, name );
+  if( !exp->types.variable ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return NULL;
+  }
 
   return exp;
 }
@@ -239,7 +254,7 @@ debugger_expression_delete( debugger_expression *exp )
   switch( exp->type ) {
     
   case DEBUGGER_EXPRESSION_TYPE_INTEGER:
-  case DEBUGGER_EXPRESSION_TYPE_SYSVAR:
+  case DEBUGGER_EXPRESSION_TYPE_REGISTER:
     break;
 
   case DEBUGGER_EXPRESSION_TYPE_UNARYOP:
@@ -252,11 +267,11 @@ debugger_expression_delete( debugger_expression *exp )
     break;
 
   case DEBUGGER_EXPRESSION_TYPE_VARIABLE:
-    libspectrum_free( exp->types.variable );
+    free( exp->types.variable );
     break;
   }
     
-  libspectrum_free( exp );
+  free( exp );
 }
 
 debugger_expression*
@@ -264,7 +279,7 @@ debugger_expression_copy( debugger_expression *src )
 {
   debugger_expression *dest;
 
-  dest = libspectrum_new( debugger_expression, 1 );
+  dest = malloc( sizeof( *dest ) );
   if( !dest ) return NULL;
 
   dest->type = src->type;
@@ -276,11 +291,15 @@ debugger_expression_copy( debugger_expression *src )
     dest->types.integer = src->types.integer;
     break;
 
+  case DEBUGGER_EXPRESSION_TYPE_REGISTER:
+    dest->types.reg = src->types.reg;
+    break;
+
   case DEBUGGER_EXPRESSION_TYPE_UNARYOP:
     dest->types.unaryop.operation = src->types.unaryop.operation;
     dest->types.unaryop.op = debugger_expression_copy( src->types.unaryop.op );
     if( !dest->types.unaryop.op ) {
-      libspectrum_free( dest );
+      free( dest );
       return NULL;
     }
     break;
@@ -290,25 +309,22 @@ debugger_expression_copy( debugger_expression *src )
     dest->types.binaryop.op1 =
       debugger_expression_copy( src->types.binaryop.op1 );
     if( !dest->types.binaryop.op1 ) {
-      libspectrum_free( dest );
+      free( dest );
       return NULL;
     }
     dest->types.binaryop.op2 =
       debugger_expression_copy( src->types.binaryop.op2 );
     if( !dest->types.binaryop.op2 ) {
       debugger_expression_delete( dest->types.binaryop.op1 );
-      libspectrum_free( dest );
+      free( dest );
       return NULL;
     }
-    break;
-
-  case DEBUGGER_EXPRESSION_TYPE_SYSVAR:
-    dest->types.system_variable = src->types.system_variable;
     break;
 
   case DEBUGGER_EXPRESSION_TYPE_VARIABLE:
     dest->types.variable = utils_safe_strdup( src->types.variable );
     break;
+
   }
 
   return dest;
@@ -322,14 +338,14 @@ debugger_expression_evaluate( debugger_expression *exp )
   case DEBUGGER_EXPRESSION_TYPE_INTEGER:
     return exp->types.integer;
 
+  case DEBUGGER_EXPRESSION_TYPE_REGISTER:
+    return debugger_register_get( exp->types.reg );
+
   case DEBUGGER_EXPRESSION_TYPE_UNARYOP:
     return evaluate_unaryop( &( exp->types.unaryop ) );
 
   case DEBUGGER_EXPRESSION_TYPE_BINARYOP:
     return evaluate_binaryop( &( exp->types.binaryop ) );
-
-  case DEBUGGER_EXPRESSION_TYPE_SYSVAR:
-    return debugger_system_variable_get( exp->types.system_variable );
 
   case DEBUGGER_EXPRESSION_TYPE_VARIABLE:
     return debugger_variable_get( exp->types.variable );
@@ -348,9 +364,6 @@ evaluate_unaryop( struct unaryop_type *unary )
   case '!': return !debugger_expression_evaluate( unary->op );
   case '~': return ~debugger_expression_evaluate( unary->op );
   case '-': return -debugger_expression_evaluate( unary->op );
-
-  case DEBUGGER_TOKEN_DEREFERENCE:
-    return readbyte_internal( debugger_expression_evaluate( unary->op ) );
 
   }
 
@@ -372,14 +385,8 @@ evaluate_binaryop( struct binaryop_type *binary )
   case '*': return debugger_expression_evaluate( binary->op1 ) *
 		   debugger_expression_evaluate( binary->op2 );
 
-  case '/': {
-      libspectrum_dword op2 = debugger_expression_evaluate( binary->op2 );
-      if( op2 == 0 ) {
-        ui_error( UI_ERROR_ERROR, "divide by 0" );
-        return 0;
-      }
-      return debugger_expression_evaluate( binary->op1 ) / op2;
-    }
+  case '/': return debugger_expression_evaluate( binary->op1 ) /
+		   debugger_expression_evaluate( binary->op2 );
 
   case DEBUGGER_TOKEN_EQUAL_TO:
             return debugger_expression_evaluate( binary->op1 ) ==
@@ -440,15 +447,15 @@ debugger_expression_deparse( char *buffer, size_t length,
     }
     return 0;
 
+  case DEBUGGER_EXPRESSION_TYPE_REGISTER:
+    snprintf( buffer, length, "%s", debugger_register_text( exp->types.reg ) );
+    return 0;
+
   case DEBUGGER_EXPRESSION_TYPE_UNARYOP:
     return deparse_unaryop( buffer, length, &( exp->types.unaryop ) );
 
   case DEBUGGER_EXPRESSION_TYPE_BINARYOP:
     return deparse_binaryop( buffer, length, &( exp->types.binaryop ) );
-
-  case DEBUGGER_EXPRESSION_TYPE_SYSVAR:
-    debugger_system_variable_text( buffer, length, exp->types.system_variable );
-    return 0;
 
   case DEBUGGER_EXPRESSION_TYPE_VARIABLE:
     snprintf( buffer, length, "$%s", exp->types.variable );
@@ -465,26 +472,23 @@ deparse_unaryop( char *buffer, size_t length,
 		 const struct unaryop_type *unaryop )
 {
   char *operand_buffer; const char *operation_string = NULL;
-  const char *operation_suffix = "";
-  int brackets_possible = 1;
-  int brackets = 0;
+  int brackets;
 
   int error;
 
-  operand_buffer = libspectrum_new( char, length );
+  operand_buffer = malloc( length );
+  if( !operand_buffer ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return 1;
+  }
 
   error = debugger_expression_deparse( operand_buffer, length, unaryop->op );
-  if( error ) { libspectrum_free( operand_buffer ); return error; }
+  if( error ) { free( operand_buffer ); return error; }
 
   switch( unaryop->operation ) {
   case '!': operation_string = "!"; break;
   case '~': operation_string = "~"; break;
   case '-': operation_string = "-"; break;
-  case DEBUGGER_TOKEN_DEREFERENCE:
-    operation_string = "[";
-    operation_suffix = "]";
-    brackets_possible = 0;
-    break;
 
   default:
     ui_error( UI_ERROR_ERROR, "unknown unary operation %d",
@@ -492,15 +496,14 @@ deparse_unaryop( char *buffer, size_t length,
     fuse_abort();
   }
 
-  if( brackets_possible )
-    brackets = ( unaryop->op->precedence                  < 
-                 unaryop_precedence( unaryop->operation )   );
+  brackets = ( unaryop->op->precedence                  < 
+	       unaryop_precedence( unaryop->operation )   );
     
-  snprintf( buffer, length, "%s%s%s%s%s", operation_string,
+  snprintf( buffer, length, "%s%s%s%s", operation_string,
 	    brackets ? "( " : "", operand_buffer,
-	    brackets ? " )" : "", operation_suffix );
+	    brackets ? " )" : "" );
 
-  libspectrum_free( operand_buffer );
+  free( operand_buffer );
 
   return 0;
 }
@@ -514,16 +517,20 @@ deparse_binaryop( char *buffer, size_t length,
 
   int error;
 
-  operand1_buffer = libspectrum_new( char, 2 * length );
+  operand1_buffer = malloc( 2 * length );
+  if( !operand1_buffer ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return 1;
+  }
   operand2_buffer = &operand1_buffer[ length ];
 
   error = debugger_expression_deparse( operand1_buffer, length,
 				       binaryop->op1 );
-  if( error ) { libspectrum_free( operand1_buffer ); return error; }
+  if( error ) { free( operand1_buffer ); return error; }
 
   error = debugger_expression_deparse( operand2_buffer, length,
 				       binaryop->op2 );
-  if( error ) { libspectrum_free( operand1_buffer ); return error; }
+  if( error ) { free( operand1_buffer ); return error; }
 
   switch( binaryop->operation ) {
   case    '+': operation_string = "+";  break;
@@ -560,7 +567,7 @@ deparse_binaryop( char *buffer, size_t length,
 	    brackets_necessary2 ? "( " : "", operand2_buffer,
 	    brackets_necessary2 ? " )" : "" );
 
-  libspectrum_free( operand1_buffer );
+  free( operand1_buffer );
 
   return 0;
 }

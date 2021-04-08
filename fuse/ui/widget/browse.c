@@ -1,6 +1,8 @@
 /* browse.c: tape browser widget
    Copyright (c) 2002-2004 Philip Kendall
 
+   $Id: browse.c 4103 2009-11-21 10:16:36Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -25,7 +27,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #ifdef HAVE_LIB_GLIB
 #include <glib.h>
@@ -36,8 +37,6 @@
 #include "fuse.h"
 #include "tape.h"
 #include "widget_internals.h"
-
-#define MAX_BLOCK_DESC 30
 
 /* The descriptions of the blocks */
 static GSList *blocks;
@@ -81,15 +80,12 @@ widget_browse_draw( void *data GCC_UNUSED )
 static void
 add_block_description( libspectrum_tape_block *block, void *user_data )
 {
-  char data_detail[MAX_BLOCK_DESC];
   GSList **ptr = user_data;
 
   char *buffer;
 
-  tape_block_details( data_detail, MAX_BLOCK_DESC, block );
-  buffer = malloc( MAX_BLOCK_DESC ); if( !buffer ) return;
-  libspectrum_tape_block_description( buffer, MAX_BLOCK_DESC, block );
-  if( strlen( data_detail ) ) strcpy( buffer, data_detail );
+  buffer = malloc( 30 ); if( !buffer ) return;
+  libspectrum_tape_block_description( buffer, 30, block );
 
   (*ptr) = g_slist_append( *ptr, buffer );
 

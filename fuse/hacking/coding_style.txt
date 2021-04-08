@@ -1,5 +1,7 @@
 Coding style for Fuse
 
+$Id: coding_style.txt 427 2002-03-23 11:59:05Z pak21 $
+
 In general, please stick to the following guidelines when writing code
 for Fuse. There are plenty of places which don't follow this style
 exactly, and certain source files which ignore it completely. If

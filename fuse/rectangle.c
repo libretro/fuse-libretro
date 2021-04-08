@@ -1,7 +1,9 @@
 /* rectangle.c: routines for managing the set of screen area rectangles updated
                 since the last display
-   Copyright (c) 1999-2015 Philip Kendall, Thomas Harte, Witold Filipczyk
+   Copyright (c) 1999-2009 Philip Kendall, Thomas Harte, Witold Filipczyk
                            and Fredrick Meunier
+
+   $Id: rectangle.c 4785 2012-12-07 23:56:40Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -70,7 +72,8 @@ rectangle_add( int y, int x, int w )
                 2 * rectangle_active_allocated :
                 8;
 
-    ptr = libspectrum_renew( struct rectangle, rectangle_active, new_alloc );
+    ptr = libspectrum_realloc( rectangle_active,
+                               new_alloc * sizeof( struct rectangle ) );
 
     rectangle_active_allocated = new_alloc; rectangle_active = ptr;
   }
@@ -86,7 +89,7 @@ rectangle_add( int y, int x, int w )
 #define MIN(a,b)    (((a) < (b)) ? (a) : (b))
 #endif
 
-static inline int
+inline static int
 compare_and_merge_rectangles( struct rectangle *source )
 {
   size_t z;
@@ -167,8 +170,8 @@ rectangle_end_line( int y )
 	          2 * rectangle_inactive_allocated :
 	          8;
 
-      ptr =
-        libspectrum_renew( struct rectangle, rectangle_inactive, new_alloc );
+      ptr = libspectrum_realloc( rectangle_inactive,
+                                 new_alloc * sizeof( struct rectangle ) );
 
       rectangle_inactive_allocated = new_alloc; rectangle_inactive = ptr;
     }

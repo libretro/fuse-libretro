@@ -1,5 +1,7 @@
 /* tape_block.c: one tape block
-   Copyright (c) 2003-2016 Philip Kendall
+   Copyright (c) 2003-2008 Philip Kendall
+
+   $Id: tape_block.c 4433 2011-05-14 05:44:47Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,7 +23,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <math.h>
 
@@ -61,7 +63,7 @@ data_block_init( libspectrum_tape_data_block *block,
 libspectrum_tape_block*
 libspectrum_tape_block_alloc( libspectrum_tape_type type )
 {
-  libspectrum_tape_block *block = libspectrum_new( libspectrum_tape_block, 1 );
+  libspectrum_tape_block *block = libspectrum_malloc( sizeof( *block ) );
   libspectrum_tape_block_set_type( block, type );
   return block;
 }
@@ -242,7 +244,7 @@ libspectrum_tape_block_init( libspectrum_tape_block *block,
   case LIBSPECTRUM_TAPE_BLOCK_PULSE_SEQUENCE:
     state->block_state.pulse_sequence.index = 0;
     state->block_state.pulse_sequence.pulse_count = 0;
-    state->block_state.pulse_sequence.level = -1;
+    state->block_state.pulse_sequence.level = 1;
     return LIBSPECTRUM_ERROR_NONE;
   case LIBSPECTRUM_TAPE_BLOCK_DATA_BLOCK:
     return data_block_init( &(block->types.data_block),
@@ -328,10 +330,10 @@ raw_data_init( libspectrum_tape_raw_data_block *block,
 {
   if( block->data ) {
 
-    /* We're right at the start of the data */
+    /* We're just before the start of the data */
     state->state = LIBSPECTRUM_TAPE_STATE_DATA1;
-    state->bytes_through_block = 0; state->bits_through_byte = 0;
-    state->last_bit = (0x80 & block->data[0]) ^ 0x80;
+    state->bytes_through_block = -1; state->bits_through_byte = 7;
+    state->last_bit = 0x80 & block->data[0];
     /* Set up the next bit */
     libspectrum_tape_raw_data_next_bit( block, state );
 
@@ -346,26 +348,11 @@ static libspectrum_error
 generalised_data_init( libspectrum_tape_generalised_data_block *block,
                        libspectrum_tape_generalised_data_block_state *state )
 {
+  state->state = LIBSPECTRUM_TAPE_STATE_PILOT;
+
   state->run = 0;
   state->symbols_through_run = 0;
   state->edges_through_symbol = 0;
-
-  state->current_symbol = 0;
-  state->symbols_through_stream = 0;
-
-  state->current_byte = 0;
-  state->bits_through_byte = 0;
-  state->bytes_through_stream = 0;
-
-  if( block->pilot_table.symbols_in_block ) {
-    state->state = LIBSPECTRUM_TAPE_STATE_PILOT;
-  } else if( block->data_table.symbols_in_block ) {
-    state->state = LIBSPECTRUM_TAPE_STATE_DATA1;
-    state->current_byte = block->data[ 0 ];
-    state->current_symbol = get_generalised_data_symbol( block, state );
-  } else {
-    state->state = LIBSPECTRUM_TAPE_STATE_PAUSE;
-  }
 
   return LIBSPECTRUM_ERROR_NONE;
 }
@@ -394,9 +381,7 @@ data_block_init( libspectrum_tape_data_block *block,
     }
   }
 
-  if( block->initial_level != -1 ) {
-    state->level = block->initial_level;
-  }
+  state->level = block->initial_level;
 
   /* We're just before the start of the data */
   state->bytes_through_block = -1; state->bits_through_byte = 7;
@@ -460,8 +445,7 @@ libspectrum_tape_block_read_symbol_table_parameters(
   table->max_pulses = (*ptr)[0];
 
   table->symbols_in_table = (*ptr)[1];
-  if( !table->symbols_in_table && table->symbols_in_block ) 
-    table->symbols_in_table = 256;
+  if( !table->symbols_in_table ) table->symbols_in_table = 256;
 
   (*ptr) += 2;
 
@@ -486,15 +470,13 @@ libspectrum_tape_block_read_symbol_table(
     }
 
 
-    table->symbols =
-      libspectrum_new( libspectrum_tape_generalised_data_symbol,
-                       table->symbols_in_table );
+    table->symbols = libspectrum_malloc( table->symbols_in_table * sizeof( *table->symbols ) );
 
     for( i = 0, symbol = table->symbols;
 	 i < table->symbols_in_table;
 	 i++, symbol++ ) {
       symbol->edge_type = **ptr; (*ptr)++;
-      symbol->lengths = libspectrum_new( libspectrum_word, table->max_pulses );
+      symbol->lengths = libspectrum_malloc( table->max_pulses * sizeof( *symbol->lengths ) );
       for( j = 0; j < table->max_pulses; j++ ) {
 	symbol->lengths[ j ] = (*ptr)[0] + (*ptr)[1] * 0x100;
 	(*ptr) += 2;

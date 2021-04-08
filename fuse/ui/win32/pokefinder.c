@@ -1,7 +1,7 @@
 /* pokefinder.c: Win32 interface to the poke finder
    Copyright (c) 2004 Marek Januszwski
-   Copyright (c) 2015 Sergio Baldoví
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: pokefinder.c 4638 2012-01-21 12:52:14Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -43,9 +43,6 @@ static void win32ui_pokefinder_decremented( void );
 static void win32ui_pokefinder_search( void );
 static void win32ui_pokefinder_reset( void );
 static void win32ui_pokefinder_close( void );
-
-/* Pokefinder window handle */
-HWND fuse_hPFWnd;
 
 #define MAX_POSSIBLE 20
 
@@ -205,8 +202,7 @@ update_pokefinder( void )
                 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE );
 
   /* print possible locations */
-  _sntprintf( buffer, 256, "Possible locations: %lu",
-              (unsigned long)pokefinder_count );
+  _sntprintf( buffer, 256, "Possible locations: %d", pokefinder_count );
   SendDlgItemMessage( fuse_hPFWnd, IDC_PF_LOCATIONS, WM_SETTEXT, 0,
                       (LPARAM) buffer );
 }
@@ -233,9 +229,6 @@ menu_machine_pokefinder( int action GCC_UNUSED )
     initial_width = rect.right - rect.left;
     initial_height = rect.bottom - rect.top;
 
-    /* Set text limit */
-    SendDlgItemMessage( fuse_hPFWnd, IDC_PF_EDIT, EM_LIMITTEXT, 4, 0 );
-
     /* set extended listview style to select full row, when an item
        is selected */
     DWORD lv_ext_style;
@@ -256,12 +249,12 @@ menu_machine_pokefinder( int action GCC_UNUSED )
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT ;
     lvc.fmt = LVCFMT_LEFT;
     lvc.cx = cx;
-    lvc.pszText = (LPTSTR) TEXT( "Page" );
+    lvc.pszText = TEXT( "Page" );
     SendDlgItemMessage( fuse_hPFWnd, IDC_PF_LIST, LVM_INSERTCOLUMN, 0,
                         ( LPARAM ) &lvc );
     lvc.mask |= LVCF_SUBITEM;
     lvc.cx = cx;
-    lvc.pszText = (LPTSTR) TEXT( "Offset" );
+    lvc.pszText = TEXT( "Offset" );
     SendDlgItemMessage( fuse_hPFWnd, IDC_PF_LIST, LVM_INSERTCOLUMN, 1,
                         ( LPARAM ) &lvc );
 
@@ -275,26 +268,25 @@ menu_machine_pokefinder( int action GCC_UNUSED )
 }
 
 static void
-win32ui_pokefinder_incremented( void )
+win32ui_pokefinder_incremented()
 {
   pokefinder_incremented();
   update_pokefinder();
 }
 
 static void
-win32ui_pokefinder_decremented( void )
+win32ui_pokefinder_decremented()
 {
   pokefinder_decremented();
   update_pokefinder();
 }
 
 static void
-win32ui_pokefinder_search( void )
+win32ui_pokefinder_search()
 {
   long value;
-  TCHAR *buffer, *endptr;
-  int buffer_size, base;
-  HWND hwnd_control;
+  TCHAR *buffer;
+  int buffer_size; 
 
   /* poll the size of the value in Search box first */
   buffer_size = SendDlgItemMessage( fuse_hPFWnd, IDC_PF_EDIT, WM_GETTEXTLENGTH,
@@ -313,32 +305,27 @@ win32ui_pokefinder_search( void )
     return;
   }
 
-  errno = 0;
-  base = ( !_tcsncmp( _T("0x"), buffer, strlen( _T("0x") ) ) )? 16 : 10;
-  value = _tcstol( buffer, &endptr, base );
-
-  if( errno || value < 0 || value > 255 || endptr == buffer ) {
-    free( buffer );
-    ui_error( UI_ERROR_ERROR, "Invalid value: use an integer from 0 to 255" );
-    hwnd_control = GetDlgItem( fuse_hPFWnd, IDC_PF_EDIT );
-    SendMessage( fuse_hPFWnd, WM_NEXTDLGCTL, (WPARAM) hwnd_control, TRUE );
-    return;
-  }
+  value = _ttol( buffer );
   free( buffer );
 
+  if( value < 0 || value > 255 ) {
+    ui_error( UI_ERROR_ERROR, "Invalid value: use an integer from 0 to 255" );
+    return;
+  }
+  
   pokefinder_search( value );
   update_pokefinder();
 }
 
 static void
-win32ui_pokefinder_reset( void )
+win32ui_pokefinder_reset()
 {
   pokefinder_clear();
   update_pokefinder();
 }
 
 static void
-win32ui_pokefinder_close( void )
+win32ui_pokefinder_close()
 {
   DestroyWindow( fuse_hPFWnd );
   fuse_hPFWnd = NULL;

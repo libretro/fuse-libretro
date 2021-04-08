@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2004 Philip Kendall
-## Copyright (c) 2015 Sergio Baldoví
+
+## $Id: Makefile.am 4980 2013-05-21 12:37:51Z fredm $
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -20,26 +21,30 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-fuse_SOURCES += sound/blipbuffer.c
+AUTOMAKE_OPTIONS = foreign
 
-EXTRA_fuse_SOURCES += \
-                      sound/alsasound.c \
-                      sound/aosound.c \
-                      sound/coreaudiosound.c \
-                      sound/dxsound.c \
-                      sound/hpsound.c \
-                      sound/nullsound.c \
-                      sound/osssound.c \
-                      sound/pulsesound.c \
-                      sound/sdlsound.c \
-                      sound/sfifo.c \
-                      sound/sunsound.c \
-                      sound/wiisound.c \
-                      sound/win32sound.c
+AM_CPPFLAGS = -I$(srcdir)/..
 
-noinst_HEADERS += \
-                  sound/blipbuffer.h \
-                  sound/sfifo.h
+AM_CPPFLAGS += @LIBSPEC_CFLAGS@ @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@
 
-fuse_DEPENDENCIES += $(SOUND_LIBADD)
-fuse_LDADD += $(SOUND_LIBS) $(SOUND_LIBADD)
+noinst_LIBRARIES = libsound.a
+
+libsound_a_SOURCES = blipbuffer.c
+
+EXTRA_libsound_a_SOURCES = dxsound.c \
+		     	   alsasound.c \
+		     	   aosound.c \
+		     	   coreaudiosound.c \
+		     	   hpsound.c \
+		     	   nullsound.c \
+		     	   osssound.c \
+		     	   sdlsound.c \
+		     	   sfifo.c \
+		     	   sunsound.c \
+		     	   wiisound.c \
+		     	   win32sound.c
+
+libsound_a_LIBADD = $(SOUND_LIBADD)
+libsound_a_DEPENDENCIES = $(SOUND_LIBADD)
+
+noinst_HEADERS = sfifo.h blipbuffer.h

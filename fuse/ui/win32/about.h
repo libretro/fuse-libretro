@@ -1,6 +1,8 @@
 /* about.h: about dialog box
    Copyright (c) 2011 Philip Kendall
 
+   $Id: about.h 4321 2011-03-19 11:33:23Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

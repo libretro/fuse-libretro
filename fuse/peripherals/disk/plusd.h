@@ -1,5 +1,7 @@
 /* plusd.h: Routines for handling the +D interface
-   Copyright (c) 2005-2016 Stuart Brady, Philip Kendall
+   Copyright (c) 2005-2007 Stuart Brady
+
+   $Id: plusd.h 4896 2013-02-23 17:44:30Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,10 +28,11 @@
 #ifndef FUSE_PLUSD_H
 #define FUSE_PLUSD_H
 
+#include <config.h>
+
 typedef enum plusd_drive_number {
   PLUSD_DRIVE_1 = 0,
   PLUSD_DRIVE_2,
-  PLUSD_NUM_DRIVES,
 } plusd_drive_number;
 
 #include <libspectrum.h>
@@ -39,10 +42,32 @@ typedef enum plusd_drive_number {
 extern int plusd_available;  /* Is the +D available for use? */
 extern int plusd_active;     /* +D enabled? */
 
-void plusd_register_startup( void );
+void plusd_init( void );
+void plusd_end( void );
 
 void plusd_page( void );
 void plusd_unpage( void );
+
+libspectrum_byte plusd_sr_read( libspectrum_word port, int *attached );
+void plusd_cr_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte plusd_tr_read( libspectrum_word port, int *attached );
+void plusd_tr_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte plusd_sec_read( libspectrum_word port, int *attached );
+void plusd_sec_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte plusd_dr_read( libspectrum_word port, int *attached );
+void plusd_dr_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte plusd_joy_read( libspectrum_word port, int *attached );
+void plusd_cn_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte plusd_patch_read( libspectrum_word port, int *attached );
+void plusd_patch_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte plusd_printer_read( libspectrum_word port, int *attached );
+void plusd_printer_write( libspectrum_word port, libspectrum_byte b );
 
 int plusd_disk_insert( plusd_drive_number which, const char *filename,
 		       int autoload );

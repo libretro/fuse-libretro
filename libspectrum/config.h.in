@@ -18,7 +18,7 @@
 /* Defined if we've got audiofile */
 #undef HAVE_LIB_AUDIOFILE
 
-/* Defined if we've got GLib */
+/* Defined if we've got glib */
 #undef HAVE_LIB_GLIB
 
 /* Define to 1 if you have the <memory.h> header file. */
@@ -26,9 +26,6 @@
 
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
-
-/* Define to 1 if you have the <stdatomic.h> header file. */
-#undef HAVE_STDATOMIC_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -75,7 +72,8 @@
 /* Define version information for win32 dll library */
 #undef LIBSPECTRUM_RC_VERSION
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #undef LT_OBJDIR
 
 /* Name of package */

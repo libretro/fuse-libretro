@@ -1,6 +1,8 @@
 /* plusd.c: Routines for handling DISCiPLE/+D snapshots
    Copyright (c) 1998,2003 Philip Kendall
-   Copyright (c) 2007,2015 Stuart Brady
+   Copyright (c) 2007 Stuart Brady
+
+   $Id: plusd.c 4080 2009-09-02 11:45:36Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,7 +24,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <string.h>
 
@@ -207,7 +209,7 @@ libspectrum_plusd_read_128_data( libspectrum_snap *snap,
 
     libspectrum_byte *ram;
 
-    ram = libspectrum_new( libspectrum_byte, 0x4000 );
+    ram = libspectrum_malloc( 0x4000 * sizeof( *ram ) );
     libspectrum_snap_set_pages( snap, i, ram );
 
     memcpy( ram, buffer, 0x4000 );

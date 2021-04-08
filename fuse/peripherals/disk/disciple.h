@@ -1,5 +1,7 @@
 /* disciple.h: Routines for handling the DISCiPLE interface
-   Copyright (c) 2005-2015 Stuart Brady
+   Copyright (c) 2005-2011 Stuart Brady
+
+   $Id: disciple.h 4896 2013-02-23 17:44:30Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,10 +28,11 @@
 #ifndef FUSE_DISCIPLE_H
 #define FUSE_DISCIPLE_H
 
+#include <config.h>
+
 typedef enum disciple_drive_number {
   DISCIPLE_DRIVE_1 = 0,
-  DISCIPLE_DRIVE_2,
-  DISCIPLE_NUM_DRIVES,
+  DISCIPLE_DRIVE_2
 } disciple_drive_number;
 
 #include <libspectrum.h>
@@ -39,10 +42,36 @@ typedef enum disciple_drive_number {
 extern int disciple_available;  /* Is the DISCiPLE available for use? */
 extern int disciple_active;     /* DISCiPLE enabled? */
 
-void disciple_register_startup( void );
+void disciple_init( void );
+void disciple_end( void );
 
 void disciple_page( void );
 void disciple_unpage( void );
+
+libspectrum_byte disciple_sr_read( libspectrum_word port, int *attached );
+void disciple_cr_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte disciple_tr_read( libspectrum_word port, int *attached );
+void disciple_tr_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte disciple_sec_read( libspectrum_word port, int *attached );
+void disciple_sec_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte disciple_dr_read( libspectrum_word port, int *attached );
+void disciple_dr_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte disciple_joy_read( libspectrum_word port, int *attached );
+void disciple_cn_write( libspectrum_word port, libspectrum_byte b );
+
+void disciple_net_write( libspectrum_word port, libspectrum_byte b);
+
+libspectrum_byte disciple_boot_read( libspectrum_word port, int *attached );
+void disciple_boot_write( libspectrum_word port, libspectrum_byte b );
+
+libspectrum_byte disciple_patch_read( libspectrum_word port, int *attached );
+void disciple_patch_write( libspectrum_word port, libspectrum_byte b );
+
+void disciple_printer_write( libspectrum_word port, libspectrum_byte b );
 
 int disciple_disk_insert( disciple_drive_number which, const char *filename,
                           int autoload );

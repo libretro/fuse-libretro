@@ -1,5 +1,7 @@
-/* gtkinternals.h: stuff internal to the GTK UI
-   Copyright (c) 2003-2015 Philip Kendall
+/* gtkinternals.h: stuff internal to the GTK+ UI
+   Copyright (c) 2003-2005 Philip Kendall
+
+   $Id: gtkinternals.h 4962 2013-05-19 05:25:15Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,8 +36,6 @@
 /* The colour palette in use */
 extern libspectrum_dword gtkdisplay_colours[ 16 ];
 
-void gtkdisplay_update_geometry( void );
-
 /*
  * Keyboard routines (gtkkeyboard.c)
  */
@@ -51,7 +51,8 @@ int gtkkeyboard_release_all( GtkWidget *widget, GdkEvent *event,
  * Mouse routines (gtkmouse.c)
  */
 
-void gtkmouse_init( void );
+gboolean gtkmouse_position( GtkWidget*, GdkEventMotion*, gpointer );
+gboolean gtkmouse_button( GtkWidget*, GdkEventButton*, gpointer);
 
 /*
  * General user interface routines (gtkui.c)
@@ -75,7 +76,7 @@ GtkAccelGroup* gtkstock_add_accel_group( GtkWidget *widget );
  * For either, GDK_KEY_VoidSymbol means "no accel key".
  */
 typedef struct gtkstock_button {
-  const gchar *label;
+  gchar *label;
   GCallback action;		/* "clicked" func; data is actiondata. */
   gpointer actiondata;
   GCallback destroy;	/* "clicked" func; data is parent widget */
@@ -83,13 +84,14 @@ typedef struct gtkstock_button {
   GdkModifierType modifier;     /* primary shortcut */
   guint shortcut_alt;
   GdkModifierType modifier_alt; /* secondary shortcut */
-  gint response_id;             /* response id for dialog */
 } gtkstock_button;
 
 /* GTK1: create a simple button with the given label.
  *   "gtk-" prefixes are stripped and are used to select default accel keys.
  * GTK2: chooses between stock and normal based on "gtk-" prefix.
- * GTK3: GtkStock has been deprecated, we should not use "gtk-" prefix.
+ *
+ * Some stock labels are defined below for use with GTK1: their names are the
+ * same as in GTK2, but the strings are different.
  *
  * If the target widget is a GtkDialog, then created buttons are put in its
  * action area.
@@ -117,10 +119,11 @@ GtkAccelGroup* gtkstock_create_close( GtkWidget *widget, GtkAccelGroup *accel,
 
 GtkWidget *gtkstock_dialog_new( const gchar *title, GCallback destroy );
 
-int gtkui_get_monospaced_font( PangoFontDescription **font );
-void gtkui_free_font( PangoFontDescription *font );
+typedef PangoFontDescription *gtkui_font;
 
-int gtkui_menubar_get_height( void );
+int gtkui_get_monospaced_font( gtkui_font *font );
+void gtkui_free_font( gtkui_font font );
+void gtkui_set_font( GtkWidget *widget, gtkui_font font );
 
 /*
  * The menu data (menu_data.c)
@@ -148,19 +151,15 @@ extern const char *gtkpixmap_mouse_active[];
  * Statusbar routines (statusbar.c)
  */
 
-
 int gtkstatusbar_create( GtkBox *parent );
-int gtkstatusbar_get_height( void );
 int gtkstatusbar_set_visibility( int visible );
 void gtkstatusbar_update_machine( const char *name );
 
 /*
- * Routines for list widgets
+ * Scrolling for GtkCList widgets
  */
 
 void gtkui_scroll_connect( GtkTreeView *list, GtkAdjustment *adj );
-void gtkui_list_set_cursor( GtkTreeView *list, int row );
-int gtkui_list_get_cursor( GtkTreeView *list );
 
 /*
  * Dialog box reset

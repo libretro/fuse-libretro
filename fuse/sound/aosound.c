@@ -1,6 +1,7 @@
 /* aosound.c: libao sound I/O
-   Copyright (c) 2004,2013 Gergely Szasz, Philip Kendall
-   Copyright (c) 2015 Sergio Baldoví
+   Copyright (c) 2004 Gergely Szasz, Philip Kendall
+
+   $Id: aosound.c 4633 2012-01-19 23:26:10Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,12 +34,11 @@
 #include "settings.h"
 #include "sound.h"
 #include "ui/ui.h"
-#include "utils.h"
 
 static ao_device *dev_for_ao;
 static int sixteenbit = 1;
 static char *filename = NULL;
-static const char * const default_filename = "fuse-sound.ao";
+static const char *default_filename = "fuse-sound.ao";
 static int first_init = 1;
 
 static void
@@ -78,14 +78,14 @@ driver_error( void )
   }
 }
 
-static int
+static void
 parse_driver_options( const char *device, int *driver_id, ao_option **options )
 {
   char *mutable, *option, *key, *value;
 
   /* Get a copy of the device string we can modify */
   if( !device || *device == '\0' )
-    return 1;
+    return;
 
   mutable = utils_safe_strdup( device );
 
@@ -118,8 +118,7 @@ parse_driver_options( const char *device, int *driver_id, ao_option **options )
 
   }
 
-  libspectrum_free( mutable );
-  return 0;
+  free( mutable );
 }
 
 int
@@ -202,7 +201,7 @@ sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
 void
 sound_lowlevel_end( void )
 {
-  if( filename != default_filename ) libspectrum_free( filename );
+  if( filename != default_filename ) free( filename );
   ao_close(dev_for_ao);
   ao_shutdown();
 }

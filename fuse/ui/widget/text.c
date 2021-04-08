@@ -1,6 +1,7 @@
 /* text.c: simple text entry widget
    Copyright (c) 2002-2005 Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: text.c 4713 2012-06-07 03:19:57Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,7 +34,6 @@ char *widget_text_text = NULL;	/* What we return the text in */
 
 static const char *title;	/* The window title */
 static widget_text_input_allow allow;
-static unsigned int max_length;
 
 #define WIDGET_TEXT_LENGTH 64
 static char text[WIDGET_TEXT_LENGTH];	/* The current entry text */
@@ -50,7 +50,6 @@ widget_text_draw( void *data )
   if( data ) {
     title = text_data->title;
     allow = text_data->allow;
-    max_length = text_data->max_length;
     snprintf( text, sizeof( text ), "%s", text_data->text );
   }
 
@@ -154,7 +153,7 @@ append_character( char c )
 {
   size_t length = strlen( text );
 
-  if( length < WIDGET_TEXT_LENGTH - 1 && length < max_length ) {
+  if( length < 23 ) {
     text[ length ] = c; text[ length + 1 ] = '\0';
   }
 }
@@ -165,7 +164,7 @@ widget_text_finish( widget_finish_state finished )
   if( finished == WIDGET_FINISHED_OK ) {
 
     widget_text_text =
-      libspectrum_renew( char, widget_text_text, strlen( text ) + 1 );
+      libspectrum_realloc( widget_text_text, strlen( text ) + 1 );
 
     strcpy( widget_text_text, text );
   } else {

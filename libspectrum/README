@@ -1,4 +1,4 @@
-libspectrum 1.5.0
+libspectrum 1.1.1
 =================
 
 libspectrum is a library which is designed to make the input and
@@ -13,8 +13,8 @@ Currently supported are:
 * Tape images: .tzx, .tap, .spc, .sta and .ltp (read/write) and
   .pzx, Warajevo .tap, Z80Em and CSW version 1 (read only).
 * Input recordings: .rzx (read/write).
-* Disk images: .dsk (both plain and extended), .d40, .d80, .fdi, .img,
-  .mgt, .opd, .sad, .scl, .td0, .trd and .udi (identification only).
+* Disk images: .dsk (both plain and extended), .fdi, .sad, .scl, .td0,
+  .trd and .udi (identification only).
 * Timex cartridges: .dck (read only).
 * IDE hard disk images: .hdf (read/write).
 * Microdrive cartridge images: .mdr (read/write).
@@ -44,10 +44,10 @@ For updates for libspectrum, its homepage is at:
 
 http://fuse-emulator.sourceforge.net/libspectrum.php
 
-Compiling from Git
-------------------
+Compiling from Subversion
+-------------------------
 
-If you're using version of libspectrum from Git rather than one
+If you're using version of libspectrum from Subversion rather than one
 of the released tarballs, you'll need to run `autogen.sh' before
 running 'configure' for the first time.
 
@@ -58,13 +58,15 @@ To compile for the Wii, first make sure the dev tools are in your path
 (export PATH=$PATH:$DEVKITPPC/bin). Then, use this configure line:
 
 ./configure --target=powerpc-gekko --host=powerpc-gekko \
-            --prefix=$DEVKITPPC \
-            --without-libgcrypt --with-fake-glib --without-libaudiofile
+	    --prefix=$DEVKITPPC \
+	    --without-gcrypt --without-glib --without-libaudiofile
 
-That is assuming you don't have libgcrypt, glib and libaudiofile for the
+That is assuming you don't have gcrypt, glib and libaudiofile for the
 Wii. At the time of writing, those haven't been ported yet.
 
 Then, type "make" and if everything went well, "make install".
 
 Philip Kendall <philip-fuse@shadowmagic.org.uk>
-27th February, 2021
+24th May, 2013
+
+$Id: README 4992 2013-05-24 19:49:15Z zubzero $

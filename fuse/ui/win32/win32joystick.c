@@ -1,6 +1,7 @@
 /* win32joystick.c: Joystick emulation
    Copyright (c) 2003-2008 Darren Salt, Philip Kendall, Marek Januszewski
-   Copyright (c) 2015 UB880D
+
+   $Id: win32joystick.c 4914 2013-04-04 22:03:43Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -60,32 +61,22 @@ ui_joystick_init( void )
 
   retval = joyGetNumDevs();
 
-  if( retval > 0 ) {
-
-    if( joyGetPos( JOYSTICKID1, &joyinfo ) == JOYERR_NOERROR ) {
-      if( joySetCapture( fuse_hWnd, JOYSTICKID1, 0, FALSE ) != JOYERR_NOERROR ) {
-        ui_error( UI_ERROR_ERROR, "Couldn't start capture for joystick 1" );
-        return 0;
-      }
-    } else {
-      return 0;
-    }
-
-  }
-
   if( retval >= 2 ) {
 
     retval = 2;
 
-    if( joyGetPos( JOYSTICKID2, &joyinfo ) == JOYERR_NOERROR ) {
-      if( joySetCapture( fuse_hWnd, JOYSTICKID2, 0, FALSE ) != JOYERR_NOERROR ) {
-        ui_error( UI_ERROR_ERROR, "Couldn't start capture for joystick 2" );
-        return 1;
-      }
-    } else {
-      return 1;
+    if( joyGetPos( JOYSTICKID2, &joyinfo ) == JOYERR_UNPLUGGED ) {
+      ui_error( UI_ERROR_ERROR, "failed to initialise joystick 2" );
+      return 0;
     }
+  }
 
+  if( retval > 0 ) {
+
+    if( joyGetPos( JOYSTICKID1, &joyinfo ) == JOYERR_UNPLUGGED ) {
+      ui_error( UI_ERROR_ERROR, "failed to initialise joystick 1" );
+      return 0;
+    }
   }
 
   return retval;
@@ -181,7 +172,7 @@ struct joystick_info {
   int *type;
   HWND radio[ JOYSTICK_TYPE_COUNT ];
 
-  struct button_info button[NUM_JOY_BUTTONS];
+  struct button_info button[10];
 };
 
 static void setup_info( struct joystick_info *info, int action );
@@ -234,11 +225,6 @@ dialog_proc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam )
         case IDC_JOYSTICKS_BUTTON_BUTTON8:
         case IDC_JOYSTICKS_BUTTON_BUTTON9:
         case IDC_JOYSTICKS_BUTTON_BUTTON10:
-        case IDC_JOYSTICKS_BUTTON_BUTTON11:
-        case IDC_JOYSTICKS_BUTTON_BUTTON12:
-        case IDC_JOYSTICKS_BUTTON_BUTTON13:
-        case IDC_JOYSTICKS_BUTTON_BUTTON14:
-        case IDC_JOYSTICKS_BUTTON_BUTTON15:
           show_key_selection_popoup( hwndDlg, lParam );
           return 0;
           
@@ -266,7 +252,7 @@ dialog_init( HWND hwndDlg, struct joystick_info *info )
   size_t i;
   create_joystick_type_selector( info, hwndDlg );
 
-  for( i = 0; i < NUM_JOY_BUTTONS; i++ ) {
+  for( i = 0; i < 10; i++ ) {
     
     info->button[i].label = GetDlgItem( hwndDlg,
                                        IDC_JOYSTICKS_BUTTON_BUTTON1 + i );
@@ -311,12 +297,7 @@ setup_info( struct joystick_info *info, int action )
     info->button[7].setting = &( settings_current.joystick_1_fire_8  );
     info->button[8].setting = &( settings_current.joystick_1_fire_9  );
     info->button[9].setting = &( settings_current.joystick_1_fire_10 );
-    info->button[10].setting = &( settings_current.joystick_1_fire_11 );
-    info->button[11].setting = &( settings_current.joystick_1_fire_12 );
-    info->button[12].setting = &( settings_current.joystick_1_fire_13 );
-    info->button[13].setting = &( settings_current.joystick_1_fire_14 );
-    info->button[14].setting = &( settings_current.joystick_1_fire_15 );
-    for( i = 0; i < NUM_JOY_BUTTONS; i++ )
+    for( i = 0; i < 10; i++ )
       _sntprintf( info->button[i].name, 80, "Button %lu",
                   (unsigned long)i + 1 );
     break;
@@ -333,12 +314,7 @@ setup_info( struct joystick_info *info, int action )
     info->button[7].setting = &( settings_current.joystick_2_fire_8  );
     info->button[8].setting = &( settings_current.joystick_2_fire_9  );
     info->button[9].setting = &( settings_current.joystick_2_fire_10 );
-    info->button[10].setting = &( settings_current.joystick_2_fire_11 );
-    info->button[11].setting = &( settings_current.joystick_2_fire_12 );
-    info->button[12].setting = &( settings_current.joystick_2_fire_13 );
-    info->button[13].setting = &( settings_current.joystick_2_fire_14 );
-    info->button[14].setting = &( settings_current.joystick_2_fire_15 );
-    for( i = 0; i < NUM_JOY_BUTTONS; i++ )
+    for( i = 0; i < 10; i++ )
       _sntprintf( info->button[i].name, 80, "Button %lu",
                   (unsigned long)i + 1 );
     break;
@@ -355,7 +331,7 @@ setup_info( struct joystick_info *info, int action )
     _sntprintf( info->button[3].name, 80, "Button for RIGHT" );
     info->button[4].setting = &( settings_current.joystick_keyboard_fire  );
     _sntprintf( info->button[4].name, 80, "Button for FIRE" );
-    for( i = 5; i < NUM_JOY_BUTTONS; i++ ) info->button[i].setting = NULL;
+    for( i = 5; i < 10; i++ ) info->button[i].setting = NULL;
     break;
 
   }
@@ -429,7 +405,7 @@ joystick_done( LONG_PTR user_data )
 
   int i;
 
-  for( i = 0; i < NUM_JOY_BUTTONS; i++ )
+  for( i = 0; i < 10; i++ )
     if( info->button[i].setting )
       *info->button[i].setting = info->button[i].key;
 

@@ -1,6 +1,8 @@
 /* hyperlinks.c: hyperlink control
    Copyright 2002 Neal Stublen
 
+   $Id: hyperlinks.c 4785 2012-12-07 23:56:40Z sbaldovi $
+
    Taken (almost) verbatim from public domain code found on CodeGuru:
    http://www.codeguru.com/cpp/controls/staticctrl/article.php/c5803
    Copyright 2002 Neal Stublen

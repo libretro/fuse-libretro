@@ -1,6 +1,7 @@
 /* beta.h: Routines for handling the Beta disk interface
-   Copyright (c) 2003-2016 Fredrick Meunier, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2003-2011 Fredrick Meunier, Philip Kendall
+
+   $Id: beta.h 4636 2012-01-20 14:07:15Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,7 +30,7 @@
 
 #include <libspectrum.h>
 
-#include "memory_pages.h"
+#include "../../memory.h"
 #include "fdd.h"
 
 extern int beta_available;  /* Is the Beta disk interface available for use? */
@@ -42,25 +43,27 @@ extern memory_page beta_memory_map_romcs[MEMORY_PAGES_IN_16K];
 extern libspectrum_word beta_pc_mask; /* Bits to mask in PC for enable check */
 extern libspectrum_word beta_pc_value; /* Value to compare masked PC against */
 
-void beta_register_startup( void );
+void beta_init( void );
+
+void beta_end( void );
 
 void beta_page( void );
 void beta_unpage( void );
 
 void beta_cr_write( libspectrum_word port, libspectrum_byte b );
 
-libspectrum_byte beta_sr_read( libspectrum_word port, libspectrum_byte *attached );
+libspectrum_byte beta_sr_read( libspectrum_word port, int *attached );
 
-libspectrum_byte beta_tr_read( libspectrum_word port, libspectrum_byte *attached );
+libspectrum_byte beta_tr_read( libspectrum_word port, int *attached );
 void beta_tr_write( libspectrum_word port, libspectrum_byte b );
 
-libspectrum_byte beta_sec_read( libspectrum_word port, libspectrum_byte *attached );
+libspectrum_byte beta_sec_read( libspectrum_word port, int *attached );
 void beta_sec_write( libspectrum_word port, libspectrum_byte b );
 
-libspectrum_byte beta_dr_read( libspectrum_word port, libspectrum_byte *attached );
+libspectrum_byte beta_dr_read( libspectrum_word port, int *attached );
 void beta_dr_write( libspectrum_word port, libspectrum_byte b );
 
-libspectrum_byte beta_sp_read( libspectrum_word port, libspectrum_byte *attached );
+libspectrum_byte beta_sp_read( libspectrum_word port, int *attached );
 void beta_sp_write( libspectrum_word port, libspectrum_byte b );
 
 typedef enum beta_drive_number {
@@ -68,7 +71,6 @@ typedef enum beta_drive_number {
   BETA_DRIVE_B,
   BETA_DRIVE_C,
   BETA_DRIVE_D,
-  BETA_NUM_DRIVES,
 } beta_drive_number;
 
 int beta_disk_insert( beta_drive_number which, const char *filename,

@@ -1,7 +1,7 @@
 /* compat.h: various compatibility bits
    Copyright (c) 2003-2012 Philip Kendall
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2015 Sergio Baldoví
+
+   $Id: compat.h 4738 2012-10-03 13:15:31Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,9 +27,17 @@
 #define FUSE_COMPAT_H
 
 #include <stdio.h>
+
+#ifndef VITA
 #include <dirent.h>
+#endif
+
 #include <stdlib.h>
 #include <sys/types.h>
+
+#ifdef WIN32
+#include <winsock2.h>
+#endif
 
 /* Remove the gcc-specific incantations if we're not using gcc */
 #ifdef __GNUC__
@@ -45,32 +53,6 @@
 #define GCC_NORETURN
 
 #endif				/* #ifdef __GNUC__ */
-
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-  #define GNUC_VERSION \
-    (__GNUC__ << 16) + __GNUC_MINOR__
-  #define GNUC_PREREQ(maj, min) \
-    (GNUC_VERSION >= ((maj) << 16) + (min))
-#else
-  #define GNUC_PREREQ(maj, min) 0
-#endif
-
-#define BUILD_BUG_ON_ZERO(e) \
-  (sizeof(struct { int:-!!(e) * 1234; }))
-
-#if !GNUC_PREREQ(3, 1) || defined( __STRICT_ANSI__ )
-  #define MUST_BE_ARRAY(a) \
-    BUILD_BUG_ON_ZERO(sizeof(a) % sizeof(*a))
-#else
-  #define SAME_TYPE(a, b) \
-    __builtin_types_compatible_p(typeof(a), typeof(b))
-  #define MUST_BE_ARRAY(a) \
-    BUILD_BUG_ON_ZERO(SAME_TYPE((a), &(*a)))
-#endif
-
-#define ARRAY_SIZE(a) ( \
-  (sizeof(a) / sizeof(*a)) \
-   + MUST_BE_ARRAY(a))
 
 #ifndef HAVE_DIRNAME
 char *dirname( char *path );
@@ -91,13 +73,6 @@ int mkstemp( char *templ );
 #else
 #define FUSE_DIR_SEP_CHR '/'
 #define FUSE_DIR_SEP_STR "/"
-#endif
-
-/* End of line for text files */
-#ifdef WIN32
-#define FUSE_EOL "\r\n"
-#else
-#define FUSE_EOL "\n"
 #endif
 
 #ifndef PATH_MAX
@@ -125,17 +100,19 @@ typedef struct path_context {
 
 int compat_osname( char *buffer, size_t length );
 const char* compat_get_temp_path( void );
-const char* compat_get_config_path( void );
+const char* compat_get_home_path( void );
 int compat_is_absolute_path( const char *path );
 int compat_get_next_path( path_context *ctx );
 
 typedef FILE* compat_fd;
 
-#ifndef GEKKO
-typedef DIR* compat_dir;
-#else                           /* #ifndef GEKKO */
+#if defined( GEKKO )
 typedef DIR_ITER* compat_dir;
-#endif                          /* #ifndef GEKKO */
+#elif defined( VITA )
+typedef void* compat_dir;
+#else
+typedef DIR* compat_dir;
+#endif
 
 extern const compat_fd COMPAT_FILE_OPEN_FAILED;
 
@@ -175,26 +152,10 @@ int compat_get_tap( const char *interface_name );
 
 /* Socket handling */
 
-#ifdef HAVE_SOCKET
-
-#ifdef WIN32
-#include <winsock2.h>
-#define COMPAT_ENOTCONN WSAENOTCONN
-#define COMPAT_EWOULDBLOCK WSAEWOULDBLOCK
-#define COMPAT_EINPROGRESS WSAEINPROGRESS
-#define COMPAT_ECONNREFUSED WSAECONNREFUSED
-typedef SOCKET compat_socket_t;
-typedef SOCKADDR compat_sockaddr;
-#else  /* #ifndef WIN32 */
-#include <sys/socket.h>
-#include <netdb.h>
-#include <errno.h>
-#define COMPAT_ENOTCONN ENOTCONN
-#define COMPAT_EWOULDBLOCK EWOULDBLOCK
-#define COMPAT_EINPROGRESS EINPROGRESS
-#define COMPAT_ECONNREFUSED ECONNREFUSED
+#ifndef WIN32
 typedef int compat_socket_t;
-typedef struct sockaddr compat_sockaddr;
+#else                           /* #ifndef WIN32 */
+typedef SOCKET compat_socket_t;
 #endif
 
 extern const compat_socket_t compat_socket_invalid;
@@ -203,7 +164,6 @@ extern const int compat_socket_EBADF;
 void compat_socket_networking_init( void );
 void compat_socket_networking_end( void );
 
-int compat_socket_blocking_mode( compat_socket_t fd, int blocking );
 int compat_socket_close( compat_socket_t fd );
 int compat_socket_get_error( void );
 const char *compat_socket_get_strerror( void );
@@ -215,7 +175,5 @@ void compat_socket_selfpipe_free( compat_socket_selfpipe_t *self );
 compat_socket_t compat_socket_selfpipe_get_read_fd( compat_socket_selfpipe_t *self );
 void compat_socket_selfpipe_wake( compat_socket_selfpipe_t *self );
 void compat_socket_selfpipe_discard_data( compat_socket_selfpipe_t *self );
-
-#endif				/* #ifdef HAVE_SOCKET */
 
 #endif				/* #ifndef FUSE_COMPAT_H */

@@ -1,6 +1,8 @@
 /* win32internals.h: stuff internal to the Win32 UI
    Copyright (c) 2004 Marek Januszewski
 
+   $Id: win32internals.h 4669 2012-02-14 12:34:59Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -43,31 +45,26 @@
 #endif
 
 /* window handler */
-extern HWND fuse_hWnd;
+HWND fuse_hWnd;
 
 /* application instance */
-extern HINSTANCE fuse_hInstance;
+HINSTANCE fuse_hInstance;
 
 /* status bar handle */
-extern HWND fuse_hStatusWindow;
+HWND fuse_hStatusWindow;
 
 /* pokefinder window handle */
-extern HWND fuse_hPFWnd;
+HWND fuse_hPFWnd;
 
 /* debugger window handle */
-extern HWND fuse_hDBGWnd;
+HWND fuse_hDBGWnd;
 
 /* about window handle */
-extern HWND fuse_hABOWnd;
+HWND fuse_hABOWnd;
 
 /*
  * Display routines (win32display.c)
  */
-
-/* The biggest size screen (in units of DISPLAY_ASPECT_WIDTH x
-   DISPLAY_SCREEN_HEIGHT ie a Timex screen is size 2) we will be
-   creating via the scalers */
-#define MAX_SCALE 4
 
 /* The colour palette in use */
 extern libspectrum_dword win32display_colours[16];
@@ -90,8 +87,6 @@ void blit( void );
  * Keyboard routines (win32keyboard.c)
  */
 
-void win32keyboard_init( void );
-void win32keyboard_end( void );
 void win32keyboard_keypress( WPARAM wParam, LPARAM lParam );
 void win32keyboard_keyrelease( WPARAM wParam, LPARAM lParam );
 
@@ -110,12 +105,7 @@ void win32ui_fuse_resize( int width, int height );
 
 int win32ui_confirm( const char *string );
 
-typedef enum win32ui_picture_format {
-  PICTURE_SCR,
-  PICTURE_PNG,
-} win32ui_picture_format;
-
-int win32ui_picture( const char *filename, win32ui_picture_format format );
+int win32ui_picture( const char *filename, int border );
 
 int win32ui_get_monospaced_font( HFONT *font );
 void win32ui_set_font( HWND hDlg, int nIDDlgItem, HFONT font );

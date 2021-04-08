@@ -1,5 +1,7 @@
 /* screenshot.c: Routines for handling .png and .scr screenshots
-   Copyright (c) 2002-2018 Philip Kendall, Fredrick Meunier
+   Copyright (c) 2002-2003 Philip Kendall, Fredrick Meunier
+
+   $Id: screenshot.c 4664 2012-02-12 11:51:01Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +32,6 @@
 #include <libspectrum.h>
 
 #include "display.h"
-#include "infrastructure/startup_manager.h"
 #include "machine.h"
 #include "peripherals/scld.h"
 #include "screenshot.h"
@@ -41,7 +42,6 @@
 
 #define MONO_BITMAP_SIZE 6144
 #define HICOLOUR_SCR_SIZE (2 * MONO_BITMAP_SIZE)
-#define MLT_SIZE (2 * MONO_BITMAP_SIZE)
 #define HIRES_ATTR HICOLOUR_SCR_SIZE
 #define HIRES_SCR_SIZE (HICOLOUR_SCR_SIZE + 1)
 
@@ -49,7 +49,6 @@
 
 #include <png.h>
 #ifdef HAVE_ZLIB_H
-#define ZLIB_CONST
 #include <zlib.h>
 #endif				/* #ifdef HAVE_ZLIB_H */
 
@@ -58,21 +57,18 @@ static int get_rgb32_data( libspectrum_byte *rgb32_data, size_t stride,
 static int rgb32_to_rgb24( libspectrum_byte *rgb24_data, size_t rgb24_stride,
 			   libspectrum_byte *rgb32_data, size_t rgb32_stride,
 			   size_t height, size_t width );
-static void fill_rgb32_margin( libspectrum_byte *rgb32_data, size_t stride,
-                               size_t height, size_t width );
 
 /* The biggest size screen (in units of DISPLAY_ASPECT_WIDTH x
    DISPLAY_SCREEN_HEIGHT ie a Timex screen is size 2) we will be
    creating via the scalers */
-#define MAX_SIZE 4
+#define MAX_SIZE 3
 
-/* Pixels arround the RGB image for scalers that "smear" the screen */
-#define K_MARGIN 2
-
-/* The space used for drawing the screen image on */
-static libspectrum_byte *rgb_data = NULL;
-static libspectrum_byte *scaled_data;
-static libspectrum_byte *png_data = NULL;
+/* The space used for drawing the screen image on. Out here to avoid placing
+   these large objects on the stack */
+static libspectrum_byte
+  rgb_data1[ MAX_SIZE * DISPLAY_SCREEN_HEIGHT * 3 * DISPLAY_ASPECT_WIDTH * 4 ],
+  rgb_data2[ MAX_SIZE * DISPLAY_SCREEN_HEIGHT * 3 * DISPLAY_ASPECT_WIDTH * 4 ],
+   png_data[ MAX_SIZE * DISPLAY_SCREEN_HEIGHT * 3 * DISPLAY_ASPECT_WIDTH * 3 ];
 
 int
 screenshot_write( const char *filename, scaler_type scaler )
@@ -83,9 +79,7 @@ screenshot_write( const char *filename, scaler_type scaler )
   png_infop info_ptr;
 
   libspectrum_byte *row_pointers[ MAX_SIZE * DISPLAY_SCREEN_HEIGHT ];
-  libspectrum_byte *rgb_data_centered;
-  size_t rgb_stride = ( DISPLAY_ASPECT_WIDTH + K_MARGIN * 2 ) * 4,
-         scaled_stride = MAX_SIZE * DISPLAY_ASPECT_WIDTH * 4,
+  size_t rgb_stride = MAX_SIZE * DISPLAY_ASPECT_WIDTH * 4,
          png_stride = MAX_SIZE * DISPLAY_ASPECT_WIDTH * 3;
   size_t y, base_height, base_width, height, width;
   int error;
@@ -98,42 +92,19 @@ screenshot_write( const char *filename, scaler_type scaler )
     base_width = DISPLAY_ASPECT_WIDTH;
   }
 
-  /* Allocate buffers on demand */
-  if( !rgb_data )
-    rgb_data =
-      libspectrum_new( libspectrum_byte,
-                       ( DISPLAY_SCREEN_HEIGHT + K_MARGIN * 2 ) * rgb_stride );
-
-  if( !scaled_data )
-    scaled_data = libspectrum_new( libspectrum_byte,
-                                   MAX_SIZE * DISPLAY_SCREEN_HEIGHT *
-                                   scaled_stride );
-
-  if( !png_data )
-    png_data = libspectrum_new( libspectrum_byte,
-                                MAX_SIZE * DISPLAY_SCREEN_HEIGHT * png_stride );
-
-  /* first pixel of rgb_data (without margin) */
-  rgb_data_centered = rgb_data + K_MARGIN * rgb_stride + K_MARGIN * 4;
-
   /* Change from paletted data to RGB data */
-  error = get_rgb32_data( rgb_data_centered, rgb_stride, base_height,
-                          base_width );
+  error = get_rgb32_data( rgb_data1, rgb_stride, base_height, base_width );
   if( error ) return error;
 
-  /* Initialise margin for scalers that "smear" the screen */
-  if( scaler_get_flags( scaler ) & SCALER_FLAGS_EXPAND )
-    fill_rgb32_margin( rgb_data, rgb_stride, base_height, base_width );
-
   /* Actually scale the data here */
-  scaler_get_proc32( scaler )( rgb_data_centered, rgb_stride, scaled_data,
-                               scaled_stride, base_width, base_height );
+  scaler_get_proc32( scaler )( rgb_data1, rgb_stride, rgb_data2, rgb_stride,
+			       base_width, base_height );
 
   height = base_height * scaler_get_scaling_factor( scaler );
   width  = base_width  * scaler_get_scaling_factor( scaler );
 
   /* Reduce from RGB(padding byte) to just RGB */
-  error = rgb32_to_rgb24( png_data, png_stride, scaled_data, scaled_stride,
+  error = rgb32_to_rgb24( png_data, png_stride, rgb_data2, rgb_stride,
 			  height, width );
   if( error ) return error;
 
@@ -262,78 +233,6 @@ get_rgb32_data( libspectrum_byte *rgb32_data, size_t stride,
   return 0;
 }
 
-static void
-fill_rgb32_margin( libspectrum_byte *rgb32_data, size_t stride,
-                   size_t height, size_t width )
-{
-  size_t x_dest, y_dest, x_src, y_src;
-  libspectrum_byte *dest_data, *src_data;
-
-  /* We need to initialise the extra space available for scalers that "smear"
-     the screen by copying the nearest neighbour, so we avoid any blending with
-     black colour or memory garbage at the outer border */
-
-  /* Fill top margin */
-  y_src = K_MARGIN;
-  for( y_dest = 0; y_dest < K_MARGIN; y_dest++ ) {
-    for( x_dest = 0; x_dest < width + K_MARGIN * 2; x_dest++ ) {
-
-      if( x_dest < K_MARGIN )
-        x_src = K_MARGIN;
-      else if( x_dest >= K_MARGIN + width )
-        x_src = K_MARGIN + width - 1;
-      else
-        x_src = x_dest;
-
-      dest_data = rgb32_data + y_dest * stride + 4 * x_dest;
-      src_data = rgb32_data + y_src * stride + 4 * x_src;
-      *(libspectrum_dword*) dest_data = *(libspectrum_dword*) src_data;
-    }
-  }
-
-  /* Fill left margin */
-  x_src = K_MARGIN;
-  for( y_dest = K_MARGIN; y_dest < K_MARGIN + height; y_dest++ ) {
-    for( x_dest = 0; x_dest < K_MARGIN; x_dest++ ) {
-      y_src = y_dest;
-
-      dest_data = rgb32_data + y_dest * stride + 4 * x_dest;
-      src_data = rgb32_data + y_src * stride + 4 * x_src;
-      *(libspectrum_dword*) dest_data = *(libspectrum_dword*) src_data;
-    }
-  }
-
-  /* Fill right margin */
-  x_src = K_MARGIN + width -1;
-  for( y_dest = K_MARGIN; y_dest < K_MARGIN + height; y_dest++ ) {
-    for( x_dest = K_MARGIN + width; x_dest < K_MARGIN * 2 + width; x_dest++ ) {
-      y_src = y_dest;
-
-      dest_data = rgb32_data + y_dest * stride + 4 * x_dest;
-      src_data = rgb32_data + y_src * stride + 4 * x_src;
-      *(libspectrum_dword*) dest_data = *(libspectrum_dword*) src_data;
-    }
-  }
-
-  /* Fill bottom margin */
-  y_src = K_MARGIN + height - 1;
-  for( y_dest = K_MARGIN + height; y_dest < height + K_MARGIN * 2; y_dest++ ) {
-    for( x_dest = 0; x_dest < width + K_MARGIN * 2; x_dest++ ) {
-
-      if( x_dest < K_MARGIN )
-        x_src = K_MARGIN;
-      else if( x_dest >= K_MARGIN + width )
-        x_src = K_MARGIN + width - 1;
-      else
-        x_src = x_dest;
-
-      dest_data = rgb32_data + y_dest * stride + 4 * x_dest;
-      src_data = rgb32_data + y_src * stride + 4 * x_src;
-      *(libspectrum_dword*) dest_data = *(libspectrum_dword*) src_data;
-    }
-  }
-}
-
 static int
 rgb32_to_rgb24( libspectrum_byte *rgb24_data, size_t rgb24_stride,
 		libspectrum_byte *rgb32_data, size_t rgb32_stride,
@@ -360,7 +259,6 @@ screenshot_available_scalers( scaler_type scaler )
     switch( scaler ) {
 
     case SCALER_HALF: case SCALER_HALFSKIP: case SCALER_NORMAL:
-    case SCALER_TIMEX1_5X: case SCALER_TIMEX2X:
     case SCALER_TIMEXTV: case SCALER_PALTV:
       return 1;
     default:
@@ -372,12 +270,11 @@ screenshot_available_scalers( scaler_type scaler )
     
     switch( scaler ) {
 
-    case SCALER_NORMAL: case SCALER_DOUBLESIZE: case SCALER_TRIPLESIZE: case SCALER_QUADSIZE:
+    case SCALER_NORMAL: case SCALER_DOUBLESIZE: case SCALER_TRIPLESIZE:
     case SCALER_2XSAI: case SCALER_SUPER2XSAI: case SCALER_SUPEREAGLE:
-    case SCALER_ADVMAME2X: case SCALER_ADVMAME3X:
-    case SCALER_TV2X: case SCALER_TV3X: case SCALER_TV4X: case SCALER_DOTMATRIX:
-    case SCALER_PALTV: case SCALER_PALTV2X: case SCALER_PALTV3X: case SCALER_PALTV4X:
-    case SCALER_HQ2X: case SCALER_HQ3X: case SCALER_HQ4X:
+    case SCALER_ADVMAME2X: case SCALER_ADVMAME3X: case SCALER_TV2X:
+    case SCALER_DOTMATRIX: case SCALER_PALTV2X: case SCALER_PALTV3X:
+    case SCALER_HQ2X: case SCALER_HQ3X:
       return 1;
     default:
       return 0;
@@ -388,141 +285,42 @@ screenshot_available_scalers( scaler_type scaler )
 
 #endif				/* #ifdef USE_LIBPNG */
 
-static void
-screenshot_end( void )
-{
-#ifdef USE_LIBPNG
-  libspectrum_free( rgb_data ); rgb_data = NULL;
-  libspectrum_free( scaled_data ); scaled_data = NULL;
-  libspectrum_free( png_data ); png_data = NULL;
-#endif
-}
-
-void
-screenshot_register_startup( void )
-{
-  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
-  startup_manager_register( STARTUP_MANAGER_MODULE_SCREENSHOT, dependencies,
-                            ARRAY_SIZE( dependencies ), NULL, NULL,
-                            screenshot_end );
-}
-
-static int
-screenshot_scr_hires_write( const char *filename )
-{
-  libspectrum_byte scr_data[ HIRES_SCR_SIZE ];
-
-  memset( scr_data, 0, HIRES_SCR_SIZE );
-
-  memcpy( scr_data,
-          &RAM[ memory_current_screen ][ display_get_addr(0,0) ],
-          MONO_BITMAP_SIZE );
-  memcpy( scr_data + MONO_BITMAP_SIZE,
-          &RAM[ memory_current_screen ][ display_get_addr(0,0) +
-          ALTDFILE_OFFSET], MONO_BITMAP_SIZE );
-  scr_data[ HIRES_ATTR ] = ( scld_last_dec.byte & HIRESCOLMASK ) |
-                             scld_last_dec.mask.scrnmode;
-
-  return utils_write_file( filename, scr_data, HIRES_SCR_SIZE );
-}
-
-static int
-get_display_last_screen_index( int x, int y )
-{
-  int beam_x = x + DISPLAY_BORDER_WIDTH_COLS;
-  int beam_y = y + DISPLAY_BORDER_HEIGHT;
-
-  return beam_x + beam_y * DISPLAY_SCREEN_WIDTH_COLS;
-}
-
-static void
-set_hicolor_pixels_and_attribute( int x, int y, libspectrum_byte* scr_data )
-{
-  int index = get_display_last_screen_index( x, y );
-  libspectrum_byte pixel_data = display_last_screen[ index ] & 0xff;
-  libspectrum_byte attribute_data = (display_last_screen[ index ] & 0xff00)>>8;
-
-  libspectrum_word offset = display_get_offset( x, y );
-  scr_data[ offset ] = pixel_data;
-  /* write attribute into bitmap order buffer after bitmap */
-  scr_data[ MONO_BITMAP_SIZE + offset ] = attribute_data;
-}
-
-typedef void (*data_write_fn)( int x, int y, libspectrum_byte* scr_data );
-
-static int
-scr_write( const char *filename, const int data_size,
-           data_write_fn scr_data_write )
-{
-  libspectrum_byte scr_data[ data_size ];
-  int x, y;
-
-  memset( scr_data, 0, data_size );
-
-  for( y = 0; y < DISPLAY_HEIGHT; y++ ) {
-    for( x = 0; x < DISPLAY_WIDTH_COLS; x++ ) {
-      scr_data_write( x, y, scr_data );
-    }
-  }
-
-  return utils_write_file( filename, scr_data, data_size );
-}
-
-static void
-set_standard_pixels_and_attribute( int x, int y, libspectrum_byte* scr_data )
-{
-  int index = get_display_last_screen_index( x, y );
-  libspectrum_byte pixel_data = display_last_screen[ index ] & 0xff;
-  libspectrum_byte attribute_data = (display_last_screen[ index ] & 0xff00)>>8;
-  int attribute_offset;
-
-  scr_data[ display_get_offset( x, y ) ] = pixel_data;
-
-  if( y%8 == 0 ) {
-    /* write attribute into standard attribute order buffer after bitmap */
-    attribute_offset = x + (y/8 * DISPLAY_WIDTH_COLS);
-    scr_data[ MONO_BITMAP_SIZE + attribute_offset ] = attribute_data;
-  }
-}
-
 int
 screenshot_scr_write( const char *filename )
 {
+  libspectrum_byte scr_data[HIRES_SCR_SIZE];
+  int scr_length;
+
+  memset( scr_data, 0, HIRES_SCR_SIZE );
+
   if( scld_last_dec.name.hires ) {
-    return screenshot_scr_hires_write( filename );
+    memcpy( scr_data,
+            &RAM[ memory_current_screen ][display_get_addr(0,0)],
+            MONO_BITMAP_SIZE );
+    memcpy( scr_data + MONO_BITMAP_SIZE,
+            &RAM[ memory_current_screen ][display_get_addr(0,0) +
+            ALTDFILE_OFFSET], MONO_BITMAP_SIZE );
+    scr_data[HIRES_ATTR] = ( scld_last_dec.byte & HIRESCOLMASK ) |
+                           scld_last_dec.mask.scrnmode;
+    scr_length = HIRES_SCR_SIZE;
   }
   else if( scld_last_dec.name.b1 ) {
-    return scr_write( filename, HICOLOUR_SCR_SIZE,
-                      &set_hicolor_pixels_and_attribute );
+    memcpy( scr_data,
+            &RAM[ memory_current_screen ][display_get_addr(0,0)],
+            MONO_BITMAP_SIZE );
+    memcpy( scr_data + MONO_BITMAP_SIZE,
+            &RAM[ memory_current_screen ][display_get_addr(0,0) +
+            ALTDFILE_OFFSET], MONO_BITMAP_SIZE );
+    scr_length = HICOLOUR_SCR_SIZE;
   }
   else { /* ALTDFILE and default */
-    return scr_write( filename, STANDARD_SCR_SIZE,
-                      &set_standard_pixels_and_attribute );
-  }
-}
-
-static void
-set_mlt_pixels_and_attribute( int x, int y, libspectrum_byte* mlt_data )
-{
-  int index = get_display_last_screen_index( x, y );
-  libspectrum_byte pixel_data = display_last_screen[ index ] & 0xff;
-  libspectrum_byte attribute_data = (display_last_screen[ index ] & 0xff00)>>8;
-
-  mlt_data[ display_get_offset( x, y ) ] = pixel_data;
-  /* write attribute into linear buffer following bitmap */
-  mlt_data[ MONO_BITMAP_SIZE + x + y * DISPLAY_WIDTH_COLS ] = attribute_data;
-}
-
-int
-screenshot_mlt_write( const char *filename )
-{
-  if( machine_current->timex && scld_last_dec.name.hires ) {
-    ui_error( UI_ERROR_ERROR,
-              "MLT format not supported for Timex hi-res screen mode" );
-    return 1;
+    memcpy( scr_data, 
+            &RAM[ memory_current_screen ][display_get_addr(0,0)],
+            STANDARD_SCR_SIZE );
+    scr_length = STANDARD_SCR_SIZE;
   }
 
-  return scr_write( filename, MLT_SIZE, &set_mlt_pixels_and_attribute );
+  return utils_write_file( filename, scr_data, scr_length );
 }
 
 #ifdef WORDS_BIGENDIAN
@@ -654,49 +452,6 @@ screenshot_scr_read( const char *filename )
     ui_error( UI_ERROR_ERROR, "'%s' is not a valid scr file", filename );
     error = 1;
   }
-
-  utils_close_file( &screen );
-
-  display_refresh_all();
-
-  return error;
-}
-
-int
-screenshot_mlt_read( const char *filename )
-{
-  int error = 0;
-  int x, y;
-  utils_file screen;
-
-  error =  utils_read_file( filename, &screen );
-  if( error ) return error;
-
-  if( screen.length != MLT_SIZE ) {
-    ui_error( UI_ERROR_ERROR, "MLT picture ('%s') is not %d bytes long",
-	      filename, MLT_SIZE );
-    return 1;
-  }
-
-  /* If it is a Timex and it is not in hi colour mode, copy screen and switch
-      mode if neccesary */
-  /* If it is not a Timex copy the mono bitmap and raise an error */
-  if( machine_current->timex ) {
-    if( !scld_last_dec.name.b1 )
-      scld_dec_write( 0xff, ( scld_last_dec.byte & ~HIRESATTR ) | EXTCOLOUR );
-
-    for( y = 0; y < DISPLAY_HEIGHT; y++ ) {
-      for( x = 0; x < DISPLAY_WIDTH_COLS; x++ ) {
-        RAM[ memory_current_screen ][display_get_addr(x,y) + ALTDFILE_OFFSET] =
-          *(screen.buffer + MONO_BITMAP_SIZE + x + y * DISPLAY_WIDTH_COLS);
-      }
-    }
-  } else
-    ui_error( UI_ERROR_INFO,
-          "The file contained a MLT high-colour screen, loaded as mono");
-
-  memcpy( &RAM[ memory_current_screen ][display_get_addr(0,0)],
-            screen.buffer, MONO_BITMAP_SIZE );
 
   utils_close_file( &screen );
 

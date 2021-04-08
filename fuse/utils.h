@@ -1,6 +1,8 @@
 /* utils.h: some useful helper functions
    Copyright (c) 1999-2012 Philip Kendall
 
+   $Id: utils.h 4738 2012-10-03 13:15:31Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -47,6 +49,8 @@ void utils_close_file( utils_file *file );
 
 int utils_write_file( const char *filename, const unsigned char *buffer,
 		      size_t length );
+int utils_make_temp_file( int *fd, char *tempfilename, const char *filename,
+			  const char *template );
 
 int utils_find_file_path( const char *filename, char *path,
                           utils_aux_type type );
@@ -54,10 +58,6 @@ int utils_find_file_path( const char *filename, char *path,
 int utils_read_screen( const char *filename, utils_file *screen );
 
 char* utils_safe_strdup( const char *src );
-
-int
-utils_save_binary( libspectrum_word start, size_t length,
-                   const char *filename );
 
 void utils_networking_init( void );
 void utils_networking_end( void );

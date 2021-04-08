@@ -18,3 +18,5 @@ Close down the sound card etc.
 void sound_lowlevel_frame( libspectrum_signed_word *data, int len );
 
 Write the 'len' 16-bit items of sound data in 'data' to the sound hardware.
+
+$Id: sound.txt 2287 2004-07-02 14:17:21Z pak21 $

@@ -1,6 +1,8 @@
 /* sdl.c: SDL speed routines for Fuse
    Copyright (c) 1999-2008 Philip Kendall, Marek Januszewski, Fredrick Meunier
 
+   $Id: sdl.c 3934 2009-01-06 13:01:37Z pak21 $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

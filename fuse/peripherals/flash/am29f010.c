@@ -1,7 +1,10 @@
 /* am29f010.c 1Mbit flash chip emulation
+   
    Emulates the AMD 29F010 flash chip
 
-   Copyright (c) 2011-2015 Alistair Cree, Philip Kendall
+   Copyright (c) 2011 Guesser, Philip Kendall
+   
+   $Id: am29f010.c 4785 2012-12-07 23:56:40Z sbaldovi $
    
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -48,13 +51,18 @@ struct flash_am29f010_t {
 flash_am29f010_t*
 flash_am29f010_alloc( void )
 {
-  return libspectrum_new( flash_am29f010_t, 1 );
+  flash_am29f010_t *self = malloc( sizeof( *self ) );
+  if( !self ) {
+    ui_error( UI_ERROR_ERROR, "%s:%d out of memory", __FILE__, __LINE__ );
+    fuse_abort();
+  }
+  return self;
 }
 
 void
 flash_am29f010_free( flash_am29f010_t *self )
 {
-  libspectrum_free( self );
+  free( self );
 }
 
 void

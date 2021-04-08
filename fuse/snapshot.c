@@ -1,6 +1,8 @@
 /* snapshot.c: snapshot handling routines
    Copyright (c) 1999-2012 Philip Kendall
 
+   $Id: snapshot.c 4794 2012-12-25 12:50:49Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -27,7 +29,7 @@
 
 #include "fuse.h"
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "module.h"
 #include "settings.h"
 #include "snapshot.h"
@@ -84,7 +86,6 @@ snapshot_copy_from( libspectrum_snap *snap )
   int error;
   libspectrum_machine machine;
 
-  periph_disable_optional();
   module_snapshot_enabled( snap );
 
   machine = libspectrum_snap_machine( snap );

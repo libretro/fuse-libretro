@@ -1,4 +1,4 @@
-libspectrum 1.5.0
+libspectrum 1.1.1
 =================
 
 libspectrum is a fairly simple library designed to make the handling
@@ -10,8 +10,8 @@ handles:
 * Tape images: .tzx, .tap, .spc, .sta and .ltp (read/write) and
   .pzx, Warajevo .tap, Z80Em and CSW version 1 (read only). 
 * Input recordings: .rzx (read/write).
-* Disk images: .dsk (both plain and extended), .d40, .d80, .fdi, .img, .mgt,
-  .opd, .sad, .scl, .td0, .trd and .udi (identification only).
+* Disk images: .dsk (both plain and extended), .fdi, .sad, .scl, .td0,
+  .trd and .udi (identification only).
 * Timex cartridges: .dck (read only).
 * IDE hard disk images: .hdf (read/write).
 * Microdrive cartridge images: .mdr (read/write).
@@ -276,23 +276,16 @@ the following values:
 
 LIBSPECTRUM_ID_UNKNOWN		Couldn't identify this file
 
-LIBSPECTRUM_ID_AUX_POK		A .pok poke file
-
 LIBSPECTRUM_ID_CARTRIDGE_DCK	A .dck Timex dock image
 LIBSPECTRUM_ID_CARTRIDGE_IF2	A .rom Interface 2 cartridge
 
 LIBSPECTRUM_ID_COMPRESSED_BZ2	A bzip2 compressed file
 LIBSPECTRUM_ID_COMPRESSED_GZ	A gzip compressed file
-LIBSPECTRUM_ID_COMPRESSED_ZIP	A zip compressed file
 
-LIBSPECTRUM_ID_DISK_D80		A .d80 or .d40 Didaktik 80/40 disk file
 LIBSPECTRUM_ID_DISK_DSK		A .dsk +3 disk file
 LIBSPECTRUM_ID_DISK_CPC		A plain .dsk +3 disk file
 LIBSPECTRUM_ID_DISK_ECPC	An extended .dsk +3 disk file
 LIBSPECTRUM_ID_DISK_FDI		A .fdi generic disk file
-LIBSPECTRUM_ID_DISK_IMG		A .img DISCiPLE/+D disk file
-LIBSPECTRUM_ID_DISK_MGT		A .mgt DISCiPLE/+D disk file
-LIBSPECTRUM_ID_DISK_OPD		A .opd or .opu Opus Discovery disk file
 LIBSPECTRUM_ID_DISK_SAD		A .sad generic disk file
 LIBSPECTRUM_ID_DISK_SCL		A .scl TRDOS disk file
 LIBSPECTRUM_ID_DISK_TRD		A .trd TRDOS disk file
@@ -356,13 +349,10 @@ which returns the type of file represented by the `type' parameter in
 
 LIBSPECTRUM_CLASS_UNKNOWN		An unknown file type
 
-LIBSPECTRUM_CLASS_AUXILIARY		An auxiliary file
 LIBSPECTRUM_CLASS_CARTRIDGE_TIMEX	A Timex dock cartridge
 LIBSPECTRUM_CLASS_CARTRIDGE_IF2		An Interface 2 cartridge
-LIBSPECTRUM_CLASS_DISK_DIDAKTIK	A Didaktik 80/40 disk image
 LIBSPECTRUM_CLASS_DISK_GENERIC		A generic disk image
-LIBSPECTRUM_CLASS_DISK_OPUS		An Opus Discovery disk image
-LIBSPECTRUM_CLASS_DISK_PLUSD		A DISCiPLE/+D disk image
+LIBSPECTRUM_CLASS_DISK_PLUSD		An MGT/+D disk image
 LIBSPECTRUM_CLASS_DISK_PLUS3		A +3 disk image
 LIBSPECTRUM_CLASS_DISK_TRDOS		A TRDOS disk image
 LIBSPECTRUM_CLASS_HARDDISK		An IDE hard disk image
@@ -585,9 +575,6 @@ The available properties (along with their types) are:
 * libspectrum_byte out_ay_registerport
 * libspectrum_byte ay_registers[16]
 
-* libspectrum_byte out_scld_hsr
-* libspectrum_byte out_scld_dec
-
 * int interface1_active
 * int interface1_paged
 * int interface1_drive_count
@@ -597,7 +584,6 @@ The available properties (along with their types) are:
 
 * int beta_active
 * int beta_paged
-* int beta_autoboot
 * int beta_drive_count
 * int beta_custom_rom
 * int beta_direction
@@ -639,6 +625,9 @@ The available properties (along with their types) are:
 * libspectrum_byte* opus_rom[1]
 * libspectrum_byte* opus_ram[1]
 
+* libspectrum_byte out_scld_hsr
+* libspectrum_byte out_scld_dec
+
 * int custom_rom
 * size_t custom_rom_pages
 * libspectrum_byte* roms[1]
@@ -671,13 +660,11 @@ The available properties (along with their types) are:
 * int interface2_active
 * libspectrum_byte* interface2_rom[1]
 
-* int dock_active
+* size_t dock_active
 * libspectrum_byte exrom_ram[8]
 * libspectrum_byte* exrom_cart[8]
 * libspectrum_byte dock_ram[8]
 * libspectrum_byte* dock_cart[8]
-
-* int issue2
 
 * size_t joystick_active_count
 * libspectrum_joystick joystick_list[ SNAPSHOT_JOYSTICKS ]
@@ -696,7 +683,6 @@ The available properties (along with their types) are:
 * libspectrum_byte* divide_ram[4]
 
 * int fuller_box_active
-
 * int melodik_active
 
 * int specdrum_active
@@ -705,7 +691,6 @@ The available properties (along with their types) are:
 * int spectranet_active
 * int spectranet_paged
 * int spectranet_paged_via_io
-* int spectranet_nmi_flipflop
 * int spectranet_programmable_trap_active
 * int spectranet_programmable_trap_msb
 * int spectranet_all_traps_disabled
@@ -720,56 +705,7 @@ The available properties (along with their types) are:
 
 * int late_timings
 
-* int zx_printer_active
-
-* int usource_active
-* int usource_paged
-* int usource_custom_rom
-* libspectrum_byte* usource_rom[1]
-* size_t usource_rom_length[1]
-
-* int disciple_active
-* int disciple_paged
-* int disciple_inhibit_button
-* int disciple_drive_count
-* int disciple_custom_rom
-* int disciple_direction
-* libspectrum_byte disciple_control
-* libspectrum_byte disciple_track
-* libspectrum_byte disciple_sector
-* libspectrum_byte disciple_data
-* libspectrum_byte disciple_status
-* libspectrum_byte* disciple_rom[1]
-* size_t disciple_rom_length[1]
-* libspectrum_byte* disciple_ram[1]
-
-* int didaktik80_active;
-* int didaktik80_paged;
-* int didaktik80_drive_count;
-* int didaktik80_custom_rom;
-* int didaktik80_direction;
-* libspectrum_byte didaktik80_aux;
-* libspectrum_byte didaktik80_track;
-* libspectrum_byte didaktik80_sector;
-* libspectrum_byte didaktik80_data;
-* libspectrum_byte didaktik80_status;
-* libspectrum_byte* didaktik80_rom[1];
-* size_t didaktik80_rom_length[1];
-* libspectrum_byte* didaktik80_ram[1];
-
-* int covox_active
-* libspectrum_byte covox_dac
-
-* int multiface_active;
-* int multiface_paged;
-* int multiface_model_one;
-* int multiface_model_128;
-* int multiface_model_3;
-* int multiface_disabled;
-* int multiface_software_lockout;
-* int multiface_red_button_disabled;
-* libspectrum_byte* multiface_ram[1];
-* size_t multiface_ram_length[1];
+* int zx_printer_enabled
 
 Most of those should be fairly self-explanatory; those which may not
 be are:
@@ -795,7 +731,7 @@ be are:
   should use timings 1 t-state later than usual as in some machines
   that have warmed up.
 
-* `zx_printer_active' being non-zero signals that the emulated Spectrum
+* `zx_printer_enabled' being non-zero signals that the emulated Spectrum
   has a ZX Printer connected.
 
 * The `beta_*' functions represent the Betadisk
@@ -1023,7 +959,7 @@ libspectrum_tape_peek_next_block( libspectrum_tape *tape )
 Get the next block on the tape, but don't move the tape along or
 initialise the block.
 
-libspectrum_tape_block LIBSPECTRUM_API *
+libspectrum_tape_block WIN32_DLL *
 libspectrum_tape_peek_last_block( libspectrum_tape *tape )
 
 Get the last block on the tape, but don't move the tape along or
@@ -1056,13 +992,6 @@ libspectrum_tape_iterator_next( libspectrum_tape_iterator *iterator )
 
 Make the already initialised `iterator' point to the next block of
 `tape' and return that block (or NULL if there are no more blocks).
-
-libspectrum_tape_block *
-libspectrum_tape_iterator_peek_next( libspectrum_tape_iterator iterator )
-
-Make the already initialised `iterator' return the next block of
-`tape' (or NULL if there are no more blocks). The position of the `iterator'
-is not modified.
 
 Tape blocks
 -----------
@@ -1109,8 +1038,7 @@ LIBSPECTRUM_TAPE_BLOCK_RLE_PULSE	A run-length encoded list of pulses
 
 The following two blocks are defined in the PZX format
 
-LIBSPECTRUM_TAPE_BLOCK_PULSE_SEQUENCE   A run-length encoded list of pulses
-					with polarity specified
+LIBSPECTRUM_TAPE_BLOCK_PULSE_SEQUENCE   A run-length encoded list of pulses with					polarity specified
 LIBSPECTRUM_TAPE_BLOCK_DATA_BLOCK       A block of data without pilot or sync
 					pulses with bit encoding and polarity
 					specified
@@ -1223,7 +1151,7 @@ size_t count				PURE_TONE
 libspectrum_byte* data			CUSTOM
 					PURE_DATA
 					RAW_DATA
-					ROM
+					ROW
 					TURBO
 					DATA_BLOCK
 
@@ -1898,86 +1826,4 @@ libspectrum_ide_write( libspectrum_ide_channel *chn,
 
 Write `data' to register `reg' of the IDE channel `chn'.
 
-MMC / SD card images
-====================
-
-Libspectrum contains various routines for handling MMC / SD card images. Due
-to the (potential) large size of these files, hard disk images are not handled
-entirely in memory as are the other file types, but require a real file.
-
-Libspectrum re-uses the existing HDF file format for MMC / SD card images, and
-emulates all cards as an SDHC card in SPI mode.
-
-libspectrum_mmc_card*
-libspectrum_mmc_alloc( void )
-
-Allocate a new MMC card image.
-
-void
-libspectrum_mmc_free( libspectrum_mmc_card *card )
-
-Deallocate the MMC card image in `card'.
-
-libspectrum_error
-libspectrum_mmc_insert( libspectrum_mmc_card *card, const char *filename );
-
-Cause the MMC / SD card image in `filename' to be attached to `card'.
-
-void
-libspectrum_mmc_commit( libspectrum_mmc_card *card )
-
-Cause any changes made to the image attached to `card' to be written back to
-the image.
-
-void
-libspectrum_mmc_eject( libspectrum_mmc_card *card )
-
-Cause the image attached to `card' to be detached. Note that any changes made
-to the image will be lost unless `libspectrum_mmc_commit' is called first.
-
-void
-libspectrum_mmc_reset( libspectrum_mmc_card *card )
-
-Reset the card `card'.
-
-int
-libspectrum_mmc_dirty( libspectrum_mmc_card *card )
-
-Returns non-zero if any changes have been made to `card' since
-`libspectrum_mmc_commit' was last called (or when the image was first loaded).
-
-libspectrum_byte
-libspectrum_mmc_read( libspectrum_mmc_card *card )
-
-Read the next byte from the SPI bus for `card'.
-
-void
-libspectrum_mmc_write( libspectrum_mmc_card *card, libspectrum_byte data )
-
-Write the byte `data` to the SPI bus for `card'.
-
-Thread Safety
-=============
-
-libspectrum uses either glib or a libspectrum-supplied alternative as part of
-the implementation of several internal data structures - notably in tape and
-hard disk handling.
-
-When glib is in use, the glib documentation[1] describes the threading support
-as follows:
-
-  GLib itself is internally completely thread-safe (all global data is
-  automatically locked), but individual data structure instances are not
-  automatically locked for performance reasons. For example, you must coordinate
-  accesses to the same GHashTable from multiple threads.
-
-When the glib replacement is in use, there are two modes of thread safety:
-
-1. If the C11 header stdatomic.h is not available there is no locking of data
-    structures, and libspectrum should be considered to not be thread-safe
-    modifying any data structures
-2. If the C11 header stdatomic.h is available the global data used in allocating
-    the list and hash table data structures are locked when changes are being
-    made but individual data structure instances are not automatically locked.
-
-[1] <https://developer.gnome.org/glib/stable/glib-Threads.html>
+$Id: libspectrum.txt 4986 2013-05-24 19:03:20Z zubzero $

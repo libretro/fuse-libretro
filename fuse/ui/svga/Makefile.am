@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2001-2004 Philip Kendall
-## Copyright (c) 2015 Sergio Baldoví
+
+## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -20,28 +21,25 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-if UI_SVGA
+AUTOMAKE_OPTIONS = foreign
 
-fuse_SOURCES += $(ui_svga_files)
+AM_CPPFLAGS = -I$(srcdir)/../..
 
-BUILT_SOURCES += $(ui_svga_built)
+noinst_LIBRARIES = libuisvga.a
 
-endif
+AM_CPPFLAGS += @GLIB_CFLAGS@ @LIBSPEC_CFLAGS@
 
+libuisvga_a_SOURCES = svgadisplay.c \
+		      svgajoystick.c \
+		      svgakeyboard.c \
+		      svgaui.c \
+		      keysyms.c
 
-CLEANFILES += $(ui_svga_built)
+BUILT_SOURCES = keysyms.c
 
-ui_svga_files = \
-                ui/svga/keysyms.c \
-                ui/svga/svgadisplay.c \
-                ui/svga/svgadisplay.h \
-                ui/svga/svgajoystick.c \
-                ui/svga/svgakeyboard.c \
-                ui/svga/svgakeyboard.h \
-                ui/svga/svgaui.c
+keysyms.c: $(srcdir)/../../keysyms.pl $(srcdir)/../../keysyms.dat
+	@PERL@ -I$(srcdir)/../../perl $(srcdir)/../../keysyms.pl svga $(srcdir)/../../keysyms.dat > $@.tmp && mv $@.tmp $@
 
-ui_svga_built = ui/svga/keysyms.c
+noinst_HEADERS = svgadisplay.h svgakeyboard.h
 
-ui/svga/keysyms.c: $(srcdir)/keysyms.pl $(srcdir)/keysyms.dat
-	@$(MKDIR_P) ui/svga
-	$(AM_V_GEN)$(PERL) -I$(srcdir)/perl $(srcdir)/keysyms.pl svga $(srcdir)/keysyms.dat > $@.tmp && mv $@.tmp $@
+CLEANFILES = keysyms.c

@@ -1,5 +1,7 @@
-/* picture.c: GTK routines to draw the keyboard picture
+/* picture.c: GTK+ routines to draw the keyboard picture
    Copyright (c) 2002-2005 Philip Kendall
+
+   $Id: picture.c 4723 2012-07-08 13:26:15Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,119 +25,85 @@
 
 #include <config.h>
 
-#include <gtk/gtk.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
+#include <libspectrum.h>
+
+#include "display.h"
+#include "fuse.h"
 #include "gtkinternals.h"
 #include "ui/ui.h"
 #include "utils.h"
 
+/* An RGB image of the keyboard picture */
+static guchar picture[ DISPLAY_SCREEN_HEIGHT * DISPLAY_ASPECT_WIDTH * 4 ];
+static const gint picture_pitch = DISPLAY_ASPECT_WIDTH * 4;
+
 static int dialog_created = 0;
 
-static GtkWidget *dialog;
-static GdkPixbuf *pixbuf = NULL;
+static void draw_screen( libspectrum_byte *screen, int border );
 
-#if GTK_CHECK_VERSION( 3, 0, 0 )
-
-static GdkPixbuf *scaled_pixbuf = NULL;
+#if !GTK_CHECK_VERSION( 3, 0, 0 )
 
 static gint
-picture_size_allocate( GtkWidget *widget GCC_UNUSED, GdkRectangle *allocation,
-                       gpointer data GCC_UNUSED )
-{
-  float scale_x, scale_y, scale_factor;
-  int scaled_width, scaled_height;
+picture_expose( GtkWidget *widget, GdkEvent *event, gpointer data );
 
-  scale_x = (float)allocation->width / gdk_pixbuf_get_width( pixbuf );
-  scale_y = (float)allocation->height / gdk_pixbuf_get_height( pixbuf );
-  scale_factor = scale_x < scale_y ? scale_x : scale_y;
-
-  scaled_width = gdk_pixbuf_get_width( pixbuf ) * scale_factor;
-  scaled_height = gdk_pixbuf_get_height( pixbuf ) * scale_factor;
-
-  if( scaled_pixbuf != NULL ) g_object_unref( scaled_pixbuf );
-  scaled_pixbuf = gdk_pixbuf_scale_simple( pixbuf, scaled_width, scaled_height,
-                                           GDK_INTERP_BILINEAR );
-
-  return FALSE;
-}
+#else
 
 static gboolean
-picture_draw( GtkWidget *widget, cairo_t *cr, gpointer user_data GCC_UNUSED )
-{
-  int offset_x, offset_y;
-  int scaled_width, scaled_height;
-  int allocated_width, allocated_height;
+picture_draw( GtkWidget *widget, cairo_t *cr, gpointer user_data );
 
-  allocated_width = gtk_widget_get_allocated_width( widget );
-  allocated_height = gtk_widget_get_allocated_height( widget );
+#endif                /* #if !GTK_CHECK_VERSION( 3, 0, 0 ) */
 
-  scaled_width = gdk_pixbuf_get_width( scaled_pixbuf );
-  scaled_height = gdk_pixbuf_get_height( scaled_pixbuf );
-
-  offset_x = ( allocated_width - scaled_width ) / 2;
-  offset_y = ( allocated_height - scaled_height ) / 2;
-
-  gdk_cairo_set_source_pixbuf( cr, scaled_pixbuf, offset_x, offset_y );
-  cairo_paint(cr);
-
-  return FALSE;
-}
-
-#endif                /* #if GTK_CHECK_VERSION( 3, 0, 0 ) */
+static GtkWidget *dialog;
 
 int
-gtkui_picture( const char *filename, int border GCC_UNUSED )
+gtkui_picture( const char *filename, int border )
 {
-  GtkWidget *content_area;
+  utils_file screen;
+
+  GtkWidget *drawing_area, *content_area;
 
   if( !dialog_created ) {
 
-    char path[PATH_MAX];
-
-    if( utils_find_file_path( filename, path, UTILS_AUXILIARY_LIB ) ) return 1;
-
-    pixbuf = gdk_pixbuf_new_from_file( path, NULL );
-    if( pixbuf == NULL ) {
-      ui_error( UI_ERROR_ERROR, "Failed to load keyboard image" );
+    if( utils_read_screen( filename, &screen ) ) {
       return 1;
     }
+
+    draw_screen( screen.buffer, border );
+
+    utils_close_file( &screen );
 
     dialog = gtkstock_dialog_new( "Fuse - Keyboard",
 				  G_CALLBACK( gtk_widget_hide ) );
   
-    content_area = gtk_dialog_get_content_area( GTK_DIALOG( dialog ) );
+    drawing_area = gtk_drawing_area_new();
+    gtk_widget_set_size_request( drawing_area, DISPLAY_ASPECT_WIDTH,
+                                 DISPLAY_SCREEN_HEIGHT );
 
 #if !GTK_CHECK_VERSION( 3, 0, 0 )
+    g_signal_connect( G_OBJECT( drawing_area ),
+		      "expose_event", G_CALLBACK( picture_expose ),
+		      NULL );
+#else
+    g_signal_connect( G_OBJECT( drawing_area ),
+		      "draw", G_CALLBACK( picture_draw ),
+		      NULL );
+#endif                /* #if !GTK_CHECK_VERSION( 3, 0, 0 ) */
 
-    GtkWidget *image = gtk_image_new();
-    gtk_image_set_from_pixbuf( GTK_IMAGE( image ), pixbuf );
-    gtk_container_add( GTK_CONTAINER( content_area ), image );
+    content_area = gtk_dialog_get_content_area( GTK_DIALOG( dialog ) );
+    gtk_container_add( GTK_CONTAINER( content_area ), drawing_area );
+
+    gtkstock_create_close( dialog, NULL, G_CALLBACK( gtk_widget_hide ),
+			   FALSE );
 
     /* Stop users resizing this window */
     gtk_window_set_resizable( GTK_WINDOW( dialog ), FALSE );
-
-#else
-
-    GtkWidget *box = gtk_box_new( GTK_ORIENTATION_VERTICAL, 0 );
-    gtk_container_add( GTK_CONTAINER( content_area ), box );
-
-    GtkWidget *drawing_area = gtk_drawing_area_new();
-    gtk_widget_set_vexpand( drawing_area, TRUE );
-    gtk_box_pack_start( GTK_BOX( box ), drawing_area, TRUE, TRUE, 0 );
-
-    g_signal_connect( G_OBJECT( drawing_area ), "draw",
-                      G_CALLBACK( picture_draw ), NULL );
-    g_signal_connect( G_OBJECT( drawing_area ), "size-allocate",
-                      G_CALLBACK( picture_size_allocate ), NULL );
-
-    gtk_widget_set_size_request( GTK_WIDGET( drawing_area ),
-                                 gdk_pixbuf_get_width( pixbuf ),
-                                 gdk_pixbuf_get_height( pixbuf ) );
-
-#endif                /* #if !GTK_CHECK_VERSION( 3, 0, 0 ) */
-
-    gtkstock_create_close( dialog, NULL, G_CALLBACK( gtk_widget_hide ),
-                           FALSE );
 
     dialog_created = 1;
   }
@@ -144,3 +112,98 @@ gtkui_picture( const char *filename, int border GCC_UNUSED )
 
   return 0;
 }
+
+static void
+draw_screen( libspectrum_byte *screen, int border )
+{
+  int i, x, y, ink, paper;
+  libspectrum_byte attr, data; 
+
+  for( y=0; y < DISPLAY_BORDER_HEIGHT; y++ ) {
+    for( x=0; x < DISPLAY_ASPECT_WIDTH; x++ ) {
+      *(libspectrum_dword*)( picture + y * picture_pitch + 4 * x ) =
+	gtkdisplay_colours[border];
+      *(libspectrum_dword*)(
+          picture +
+	  ( y + DISPLAY_BORDER_HEIGHT + DISPLAY_HEIGHT ) * picture_pitch +
+	  4 * x
+	) = gtkdisplay_colours[ border ];
+    }
+  }
+
+  for( y=0; y<DISPLAY_HEIGHT; y++ ) {
+
+    for( x=0; x < DISPLAY_BORDER_ASPECT_WIDTH; x++ ) {
+      *(libspectrum_dword*)
+	(picture + ( y + DISPLAY_BORDER_HEIGHT) * picture_pitch + 4 * x) =
+	gtkdisplay_colours[ border ];
+      *(libspectrum_dword*)(
+          picture +
+	  ( y + DISPLAY_BORDER_HEIGHT ) * picture_pitch +
+	  4 * ( x+DISPLAY_ASPECT_WIDTH-DISPLAY_BORDER_ASPECT_WIDTH )
+	) = gtkdisplay_colours[ border ];
+    }
+
+    for( x=0; x < DISPLAY_WIDTH_COLS; x++ ) {
+
+      attr = screen[ display_attr_start[y] + x ];
+
+      ink = ( attr & 0x07 ) + ( ( attr & 0x40 ) >> 3 );
+      paper = ( attr & ( 0x0f << 3 ) ) >> 3;
+
+      data = screen[ display_line_start[y]+x ];
+
+      for( i=0; i<8; i++ ) {
+	*(libspectrum_dword*)(
+	    picture +
+	    ( y + DISPLAY_BORDER_HEIGHT ) * picture_pitch +
+	    4 * ( 8 * x + DISPLAY_BORDER_ASPECT_WIDTH + i )
+	  ) = ( data & 0x80 ) ? gtkdisplay_colours[ ink ]
+	                      : gtkdisplay_colours[ paper ];
+	data <<= 1;
+      }
+    }
+
+  }
+}
+
+#if !GTK_CHECK_VERSION( 3, 0, 0 )
+
+static gint
+picture_expose( GtkWidget *widget, GdkEvent *event, gpointer data GCC_UNUSED )
+{
+  int x = event->expose.area.x, y = event->expose.area.y;
+
+  gdk_draw_rgb_32_image( widget->window,
+			 widget->style->fg_gc[ GTK_STATE_NORMAL ],
+			 x, y,
+			 event->expose.area.width, event->expose.area.height,
+			 GDK_RGB_DITHER_NONE,
+			 picture + y * picture_pitch + 4 * x, picture_pitch );
+
+  return TRUE;
+}
+
+#else                /* #if !GTK_CHECK_VERSION( 3, 0, 0 ) */
+
+static gboolean
+picture_draw( GtkWidget *widget, cairo_t *cr, gpointer user_data )
+{
+  cairo_surface_t *surface;
+
+  surface = cairo_image_surface_create_for_data( picture,
+                                                 CAIRO_FORMAT_RGB24,
+                                                 DISPLAY_ASPECT_WIDTH,
+                                                 DISPLAY_SCREEN_HEIGHT,
+                                                 picture_pitch );
+
+  cairo_set_source_surface( cr, surface, 0, 0 );
+  cairo_set_operator( cr, CAIRO_OPERATOR_SOURCE );
+  cairo_paint( cr );
+
+  cairo_surface_destroy( surface );
+
+  return FALSE;
+}
+
+#endif                /* #if !GTK_CHECK_VERSION( 3, 0, 0 ) */

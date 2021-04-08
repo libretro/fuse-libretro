@@ -1,8 +1,7 @@
 /* z80_ops.c: Process the next opcode
    Copyright (c) 1999-2005 Philip Kendall, Witold Filipczyk
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2015 Gergely Szasz
-   Copyright (c) 2015 Sergio Baldoví
+
+   $Id: z80_ops.c 4624 2012-01-09 20:59:35Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,25 +30,20 @@
 #include "debugger/debugger.h"
 #include "event.h"
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "periph.h"
 #include "peripherals/disk/beta.h"
-#include "peripherals/disk/didaktik.h"
 #include "peripherals/disk/disciple.h"
 #include "peripherals/disk/opus.h"
 #include "peripherals/disk/plusd.h"
 #include "peripherals/ide/divide.h"
-#include "peripherals/ide/divmmc.h"
 #include "peripherals/if1.h"
-#include "peripherals/multiface.h"
 #include "peripherals/spectranet.h"
 #include "peripherals/ula.h"
-#include "peripherals/usource.h"
 #include "profile.h"
 #include "rzx.h"
 #include "settings.h"
 #include "slt.h"
-#include "svg.h"
 #include "tape.h"
 #include "z80.h"
 
@@ -60,7 +54,8 @@ static int z80_cbxx( libspectrum_byte opcode2 );
 static int z80_ddxx( libspectrum_byte opcode2 );
 static int z80_edxx( libspectrum_byte opcode2 );
 static int z80_fdxx( libspectrum_byte opcode2 );
-static void z80_ddfdcbxx( libspectrum_byte opcode3 );
+static void z80_ddfdcbxx( libspectrum_byte opcode3,
+			  libspectrum_word tempaddr );
 #endif				/* #ifndef HAVE_ENOUGH_MEMORY */
 
 /* Certain features (eg RZX playback trigged interrupts, the debugger,
@@ -115,7 +110,6 @@ z80_do_opcodes( void )
 #ifdef HAVE_ENOUGH_MEMORY
   libspectrum_byte opcode = 0x00;
 #endif
-  libspectrum_byte last_Q;
 
   int even_m1 =
     machine_current->capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_EVEN_M1; 
@@ -191,36 +185,10 @@ z80_do_opcodes( void )
 
     END_CHECK
 
-    CHECK( didaktik80, didaktik80_available )
-
-    if( PC == 0x0000 || PC == 0x0008 ) {
-      didaktik80_page();
-    } else if( PC == 0x1700 ) {
-      didaktik80_unpage();
-    }
-
-    END_CHECK
-
     CHECK( disciple, disciple_available )
 
     if( PC == 0x0001 || PC == 0x0008 || PC == 0x0066 || PC == 0x028e ) {
       disciple_page();
-    }
-
-    END_CHECK
-
-    CHECK( usource, usource_available )
-
-    if( PC == 0x2bae ) {
-      usource_toggle();
-    }
-
-    END_CHECK
-
-    CHECK( multiface, multiface_activated )
-
-    if( PC == 0x0066 ) {
-      multiface_setic8();
     }
 
     END_CHECK
@@ -237,14 +205,6 @@ z80_do_opcodes( void )
     
     if( ( PC & 0xff00 ) == 0x3d00 ) {
       divide_set_automap( 1 );
-    }
-    
-    END_CHECK
-
-    CHECK( divmmc_early, settings_current.divmmc_enabled )
-    
-    if( ( PC & 0xff00 ) == 0x3d00 ) {
-      divmmc_set_automap( 1 );
     }
     
     END_CHECK
@@ -267,11 +227,7 @@ z80_do_opcodes( void )
     /* Check to see if M1 cycles happen on even tstates */
     CHECK( evenm1, even_m1 )
 
-    if( tstates & 1 ) {
-      if( ++tstates == event_next_event ) {
-	break;
-      }
-    }
+    if( tstates & 1 ) tstates++;
 
     END_CHECK
 
@@ -299,17 +255,6 @@ z80_do_opcodes( void )
     
     END_CHECK
 
-    CHECK( divmmc_late, settings_current.divmmc_enabled )
-
-    if( ( PC & 0xfff8 ) == 0x1ff8 ) {
-      divmmc_set_automap( 0 );
-    } else if( (PC == 0x0000) || (PC == 0x0008) || (PC == 0x0038)
-      || (PC == 0x0066) || (PC == 0x04c6) || (PC == 0x0562) ) {
-      divmmc_set_automap( 1 );
-    }
-    
-    END_CHECK
-
     CHECK( opus, opus_available )
 
     if( opus_active ) {
@@ -329,36 +274,10 @@ z80_do_opcodes( void )
 
     END_CHECK
 
-    CHECK( z80_iff2_read, z80.iff2_read )
-
-    z80.iff2_read = 0;
-    /* Execute *one* instruction before reevaluating the checks */
-    event_add( tstates, z80_nmos_iff2_event );
-
-    END_CHECK
-
-    CHECK( didaktik80snap, didaktik80_snap )
-
-    if( PC == 0x0066 && !didaktik80_active ) {
-      opcode = 0xc7;	/* RST 00 */
-      didaktik80_snap = 0; /* FIXME: this should be a time-based reset */
-    }
-
-    END_CHECK
-
-    CHECK( svg_capture, svg_capture_active )
-
-    svg_capture();
-
-    END_CHECK
-
   end_opcode:
     PC++; R++;
-    last_Q = Q; /* keep Q value from previous opcode for SCF and CCF */
-    Q = 0;      /* preempt Q value assuming next opcode doesn't set flags */
-
     switch(opcode) {
-#include "z80/opcodes_base.c"
+#include "opcodes_base.c"
     }
 
   }
@@ -371,7 +290,7 @@ static int
 z80_cbxx( libspectrum_byte opcode2 )
 {
   switch(opcode2) {
-#include "z80/z80_cb.c"
+#include "z80_cb.c"
   }
   return 0;
 }
@@ -383,7 +302,7 @@ z80_ddxx( libspectrum_byte opcode2 )
 #define REGISTER  IX
 #define REGISTERL IXL
 #define REGISTERH IXH
-#include "z80/z80_ddfd.c"
+#include "z80_ddfd.c"
 #undef REGISTERH
 #undef REGISTERL
 #undef REGISTER
@@ -395,7 +314,7 @@ static int
 z80_edxx( libspectrum_byte opcode2 )
 {
   switch(opcode2) {
-#include "z80/z80_ed.c"
+#include "z80_ed.c"
   }
   return 0;
 }
@@ -407,7 +326,7 @@ z80_fdxx( libspectrum_byte opcode2 )
 #define REGISTER  IY
 #define REGISTERL IYL
 #define REGISTERH IYH
-#include "z80/z80_ddfd.c"
+#include "z80_ddfd.c"
 #undef REGISTERH
 #undef REGISTERL
 #undef REGISTER
@@ -416,10 +335,10 @@ z80_fdxx( libspectrum_byte opcode2 )
 }
 
 static void
-z80_ddfdcbxx( libspectrum_byte opcode3 )
+z80_ddfdcbxx( libspectrum_byte opcode3, libspectrum_word tempaddr )
 {
   switch(opcode3) {
-#include "z80/z80_ddfdcb.c"
+#include "z80_ddfdcb.c"
   }
 }
 

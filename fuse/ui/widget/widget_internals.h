@@ -1,6 +1,7 @@
 /* widget_internals.h: Functions internal to the widget code
    Copyright (c) 2001-2005 Matan Ziv-Av, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: widget_internals.h 4968 2013-05-19 16:11:17Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -69,11 +70,7 @@ void widget_draw_line_vert( int x, int y, int length, int colour );
 void widget_draw_rectangle_outline( int x, int y, int w, int h, int colour );
 void widget_draw_rectangle_solid( int x, int y, int w, int h, int colour );
 void widget_draw_rectangle_outline_rounded( int x, int y, int w, int h, int colour );
-int widget_printstring1( int x, int y, int col, const char *s, int ms );
-#define widget_printstring( x, y, col, s ) \
-          widget_printstring1( x, y, col, s, 0 )
-#define widget_printstring_ms( x, y, col, s ) \
-          widget_printstring1( x, y, col, s, 1 )
+int widget_printstring( int x, int y, int col, const char *s );
 int widget_printstring_fixed( int x, int y, int col, const char *s );
 void widget_printchar_fixed( int x, int y, int col, int c );
 void widget_print_title( int y, int col, const char *s );
@@ -165,7 +162,7 @@ scaler_type widget_select_scaler( int (*selector)( scaler_type ) );
 typedef struct widget_select_t {
 
   const char *title;	/* Dialog title */
-  const char * const *options;	/* The available options */
+  const char **options;	/* The available options */
   size_t count;		/* The number of options */
   size_t current;	/* Which option starts active? */
 
@@ -196,7 +193,6 @@ typedef enum widget_text_input_allow {
 typedef struct widget_text_t {
   const char *title;
   widget_text_input_allow allow; 
-  unsigned int max_length;
   char text[40];
 } widget_text_t;
 
@@ -235,11 +231,6 @@ void widget_pokefinder_keyhandler( input_key key );
 int widget_memory_draw( void *data );
 void widget_memory_keyhandler( input_key key );
 
-/* The about fuse widget */
-
-int widget_about_draw( void *data );
-void widget_about_keyhandler( input_key key );
-
 /* The ROM selector widget */
 
 typedef struct widget_roms_info {
@@ -248,7 +239,6 @@ typedef struct widget_roms_info {
 
   const char *title;
   size_t start, count;
-  int is_peripheral;
 
 } widget_roms_info;
 
@@ -270,10 +260,6 @@ void widget_query_keyhandler( input_key key );
 int widget_query_save_draw( void *data );
 void widget_query_save_keyhandler( input_key key );
 int widget_query_finish( widget_finish_state finished );
-
-int widget_binary_draw( void *data );
-void widget_binary_keyhandler( input_key key );
-int widget_binary_finish( widget_finish_state finished );
 
 /* The widgets actually available */
 

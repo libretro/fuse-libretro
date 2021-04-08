@@ -1,6 +1,8 @@
 /* win32display.c: Routines for dealing with the Win32 GDI display
    Copyright (c) 2003 Philip Kendall, Marek Januszewski, Stuart Brady
 
+   $Id: win32display.c 4729 2012-07-16 13:29:47Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -53,9 +55,9 @@ static unsigned char rgb_image[ 4 * 2 * ( DISPLAY_SCREEN_HEIGHT + 4 ) *
 static const int rgb_pitch = ( DISPLAY_SCREEN_WIDTH + 3 ) * 4;
 
 /* The scaled image */
-static unsigned char scaled_image[ MAX_SCALE * DISPLAY_SCREEN_HEIGHT *
-                                   MAX_SCALE * DISPLAY_SCREEN_WIDTH * 2 ];
-static const ptrdiff_t scaled_pitch = MAX_SCALE * DISPLAY_SCREEN_WIDTH * 2;
+static unsigned char scaled_image[ 3 * DISPLAY_SCREEN_HEIGHT *
+                                   6 * DISPLAY_SCREEN_WIDTH ];
+static const ptrdiff_t scaled_pitch = 6 * DISPLAY_SCREEN_WIDTH;
 
 /* Win32 specific variables */
 static void *win32_pixdata;
@@ -140,9 +142,9 @@ win32display_init( void )
 
   memset( &fuse_BMI, 0, sizeof( fuse_BMI ) );
   fuse_BMI.bmiHeader.biSize = sizeof( fuse_BMI.bmiHeader );
-  fuse_BMI.bmiHeader.biWidth = (size_t)( 0.5 * MAX_SCALE * DISPLAY_SCREEN_WIDTH );
+  fuse_BMI.bmiHeader.biWidth = (size_t)( 1.5 * DISPLAY_SCREEN_WIDTH );
   /* negative to avoid "shep-mode": */
-  fuse_BMI.bmiHeader.biHeight = -( MAX_SCALE * DISPLAY_SCREEN_HEIGHT );
+  fuse_BMI.bmiHeader.biHeight = -( 3 * DISPLAY_SCREEN_HEIGHT );
   fuse_BMI.bmiHeader.biPlanes = 1;
   fuse_BMI.bmiHeader.biBitCount = 32;
   fuse_BMI.bmiHeader.biCompression = BI_RGB;
@@ -259,20 +261,15 @@ register_scalers( int force_scaler )
     scaler_register( SCALER_HALFSKIP );
     scaler_register( SCALER_TIMEXTV );
     scaler_register( SCALER_TIMEX1_5X );
-    scaler_register( SCALER_TIMEX2X );
   } else {
     scaler_register( SCALER_DOUBLESIZE );
     scaler_register( SCALER_TRIPLESIZE );
-    scaler_register( SCALER_QUADSIZE );
     scaler_register( SCALER_TV2X );
     scaler_register( SCALER_TV3X );
-    scaler_register( SCALER_TV4X );
     scaler_register( SCALER_PALTV2X );
     scaler_register( SCALER_PALTV3X );
-    scaler_register( SCALER_PALTV4X );
     scaler_register( SCALER_HQ2X );
     scaler_register( SCALER_HQ3X );
-    scaler_register( SCALER_HQ4X );
     scaler_register( SCALER_ADVMAME2X );
     scaler_register( SCALER_ADVMAME3X );
     scaler_register( SCALER_2XSAI );
@@ -294,9 +291,6 @@ register_scalers( int force_scaler )
       break;
     case 3: scaler = machine_current->timex ? SCALER_TIMEX1_5X :
                                               SCALER_TRIPLESIZE;
-      break;
-    case 4: scaler = machine_current->timex ? SCALER_TIMEX2X :
-                                              SCALER_QUADSIZE;
       break;
     }
   }

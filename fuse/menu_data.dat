@@ -1,5 +1,7 @@
 # menu_data.dat: Menu structure for Fuse
-# Copyright (c) 2004-2018 Philip Kendall, Alistair Cree
+# Copyright (c) 2004 Philip Kendall
+
+# $Id: menu_data.dat 4841 2013-01-02 01:55:24Z zubzero $
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,39 +27,23 @@ File/_Save Snapshot..., Item, F2
 
 File/_Recording, Branch
 File/Recording/_Record..., Item
-File/Recording/Record from s_napshot..., Item
-File/Recording/_Continue recording..., Item
-File/Recording/separator, Separator
+File/Recording/Record _from snapshot..., Item
 File/Recording/_Insert snapshot, Item, Insert
 File/Recording/Roll_back, Item, Delete
-#ifndef USE_WIDGET
 File/Recording/Rollback _to..., Item
-#endif
-File/Recording/separator, Separator
 File/Recording/_Play..., Item
 File/Recording/_Stop, Item
-File/Recording/_Finalise..., Item
 
 File/A_Y Logging, Branch
 File/AY Logging/_Record..., Item
 File/AY Logging/_Stop, Item
 
 File/separator, Separator
-File/S_creenshot, Branch
-File/Screenshot/O_pen SCR Screenshot..., Item
-File/Screenshot/S_ave Screen as SCR..., Item
-File/Screenshot/Op_en MLT Screenshot..., Item
-File/Screenshot/Sa_ve Screen as MLT..., Item
+File/O_pen SCR Screenshot..., Item
+File/S_ave Screen as SCR..., Item
 
 #ifdef USE_LIBPNG
-File/Screenshot/Save S_creen as PNG..., Item
-#endif
-
-#ifdef HAVE_LIB_XML2
-File/Scalable _Vector Graphics, Branch
-File/Scalable Vector Graphics/Start capture in _line mode..., Item
-File/Scalable Vector Graphics/Start capture in _dot mode..., Item
-File/Scalable Vector Graphics/_Stop capture, Item
+File/Save S_creen as PNG..., Item
 #endif
 
 File/_Movie, Branch
@@ -67,16 +53,17 @@ File/Movie/_Pause, Item
 File/Movie/_Continue, Item,, menu_file_movie_pause
 File/Movie/_Stop, Item
 
+#ifndef USE_WIDGET
 File/separator, Separator
 File/Loa_d binary data..., Item
 File/Save _binary data..., Item
+#endif
 
 File/separator, Separator
 File/E_xit..., Item, F10
 
 _Options, Branch
 Options/_General..., Item, F4
-Options/_Media..., Item
 Options/_Sound..., Item
 
 Options/_Peripherals, Branch
@@ -94,37 +81,27 @@ Options/Joysticks/Joystick _2..., Item,, menu_options_joysticks_select, menu_joy
 Options/Joysticks/_Keyboard..., Item,, menu_options_joysticks_select, menu_keyboard_joystick_detail, 3
 
 Options/S_elect ROMs, Branch
-
-Options/Select ROMs/_Machine ROMs, Branch
-Options/Select ROMs/Machine ROMs/Spectrum 1_6K..., Item,, menu_options_selectroms_machine_select,, 1
-Options/Select ROMs/Machine ROMs/Spectrum _48K..., Item,, menu_options_selectroms_machine_select,, 2
-Options/Select ROMs/Machine ROMs/Spectrum _128K..., Item,, menu_options_selectroms_machine_select,, 3
-Options/Select ROMs/Machine ROMs/Spectrum +_2..., Item,, menu_options_selectroms_machine_select,, 4
-Options/Select ROMs/Machine ROMs/Spectrum +2_A..., Item,, menu_options_selectroms_machine_select,, 5
-Options/Select ROMs/Machine ROMs/Spectrum +_3..., Item,, menu_options_selectroms_machine_select,, 6
-Options/Select ROMs/Machine ROMs/Spectrum +3_e..., Item,, menu_options_selectroms_machine_select,, 7
-Options/Select ROMs/Machine ROMs/Timex _TC2048..., Item,, menu_options_selectroms_machine_select,, 8
-Options/Select ROMs/Machine ROMs/Timex TC206_8..., Item,, menu_options_selectroms_machine_select,, 9
-Options/Select ROMs/Machine ROMs/Ti_mex TS2068..., Item,, menu_options_selectroms_machine_select,, 10
-Options/Select ROMs/Machine ROMs/_Pentagon 128K..., Item,, menu_options_selectroms_machine_select,, 11
-Options/Select ROMs/Machine ROMs/Pe_ntagon 512K..., Item,, menu_options_selectroms_machine_select,, 12
-Options/Select ROMs/Machine ROMs/Penta_gon 1024K..., Item,, menu_options_selectroms_machine_select,, 13
-Options/Select ROMs/Machine ROMs/S_corpion ZS 256..., Item,, menu_options_selectroms_machine_select,, 14
-Options/Select ROMs/Machine ROMs/Spectrum _SE..., Item,, menu_options_selectroms_machine_select,, 15
-
-Options/Select ROMs/_Peripheral ROMs, Branch
-Options/Select ROMs/Peripheral ROMs/_Interface 1..., Item,, menu_options_selectroms_peripheral_select,, 1
-Options/Select ROMs/Peripheral ROMs/_Beta 128..., Item,, menu_options_selectroms_peripheral_select,, 2
-Options/Select ROMs/Peripheral ROMs/+_D..., Item,, menu_options_selectroms_peripheral_select,, 3
-Options/Select ROMs/Peripheral ROMs/Didaktik _80..., Item,, menu_options_selectroms_peripheral_select,, 4
-Options/Select ROMs/Peripheral ROMs/DISCiP_LE..., Item,, menu_options_selectroms_peripheral_select,, 5
-Options/Select ROMs/Peripheral ROMs/Mu_ltiface One..., Item,, menu_options_selectroms_peripheral_select,, 6
-Options/Select ROMs/Peripheral ROMs/Multiface _128..., Item,, menu_options_selectroms_peripheral_select,, 7
-Options/Select ROMs/Peripheral ROMs/Multiface _3..., Item,, menu_options_selectroms_peripheral_select,, 8
-Options/Select ROMs/Peripheral ROMs/_Opus Discovery..., Item,, menu_options_selectroms_peripheral_select,, 9
-Options/Select ROMs/Peripheral ROMs/Specc_yBoot..., Item,, menu_options_selectroms_peripheral_select,, 10
-Options/Select ROMs/Peripheral ROMs/TT_X2000S..., Item,, menu_options_selectroms_peripheral_select,, 11
-Options/Select ROMs/Peripheral ROMs/_uSource..., Item,, menu_options_selectroms_peripheral_select,, 12
+Options/Select ROMs/Spectrum 1_6K..., Item,, menu_options_selectroms_select,, 1
+Options/Select ROMs/Spectrum _48K..., Item,, menu_options_selectroms_select,, 2
+Options/Select ROMs/Spectrum _128K..., Item,, menu_options_selectroms_select,, 3
+Options/Select ROMs/Spectrum +_2..., Item,, menu_options_selectroms_select,, 4
+Options/Select ROMs/Spectrum +2_A..., Item,, menu_options_selectroms_select,, 5
+Options/Select ROMs/Spectrum +_3..., Item,, menu_options_selectroms_select,, 6
+Options/Select ROMs/Spectrum +3_e..., Item,, menu_options_selectroms_select,, 7
+Options/Select ROMs/Timex _TC2048..., Item,, menu_options_selectroms_select,, 8
+Options/Select ROMs/Timex TC206_8..., Item,, menu_options_selectroms_select,, 9
+Options/Select ROMs/Ti_mex TS2068..., Item,, menu_options_selectroms_select,, 10
+Options/Select ROMs/_Pentagon 128K..., Item,, menu_options_selectroms_select,, 11
+Options/Select ROMs/Pe_ntagon 512K..., Item,, menu_options_selectroms_select,, 12
+Options/Select ROMs/Penta_gon 1024K..., Item,, menu_options_selectroms_select,, 13
+Options/Select ROMs/S_corpion ZS 256..., Item,, menu_options_selectroms_select,, 14
+Options/Select ROMs/Spectrum _SE..., Item,, menu_options_selectroms_select,, 15
+Options/Select ROMs/_Interface 1..., Item,, menu_options_selectroms_select,, 16
+Options/Select ROMs/_Beta 128..., Item,, menu_options_selectroms_select,, 17
+Options/Select ROMs/+_D..., Item,, menu_options_selectroms_select,, 18
+Options/Select ROMs/DISCiP_LE..., Item,, menu_options_selectroms_select,, 19
+Options/Select ROMs/_Opus Discovery..., Item,, menu_options_selectroms_select,, 20
+Options/Select ROMs/Specc_yBoot..., Item,, menu_options_selectroms_select,, 21
 
 Options/_Filter..., Item,,, menu_filter_detail
 
@@ -156,8 +133,6 @@ Machine/Profiler/_Start, Item
 Machine/Profiler/_Stop, Item
 
 Machine/_NMI, Item
-Machine/Multiface Red _Button, Item
-Machine/Didaktik SNA_P, Item
 
 M_edia, Branch
 
@@ -421,32 +396,6 @@ Media/Disk/Opus/Drive 2/Write _protect, Branch
 Media/Disk/Opus/Drive 2/Write protect/_Enable, Item,, menu_media_writeprotect,, 0x142
 Media/Disk/Opus/Drive 2/Write protect/_Disable, Item,, menu_media_writeprotect,, 0x042
 
-Media/Disk/_Didaktik 80, Branch
-Media/Disk/Didaktik 80/Drive _A, Branch,,,menu_didaktik_a_detail
-Media/Disk/Didaktik 80/Drive A/Insert _New, Item,, menu_media_insert_new,, 0x61
-Media/Disk/Didaktik 80/Drive A/_Insert..., Item,, menu_media_insert,, 0x61
-Media/Disk/Didaktik 80/Drive A/_Eject, Item,, menu_media_eject,, 0x61
-Media/Disk/Didaktik 80/Drive A/_Save, Item,, menu_media_save,, 0x061
-Media/Disk/Didaktik 80/Drive A/Save _As..., Item,, menu_media_save,, 0x161
-Media/Disk/Didaktik 80/Drive A/_Flip disk, Branch
-Media/Disk/Didaktik 80/Drive A/Flip disk/Turn _upside down, Item,, menu_media_flip,, 0x161
-Media/Disk/Didaktik 80/Drive A/Flip disk/Turn _back, Item,, menu_media_flip,, 0x061
-Media/Disk/Didaktik 80/Drive A/Write _protect, Branch
-Media/Disk/Didaktik 80/Drive A/Write protect/_Enable, Item,, menu_media_writeprotect,, 0x161
-Media/Disk/Didaktik 80/Drive A/Write protect/_Disable, Item,, menu_media_writeprotect,, 0x061
-Media/Disk/Didaktik 80/Drive _B, Branch,,,menu_didaktik_b_detail
-Media/Disk/Didaktik 80/Drive B/Insert _New, Item,, menu_media_insert_new,, 0x62
-Media/Disk/Didaktik 80/Drive B/_Insert..., Item,, menu_media_insert,, 0x62
-Media/Disk/Didaktik 80/Drive B/_Eject, Item,, menu_media_eject,, 0x62
-Media/Disk/Didaktik 80/Drive B/_Save, Item,, menu_media_save,, 0x062
-Media/Disk/Didaktik 80/Drive B/Save _As..., Item,, menu_media_save,, 0x162
-Media/Disk/Didaktik 80/Drive B/_Flip disk, Branch
-Media/Disk/Didaktik 80/Drive B/Flip disk/Turn _upside down, Item,, menu_media_flip,, 0x162
-Media/Disk/Didaktik 80/Drive B/Flip disk/Turn _back, Item,, menu_media_flip,, 0x062
-Media/Disk/Didaktik 80/Drive B/Write _protect, Branch
-Media/Disk/Didaktik 80/Drive B/Write protect/_Enable, Item,, menu_media_writeprotect,, 0x162
-Media/Disk/Didaktik 80/Drive B/Write protect/_Disable, Item,, menu_media_writeprotect,, 0x062
-
 Media/_Cartridge, Branch
 Media/Cartridge/_Timex Dock, Branch
 Media/Cartridge/Timex Dock/_Insert..., Item
@@ -491,16 +440,6 @@ Media/IDE/DivIDE/_Slave, Branch
 Media/IDE/DivIDE/Slave/_Insert..., Item,, menu_media_ide_insert,, 7
 Media/IDE/DivIDE/Slave/_Commit, Item,, menu_media_ide_commit,, 7
 Media/IDE/DivIDE/Slave/_Eject, Item,, menu_media_ide_eject,, 7
-
-Media/IDE/_DivMMC, Branch
-Media/IDE/DivMMC/_Insert..., Item,, menu_media_ide_insert,, 8
-Media/IDE/DivMMC/_Commit, Item,, menu_media_ide_commit,, 8
-Media/IDE/DivMMC/_Eject, Item,, menu_media_ide_eject,, 8
-
-Media/IDE/_ZXMMC, Branch
-Media/IDE/ZXMMC/_Insert..., Item,, menu_media_ide_insert,, 9
-Media/IDE/ZXMMC/_Commit, Item,, menu_media_ide_commit,, 9
-Media/IDE/ZXMMC/_Eject, Item,, menu_media_ide_eject,, 9
 
 _Help, Branch
 Help/_Keyboard..., Item

@@ -1,5 +1,7 @@
 /* confirm.c: Confirmation dialog box
-   Copyright (c) 2000-2015 Philip Kendall, Russell Marks
+   Copyright (c) 2000-2003 Philip Kendall, Russell Marks
+
+   $Id: confirm.c 4962 2013-05-19 05:25:15Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -60,8 +62,6 @@ gtkui_confirm( const char *string )
   gtkstock_create_ok_cancel( dialog, NULL, G_CALLBACK( set_confirmed ),
                              &confirm, DEFAULT_DESTROY, DEFAULT_DESTROY );
 
-  gtk_dialog_set_default_response( GTK_DIALOG( dialog ), GTK_RESPONSE_CANCEL );
-
   gtk_widget_show_all( dialog );
   gtk_main();
 
@@ -98,15 +98,14 @@ ui_confirm_save_specific( const char *message )
 
   {
     static gtkstock_button btn[] = {
-      { "_No", G_CALLBACK( set_dont_save ), NULL, DEFAULT_DESTROY, 0, 0, 0, 0, GTK_RESPONSE_NO },
-      { "_Cancel", NULL, NULL, DEFAULT_DESTROY, GDK_KEY_Escape, 0, 0, 0, GTK_RESPONSE_CANCEL },
-      { "_Save", G_CALLBACK( set_save ), NULL, DEFAULT_DESTROY, 0, 0, 0, 0, GTK_RESPONSE_YES }
+      { GTK_STOCK_NO, G_CALLBACK( set_dont_save ), NULL, DEFAULT_DESTROY, 0, 0, GDK_KEY_VoidSymbol, 0 }, /* override Escape */
+      { GTK_STOCK_CANCEL, NULL, NULL, DEFAULT_DESTROY, 0, 0, 0, 0 },
+      { GTK_STOCK_SAVE, G_CALLBACK( set_save ), NULL, DEFAULT_DESTROY, 0, 0, 0, 0 }
     };
     btn[0].actiondata = btn[2].actiondata = &confirm;
-    gtkstock_create_buttons( dialog, NULL, btn, ARRAY_SIZE( btn ) );
+    gtkstock_create_buttons( dialog, NULL, btn,
+			     sizeof( btn ) / sizeof( btn[0] ) );
   }
-
-  gtk_dialog_set_default_response( GTK_DIALOG( dialog ), GTK_RESPONSE_CANCEL );
 
   gtk_widget_show_all( dialog );
   gtk_main();

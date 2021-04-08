@@ -1,5 +1,7 @@
 /* printer.h: Printer support
-   Copyright (c) 2001-2016 Ian Collier, Russell Marks, Philip Kendall
+   Copyright (c) 2001-2004 Ian Collier, Russell Marks, Philip Kendall
+
+   $Id: printer.h 4635 2012-01-19 23:39:04Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +32,7 @@ void printer_frame( void );
 void printer_serial_write( libspectrum_byte b );
 void printer_parallel_strobe_write( int on );
 void printer_parallel_write( libspectrum_word port, libspectrum_byte b );
-void printer_register_startup( void );
+void printer_init( void );
+void printer_end( void );
 
 #endif				/* #ifndef FUSE_PRINTER_H */

@@ -1,6 +1,8 @@
 /* pokemem.h: help with handling pokes
    Copyright (c) 2011 Philip Kendall, Sergio Baldoví
 
+   $Id: pokemem.h 4769 2012-11-22 12:42:08Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

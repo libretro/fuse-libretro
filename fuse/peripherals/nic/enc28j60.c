@@ -7,7 +7,9 @@
    ENC28J60 data sheet:
      http://www.microchip.com/wwwproducts/Devices.aspx?dDocName=en022889
 
-   Copyright (c) 2009-2015 Patrik Persson, Philip Kendall
+   Copyright (c) 2009-2010 Patrik Persson, Philip Kendall
+   
+   $Id: enc28j60.c 4691 2012-05-06 06:32:08Z fredm $
    
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,7 +31,7 @@
  
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -135,8 +137,11 @@ struct nic_enc28j60_t {
 nic_enc28j60_t*
 nic_enc28j60_alloc( void )
 {
-  nic_enc28j60_t *self = libspectrum_new( nic_enc28j60_t, 1 );
-
+  nic_enc28j60_t *self = malloc( sizeof( *self ) );
+  if( !self ) {
+    ui_error( UI_ERROR_ERROR, "%s:%d out of memory", __FILE__, __LINE__ );
+    fuse_abort();
+  }
   self->tap_fd = -1;
   self->spi_state = SPI_IDLE;
   return self;
@@ -151,7 +156,7 @@ nic_enc28j60_init( nic_enc28j60_t *self )
 void
 nic_enc28j60_free( nic_enc28j60_t *self )
 {
-  libspectrum_free( self );
+  free( self );
 }
 
 /* Poll for received frames. */

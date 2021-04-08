@@ -1,0 +1,956 @@
+hacking/ChangeLog: the small scale changelog for libspectrum
+
+20030503 completely encapsulate the libspectrum_snap structure
+20030505 sna.c: set libspectrum_snap_out_ula
+20030506 Support for reading Warajevo .tap files (Fred)
+20030506 tape.c: fix typo in 'not a tape file message' (Fred)
+20030512 libspectrum.c: add signature for .scl files (Fred)
+20030513 libspectrum.c, libspectrum.h.in: add libspectrum_identify_class()
+20030518 Add support for reading +D snapshots
+20030518 Add support for reading .zxs snapshots
+20030518 snapshot.c: must allocate 3 separate chunks in
+         _split_to_48k_pages as we free them separately
+20030520 Support for reading .snp snapshots
+20030521 Support for reading .sp snapshots
+20030525 dck.c: separate the dock page size out into a constant
+20030525 timings.c: timing fix for TC2048 and TC2068 (Fred)
+20030525 Bump version number to 0.2.0pre1
+20030525 Create tag libspectrum_0_2_0pre1
+20030607 Add very basic read support for .szx snapshots
+20030610 Bring .szx support up to the current v1.1 draft
+20030610 Add 'halted' member to the libspectrum_snap structure
+20030610 szx.c: set the Z80 halted state
+20030610 Deprecate the old snapshot read and write functions. Add new
+	 generic snapshot write function.
+20030611 Add ability to write .szx files
+20030611 szx.c: add compression for RAM pages
+20030612 Add libspectrum_creator structure
+20030613 Make libspectrum_snap_write take a creator argument
+20030615 Add support for writing .sna snapshots. Fix reading of 128K
+	 .sna snapshots.
+20030616 Add capabilities for the Timex dock and built-in Sinclair joysticks
+20030625 Add option not to compress snapshots when written
+20030703 If <stdint.h> is available, use it to define our integral types.
+	 Defined the full set of (un)signed 8, 16, 32 and 64-bit types
+20030711 Add libspectrum_tape_block accessor functions
+20030715 Add 'set' functions for libspectrum_tape_block
+20030717 Fully encapsulate libspectrum_tape_block
+20030719 Encapsulate the libspectrum_tape structure
+20030722 Sync digital signatures branch (libspectrum_0_1_0pre1-crypto-branch)
+	 with the current HEAD at libspectrum_0_1_0pre1-crypto-branch-1
+20030723 rzx.c: Use block IDs 0x20 and 0x21 for the signature blocks
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030725 z80.c: ensure that out_plus3memoryport is always initialised
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030731 z80.c: ensure that snap.halted is always reset when loading
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030804 Allow 'off-line' signature verification
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030804 rzx.c: use the newly agreed signature format
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030806 crypto.c: use the new hash data format
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030806 crypto.c: separate out 'get signature parameters' and
+	 'serialise signature parameters' into two functions
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030811 rzx.c: skip links to external snapshots
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030812 add support for RZX competition codes
+	 (libspectrum_0_1_0pre1-crypto-branch)
+20030813 Merge the digitial signatures branch (at
+	 libspectrum_0_1_0pre1-crypto-branch-2) onto HEAD (at
+	 libspectrum_0_2_0pre1-merge-1)
+20030813 libspectrum.c: improve gcrypt initialisation code
+20030814 Set sensible defaults for all fields of libspectrum_snap on
+	 allocation, rather than forcing every snapshot load routine
+	 to set these.
+20030817 Add capability for Kempston joystick ports
+20030817 szx.c: add SCLD block to contain Timex SCLD registers (Fred)
+20030821 rzx.c: allocate memory for the competition code
+20030821 rzx.c: fix memory links (thanks, valgrind)
+20030822 crypto.c, libspectrum.h.in: add libspectrum_signature_free()
+20030824 rzx.c: small valgrind-related tidyups
+20030901 libspectrum.c: define MIN_GCRYPT_VERSION iff it's going to be
+	 used
+20030908 ChangeLog: add release date of 0.1.1.
+20030908 ChangeLog: bring up to date.
+20030912 doc/libspectrum.txt: bring general and snapshot routine
+         documentation up to date.
+20030912 doc/libspectrum.txt: document the RZX digital signature routines.
+20030912 libspectrum.h.in, z80.c: move libspectrum_slt_type from
+         libspectrum.h.in to z80.c.
+20030912 doc/libspectrum.txt: document the tape routines.
+20030912 ChangeLog, README: small doc updates for the 0.2.0 release.
+20030913 Makefile.am: distribute generate.pl.in, tape_accessors.pl,
+	 tape_set.pl and tape_block.h.
+20030918 rzx.c: if count is zero in libspectrum_rzx_store_frame, don't
+	 try to allocate zero bytes.
+20030919 configure.in: link against glib, gcrypt and zlib if available
+	 (Darren).
+20030921 crypto.c, libspectrum.c, rzx.c: use libgcrypt 1.1.42.
+20030922 crypto.c: use gcry_pk_testkey to test secret key sanity.
+20030926 rzx.c: allow more than 1 repeated frame in a row.
+20030926 rzx.c: port the rzx bugfixes from HEAD
+	 (libspectrum_0_2_0-bugfix-branch)
+20030926 ChangeLog, Makefile.am, README, configure.in: prepare for 0.2.0.1
+	 release (libspectrum_0_2_0-bugfix-branch).
+20030928 rzx.c: more bugfix (libspectrum_0_2_0-bugfix-branch).
+20030930 ChangeLog, README: put in release date for 0.2.0.1
+	 (libspectrum_0_2_0-bugfix-branch).
+20031001 ChangeLog, Makefile.am, README, configure.in, rzx.c: port the
+	 0.2.0.1 release changes back to HEAD.
+20031003 make-perl.c: change GcryMPI to gcry_mpi_t.
+20031006 crypto.c, rzx.c: use gcrypt errors properly; most importantly in
+	 crypto.c:libspectrum_verify_signature, we have to ignore the
+	 error source before comparing with an error code.
+20031006 z80.c: actually allocate memory for the .slt pages; thanks to
+	 Alberto Garcia for reporting this.
+20031009 creator.c, libspectrum.h.in, rzx.c, szx.c: add support for
+	 writing custom data in the creator blocks.
+20031013 libspectrum.c, libspectrum.h.in: add routines to check
+	 libspectrum's version.
+20031013 libspectrum.c, libspectrum.h.in: add routines to get the version
+	 of libgcrypt in use.
+20031014 .cvsignore, configure.in, libspectrum.qpg.in: add QNX package
+	 file (thanks, Mike Gorchak).
+20031014 configure.in, libspectrum.c, rzx.c: we need <strings.h> for
+	 strcasecmp() on QNX6 (thanks, Mike Gorchak).
+20031016 libspectrum.h.in, make-perl.c, tape.c: don't include <glib.h>
+	 in libspectrum.h; makes it easy to include from other projects.
+20031017 rzx.c: write RZX version number as 0.12 (as opposed to 0.13) if
+	 we're not signing the data.
+20031019 Transparent reading of gzipped files.
+20031019 libspectrum.c: better chance of compiling if zlib not available.
+20031020 Transparent reading of bzipped files.
+20031030 zlib.c: use the 'normal' zlib interface to decompress gzipped
+	 files rather than the gz* functions.
+20031030 zlib.c: merge duplicated code from libspectrum_zlib_inflate and
+	 libspectrum_gzip_inflate.
+20031103 tape.c: don't explicitly include <glib.h> (thanks, Erik Kunze).
+20031103 README: small change to the installation instructions.
+20031107 accessor.pl, snap_accessors.txt, szx.c, z80.c: add support for
+	 the 'last instruction EI' flag.
+20031127 A bunch of --enable-warnings tidy-ups.
+20031214 make-perl.c, myglib.c: add g_slist_prepend to the glib emulation
+	 layer (Marek).
+20031228 libspectrum.c, libspectrum.h.in: rename 'class' to
+	 'libspectrum_class' where its used in libspectrum.h.in for C++
+	 safety (Fred).
+20040109 bzip2.c, configure.in: check we have libbz2 1.x (0.9.x and
+	 earlier use different function names).
+20040111 bzip2.c: #include <stdio.h>: needed by libbz2 < 1.0.2.
+20040113 hacking/cvs-tags: Add documentation of libspectrum's CVS tags.
+20040113 TAG: libspectrum_0_2_1-trunk
+	 BRANCH: libspectrum_0_2_1-branch
+20040113 Makefile.am, configure.in: bump version number to 0.2.1pre1 and
+	 update the library soname (libspectrum_0_2_1-branch).
+20040114 ChangeLog: bring up to date.
+20040117 TAG: libspectrum_0_2_1pre1 (libspectrum_0_2_1-branch).
+20040126 libspectrum.c: replace HAVE_BZLIB_H with HAVE_LIBBZ2 as used
+	 since the 20040109 change (patch #884231)
+	 (libspectrum_0_2_1-branch) (Fred).
+20040126 dck.c, libspectrum.h.in: support compressed .dck files (patch
+	 #884355) (libspectrum_0_2_1-branch) (Fred).
+20040127 configure.in: use glib 2.x if available
+	 (libspectrum_0_2_1-branch).
+20040129 libspectrum.c: prevent the 'Secure memory is not locked into
+	 core' message appearing (libspectrum_0_2_1-branch).
+20040205 Makefile.am, README, configure.in, doc/: doc updates
+	 (libspectrum_0_2_1-branch).
+20040205 configure.in: bump version number to 0.2.1pre2
+	 (libspectrum_0_2_1-branch).
+20040205 TAG: libspectrum_0_2_1pre2 (libspectrum_0_2_1-branch)
+20040211 configure.in: bump version number to 0.2.1
+	 (libspectrum_0_2_1-branch).
+20040211 tzx_read.c: don't double step over count when reading select
+	 blocks (libspectrum_0_2_1-branch).
+20040212 TAG: libspectrum_0_2_1 (libspectrum_0_2_1-branch).
+20040223 Merge changes from libspectrum_0_2_1 to HEAD.
+20040223 TAG: libspectrum-0_2_1-merge-1
+20040227 accessor.pl,libspectrum.c,libspectrum.h.in,szx.c,timings.c,z80.c:
+	 Scorpion support (part of patch #874504) (Stuart Brady).
+20040229 accessor.pl, libspectrum.c, z80.c: the Scorpion no longer has
+	 CAPABILITY_PLUS3_MEMORY.
+20040303 szx.c: the Scorpion is machine type 10 (Stuart Brady).
+20040307 z80.c: don't skip RAM page 11 when saving Scorpion snaps.
+20040318 Makefile.am,ide.c,libspectrum.h.in: support for .hdf hard disk
+	 images. Basically just Garry's patch with some coding style
+	 changes (patch #916186) (Garry Lancaster).
+20040318 ide.c: open .hdf files in binary mode.
+20040319 ide.c: ftell and fseek are not the same thing...
+20040319 ide.c,libspectrum.h.in: implement a write cache for the IDE
+	 drives.
+20040320 szx.c: bump version number to 1.2, save Scorpion port 0x1ffd
+	 and add some comments about the failures in the .szx
+	 specification.
+20040320 libspectrum.c,libspectrum.h.in: add identification of .hdf hard
+	 disk images.
+20040320 accessor.pl,snap_accessors.txt,szx.c: add support for the Beta
+	 128 block of the .szx format.
+20040320 libspectrum.c,libspectrum.h.in: add an 'Even M1' capability.
+20040401 libspectrum.h.in,sna.c,szx.c,z80.c: minimalistic +3e support.
+20040402 libspectrum.c,timings.c: enough to make the +3e support actually
+	 usable by Fuse.
+20040402 libspectrum.h.in,tape.c: add libspectrum_tape_write() function.
+20040402 libspectrum.c: add capabilities for the +3e.
+20040408 Makefile.am,configure.in,myglib.c,myglib/{.cvsignore,Makefile.am}:
+	 move the glib replacement code into its own directory.
+20040408 myglib/Makefile.am,myglib/ghash.c: add minimal GHashTable
+	 replacement (borrowed from glib 2.4.0).
+20040414 myglib/gslist.c: fix two free_list related memory leaks.
+20040415 make-perl.c,myglib/ghash.c: fix compilation with GHashTable
+	 replacement (borrowed code from glib 2.4.0 and 1.2.10).
+20040417 make-perl.c,myglib/ghash.c: the world doesn't need to know about
+         GHashNode.
+20040513 libspectrum.c,libspectrum.h.in,szx.c,timings.c: add support for
+	 the Spectrum SE (part of patch #929112) (Fred).
+20040513 timings.c: improved timings for the TC2048 and TC2068 (more of
+	 patch #929112) (Fred).
+20040514 szx.c: use symbolic constants for the .szx machine numbers.
+20040514 szx.c: allow loading of +3e snaps to work.
+20040519 accessor.pl,sna.c,snap_accessors.txt,snapshot.c,szx.c,z80.c:
+	 add support for saving ZXCF information in .szx snapshots.
+20040521 accessor.pl,sna.c,snap_accessors.txt,snapshot.c,szx.c,z80.c:
+         add support for saving interface 2 cart in .szx snapshots.
+20040521 szx.c: remove warnings.
+20040521 szx.c: save RAM page 8 for the Spectrum SE.
+20040521 sna.c,z80.c: allow SE (sna/z80) and Scorpion (z80) snapshots to
+	 be (badly) saved.
+20040525 accessor.pl,sna.c,snap_accessors.txt,szx.c,z80.c: add support for
+         saving Timex Dock/Exrom information in .szx snapshots.
+20040525 szx.c: Timex Dock/Exrom pages aren't 0x4000 bytes long.
+20040526 accessor.pl,internals.h,snapshot.c,szx.c: tidy up snapshot
+	 alloc/free routines.
+20040527 timings.c: small timing tweak for 128K machines; we now match
+	 the timings for (at least some!) 48K/128K machines.
+20040527 szx.c: Write scld block when machine has SE memory capability.
+20040601 libspectrum.c,libspectrum.h.in: Add LIBSPECTRUM_CLASS_CARTRIDGE_IF2
+         and LIBSPECTRUM_ID_CARTRIDGE_IF2.
+20040601 szx.c: save/restore state of ZXCF upload jumper.
+20040602 accessor.pl,internals.h,sna.c,snap_accessors.txt,snapshot.c,
+	 szx.c,z80.c: save/restore ZXATASP state in .szx snaps.
+20040603 Makefile.am,myglib/{.cvsignore,Makefile.am}: build the glib
+	 replacement as PIC.
+20040611 szx.c: skip those chunks we don't support.
+20040611 szx.c: small changes to the ZXAT and ZXCF chunks to make them
+	 more consistent with how the rest of the .szx format does things.
+20040612 acconfig.h,configure.in: remove use of acconfig.h
+20040612 szx.c: remove duplicated literal constants from the code.
+20040620 README,autogen.sh: add script to do the autotools invocation.
+20040620 hacking/cvs-tags: remove (use doc/cvs-tags instead).
+20040621 z80.c: remove literal machine constants.
+20040621 z80.c: allow the extensions to the .z80 machine type be valid
+	 for both v2 and v3 files.
+20040626 libspectrum.h.in: put libspectrum_tape_block_description in the
+	 correct place.
+20040626 Makefile.am: bump soname.
+20040626 AUTHORS,README,TODO,doc/{libspectrum.3,libspectrum.txt}: doc
+	 updates in preparation for a 0.2.2 release.
+20040703 libspectrum.h.in,rzx.c,doc/libspectrum.txt: add ability to
+	 select the format of the embedded snap in .rzx files.
+20040706 acinclude.m4: distribute the Glib 1.2 and Glib 2.x autoconf
+	 macros.
+20040707 autogen.sh: add --copy to automake invocation.
+20040709 configure.in: bump version number to 0.2.2pre1.
+20040709 TAG: libspectrum_0_2_2pre1
+20040715 README,doc/libspectrum.3: doc updates for 0.2.2.
+20040715 z80.c: fix possible segfault if a snap had a page 19 (Stuart).
+20040715 szx.c: bump .szx minor version number to 1.3.
+20040716 configure.in: bump version number to 0.2.2.
+20040718 autogen.sh: add libtoolize.
+20040721 accessor.pl,snap_accessors.txt,z80.c: Add issue 2 keyboard support.
+20040722 szx.c: add issue 2 keyboard support.
+20040722 snapshot.c: initialise issue 2 keyboard setting.
+20040806 libspectrum.h.in,snapshot.c,szx.c,z80.c,doc/libspectrum.txt: Add new
+         LIBSPECTRUM_FLAG_SNAPSHOT_ALWAYS_COMPRESS flag for use with
+         libspectrum_snap_write
+20040814 configure.in,dll.c,internals.h,zlib.c: small Visual C++
+	 compatibility fixes.
+20040814 generate.pl.in,libspectrum.h.in,make-perl.c: more Visual C++
+	 compatibility fixes.
+20040905 libspectrum.h.in,rzx.c: support multiple input recording blocks
+	 in an RZX file.
+20040906 crypto.c,libspectrum.h.in,rzx.c: re-add support for creator and
+	 signature blocks in RZX files.
+20040909 rzx.c: fix RZX digital signatures.
+20040909 libspectrum.h.in,rzx.c: update libspectrum_rzx_write API for
+	 multiple IRB files.
+20040910 libspectrum.h.in,rzx.c: implement RZX rollback.
+20040918 libspectrum.h.in,rzx.c: allow RZX rollback to arbitrary points.
+20041025 accessor.pl,internals.h,libspectrum.c,libspectrum.h.in,
+         snap_accessors.txt,snapshot.c,szx.c,z80.c,doc/libspectrum.txt: Add
+         support for connected joystick information in snapshots.
+20041031 .cvsignore: ignore stamp-h1.
+20041125 Makefile.am,libspectrum.h.in,microdrive.c: very simple .mdr
+         handling.
+20041221 rzx.c: fix compilation when gcrypt not present (thanks, Erik Kunze)
+	 (closes bug #1053346).
+20041230 libspectrum.c,libspectrum.h.in: add identification of .mdr files
+	 (part of patch #1085429) (Gergely Szasz).
+20050102 libspectrum.h.in,microdrive.c: variable length Microdrive cartridge
+	 handling (rest of patch #1085429) (Gergely Szasz).
+20050102 libspectrum.{c,h.in},sna.c,szx.c,timings.c,z80.c: TS2068 support
+	 (patch #1080531) (Fred).
+20050108 libspectrum.c: Declare libspectrum_default_error_function before
+         referring to it (Fred).
+20050108 timings.c: fix Pentagon and Scorpion CPU speeds to give them 50Hz
+	 frame rates (rest of patch #1080531) (Fred).
+20050113 libspectrum.c: Set NTSC capability for the TS2068 (Fred).
+20050115 szx.c,zxs.c: fix compilation when zlib not present (closes bug
+	 #1098337).
+20050125 libspectrum.h.in: Warn about use of deprecated interfaces with GCC
+	 (Fred).
+20050204 szx.c,rzx.c: More compilation fixes when zlib not present (Fred).
+20050204 libspectrum.h.in: More Win32 compilation fixes (Fred).
+20050204 configure.in,Makefile.am: More Win32 compilation fixes (Fred).
+20050204 configure.in,Makefile.am: Mark libspectrum.h as a nodist file instead
+	 of deleting it when configure is run, remember to make distribution
+	 tarballs with 'make dist-gzip' (Fred).
+20050213 szx.c: make uncompressed snaps with DOCK data work (and don't waste
+	 memory when loading compressed snaps with DOCK data).
+20050213 szx.c: don't bom if we try and write out a page which doesn't
+	 exist in the snapshot.
+20050218 ide.c: add libspectrum_ide_dirty function.
+20050227 make-perl.c,libspectrum.h.in: advertise that we support zlib
+         compressed files (Fred).
+20050302 Makefile.am: Stop automake trying to build make-perl (Fred).
+20050302 make-perl.c,myglib/ghash.c: Add g_hash_table_size to the glib
+         replacement code (Fred).
+20050305 libspectrum.h.in,timings.c: add interrupt length to timings
+	 information.
+20050325 tzx_read.c: avoid implementation-defined behaviour if a block
+	 has no data bytes.
+20050325 tape_block.c: avoid undefined behaviour if a ROM block has no
+	 data bytes.
+20050402 microdrive.c: don't check bad blocks when checksumming (part of
+	 patch #1161364) (Gergely Szasz).
+20050409 libspectrum.h.in,tape.c: add libspectrum_tape_{insert,remove}_block
+	 routines.
+20050430 internals.h,sna.c,snapshot.c,z80.c: add wrappers so that
+	 libspectrum_snap_read doesn't have to call deprecated functions.
+20050507 bzip2.c,creator.c,crypto.c,internals.h,rzx.c,tzx_read.c,
+	 tzx_write.c: fix up gcc 4.0 signedness warnings (fixes bug
+	 #1197013).
+20050517 make-perl.c, myglib.c: add g_slist_delete_link, g_slist_insert,
+         g_slist_length, GINT_TO_POINTER and GPOINTER_TO_INT to the glib
+         emulation layer (Fred).
+20050922 creator.c,libspectrum.h.in,tape_accessors.txt,tape_block.h,
+         tzx_read.c,tzx_write.c,doc/libspectrum.txt: API changes for gcc 4.0
+         signed char conversion warnings (patch #1197351) (Fred).
+20051029 timings.c: timing tweak for TC2048 (Fred)
+20051031 ide.c: improved IDE emulation for use with Demfir (Matthew
+	 Westcott).
+20051220 Makefile.am,libspectrum.c,libspectrum.h.in,tape.c,tape_block.[ch],
+	 z80em.c: support for Z80Em and CSW files (patch #1357700)
+	 (Darren).
+20051224 autogen.sh: add --automake to libtoolize invocation (Markus
+         Obermuller). Remove --copy on automake.
+20060718 tape.c: add block description for RLE blocks (Fred).
+20060812 libspectrum.h.in,tape_block.c,doc/libspectrum.txt: add
+	 libspectrum_tape_block_metadata() function (needed to fix North
+	 and South and Super Hang-On; see bug #1531346).
+20070101 rzx.c: when rolling back, don't stop recording until we know
+	 that the required snapshot exists.
+20070102 tape.c,tape_block.[ch],tzx_read.c: stub support for TZX
+	 "Generali[sz]ed Data" blocks (ID 0x19).
+20070102 Makefile.am,internals.h,libspectrum.h.in,tape_accessors.{pl,txt},
+	 tape_block.[ch], tape_set.pl, tzx_read.c: sufficient 0x19
+	 functionality to allow tzxlist to do something with these blocks.
+20070104 internals.h,libspectrum.h.in,symbol_table.c,tape_block.[ch],
+	 tzx_read.c: next bit of 0x19 functionality.
+20070104 libspectrum.h.in,symbol_table.c,tape_block.[ch]: symbol count of
+	 0 => 256 symbols in table.
+20070104 tzx_read.c: generalised data block pilot data comes before the
+	 data symbol table.
+20070104 tape_accessors.c,tape_block.h,tzx_read.c: read pilot data from
+	 generalised data blocks.
+20070104 Makefile.am,tape_accessors.txt,tape_block.h,tzx_read.c: read data
+	 stream from generalised data blocks.
+20070104 internals.h,tape_block.c,tzx_read.c: free generalised block data
+	 on success (tested) and failure (not tested).
+20070105 tape.c,tape_block.[ch]: start of playback code for generalised
+	 data blocks.
+20070105 tape.c,tape_accessors.txt,tape_block.h,tzx_read.c: more playback
+	 code for generalised data blocks; handles symbol type 0 only.
+20070106 libspectrum.h.in,tape.c: playback for other generalised data
+	 symbol types.
+20070107 tape.c: set flags when playing back generalised data symbols as
+	 well as the pilot.
+20070117 microdrive.c: fix up checksum calculation (patch #1637011)
+         (Gergely Szasz).
+20070119 libspectrum.h.in,doc/libspectrum.txt: tidy up and document in
+	 preparation for a release.
+20070120 doc/libspectrum.txt: document RZX iterators.
+20070120 libspectrum.h.in,microdrive.c,doc/libspectrum.txt: tidy up and
+	 document Microdrive routines.
+20070121 ChangeLog: bring up to date.
+20070121 tzx_write.c: support for writing 0x19 blocks.
+20070121 tzx_write.c: we now write TZX v1.20 files.
+20070121 ChangeLog,tzx_write.c: length for archive info blocks was being
+	 written out one byte too long.
+20070202 <almost everything>: change URLs to sourceforge, my e-mail address
+	 to @shadowmagic and remove my postal address.
+20070202 TAG: libspectrum_0_3_0-trunk
+20070202 BRANCH: libspectrum_0_3_0-branch
+20070202 TAG: libspectrum_0_3_0-pre1 (libspectrum_0_3_0-branch)
+20070204 ChangeLog: fix some attributions (Fred).
+20070204 libspectrum.h.in,rzx.c,doc/libspectrum.txt: make
+	 libspectrum_rzx_playback_frame able to return a snap (necessary
+	 for supporting RZXs made with SPIN's "RZX Pause" feature)
+	 (libspectrum_0_3_0-branch).
+20070217 tzx_read.c: do allocate memory if we have no data but some padding
+	 in tzx_read_data() (libspectrum_0_3_0-branch).
+20070303 TAG: libspectrum_0_3_0-pre2 (libspectrum_0_3_0-branch)
+20070310 internals.h: add prototypes for libspectrum_z80em_read and
+         libspectrum_csw_read (libspectrum_0_3_0-branch) (Fred).
+20070324 z80.c: initialise snap->beta_paged (fixes Action Farce II RZX
+	 playback; see bug #1654105) (thanks, Jon Needle)
+	 (libspectrum_0_3_0-branch).
+20070409 z80.c: remove warning (libspectrum_0_3_0-branch).
+20070411 ChangeLog,Makefile.am,README,configure.in,doc/libspectrum.3: update
+	 for 0.3.0 release (libspectrum_0_3_0-branch).
+20070411 TAG: libspectrum_0_3_0 (libspectrum_0_3_0-branch)
+20070425 tap.c,tzx_read.c: call libspectrum_tape_clear() on error rather than
+	 libspectrum_tape_free() to avoid double free bug (fixes bugs #1479451
+	 and #1706994; thanks, crabfists) (libspectrum_0_3_0-branch).
+20070509 libspectrum.in: add WIN32_DLL to Generalised Data Block functions
+	 (part of patch 1711412) (libspectrum_0_3_0-branch) (Stuart Brady).
+20070509 Makefile.am,configure.in,hacking/{.cvsignore,Makefile.am}: distribute
+	 the hacking/ subdir (thanks, Stuart Brady) (libspectrum_0_3_0-branch).
+20070509 acinclude.m4: fix underquoted macro (thanks, Stuart Brady)
+	 (libspectrum_0_3_0-branch).
+20070510 ChangeLog,Makefile.am,README,configure.in,doc/{libspectrum.3,
+	 libspectrum.txt}: updates for 0.3.0.1 release
+	 (libspectrum_0_3_0-branch).
+20070511 TAG: libspectrum_0_3_0_1 (libspectrum_0_3_0-branch)
+20070512 doc/cvs-tags: document merge back to trunk (libspectrum_0_3_0-branch)
+20070512 Merge changes from libspectrum_0_3_0-branch to HEAD.
+20070512 TAG: libspectrum_0_3_0-merge-1
+20070513 make-perl.c,tap.c,tape_accessors.pl: Fix filenames in comments
+         (patch #1716201) (Stuart Brady).
+20070513 Makefile.am,configure.in,test/{.cvsignore,Makefile.am,invalid.tzx,
+	 test.c}: add first automated test for bugs #1479451 and #1706994
+	 (Philip Kendall).
+20070516 tape.c,tzx_read.c,test/{test.c,turbo-zeropilot.tzx}: don't produce
+	 a pilot if none present in TZX turbo block, and free a TZX turbo
+	 block with no data correctly (fixes bugs #1720238 and #1720270).
+20070518 tzx_write.c: add write support for TZX direct recording block (Fred).
+20070518 Makefile.am,configure.in,doc/Makefile.am,hacking/Makefile.am,
+         myglib/{.cvsignore,Makefile.am},test/{.cvsignore,Makefile.am}:
+         make sure libspectrum is built before test by switching to a 
+         non-recursive make with full dependency graph (Fred).
+20070520 test/test.c: fix warnings in test build (Fred).
+20070520 Remove .cvsignore files.
+20070522 internals.h,libspectrum.h.in,tap.c,tape.c,tzx_read.c,tzx_write.c,
+         warajevo_read.c: mark deprecated tape functions as such and add
+         wrappers so that libspectrum_tape_read doesn't have to call
+         deprecated functions (Fred).
+20070522 Mark mkinstalldirs as an ignored file (Fred).
+20070522 rzx.c: fix printf warning and comment (Fred).
+20070526 tape.c,test/test.c: allow for uninitialised buffer on entry to
+	 libspectrum_tape_write() (fixes bugs #1725864) (thanks, Dave Mills).
+20070526 <almost everything>: update FSF address in GPL notices (Stuart).
+20070530 Makefile.am,acinclude.m4,configure.in,doc/libspectrum.txt,
+         internals.h,libspectrum.c,libspectrum.h.in,tape.c,wav.c: add simple
+         support for loading directly from wav tape files (part of patch
+         #1725974) (Fred).
+20070530 Makefile.am,csw.c,internals.h,libspectrum.h.in,tape.c,
+         tape_accessors.txt,tape_block.[ch],z80em.c: add support for saving csw
+         tape files (rest of patch #1725974) (Fred).
+20070530 tape.c: tidy up audiofile missing error message (Fred).
+20070530 acinclude.m4: remove warning about underquoted definition (Stuart).
+20070531 tape.c: fix loading with tape traps (thanks, Stuart Brady) (Fred).
+20070601 tape_accessors.txt: add data accessor for rle_pulse block (Fred).
+20070602 rzx.c,wav.c: fix up printf() related warnings.
+20070602 Ignore make-perl.exe and test/test.exe (Stuart).
+20070604 libspectrum.h.in,libspectrum.c: allow Amiga version to decompress
+         files with xfdmaster.library (part of patch #1712260) (Chris Young).
+20070606 tzx_write.c: add write support for libspectrum RLE block by converting
+         to a TZX DRB block due to the limited program support for the TZX
+         CSW block (Fred).
+20070608 libspectrum.c: add .snapshot as an extension for SNA files as it was
+         used by Peter McGavin's Spectrum Emulator on the Amiga (Fred).
+20070608 doc/libspectrum.3: fix dashes (Stuart).
+20070608 csw.c,wav.c: update FSF address (Stuart).
+20070609 BRANCH: plusd_20070609
+20070617 libspectrum.{c,h.in}: add support for +D disk images (plusd_20070609).
+	 (part of patch #1738602).
+20070617 merge plusd_20070609 branch into trunk (Stuart).
+20070628 make-perl.c: fix compilation on 64-bit systems without glib (Stuart).
+20070628 microdrive.c: remove "'static' is not at beginning of declaration"
+	 warning with -Wextra (Stuart).
+20070628 rzx.c,timings.c: remove missing initializer warnings with -Wextra
+	 (Stuart).
+20070703 libspectrum.c,tape.c: patches for MorphOS (patch #1746269) (Q-Master).
+20070713 test/{invalid.gz,test.c}: add test for bug #1753279.
+20070713 libspectrum.c,test/{invalid.gz,test.c}: don't free the wrong things
+	 or things that haven't been allocated; add another test case.
+20070715 szx.c,test/{invalid.szx,test.c}: check whether the chunk length was
+	 so large it caused pointer wraparound (fixes bug #1753938).
+20070715 z80.c: free memory used by page with unknown number (fixes bug
+	 #1754362).
+20070717 tzx_read.c,test/{invalid-gdb.tzx,test.c}: check that GDB data does
+	 not extend beyond end of block (fixes bug #1755124).
+20070717 tape_block.c,test/{empty-drb.tzx,test.c}: don't segfault on empty
+	 DRBs (fixes bug #1755372).
+20070717 tzx_read.c,test/{invalid-archiveinfo.tzx,test.c}: free the right thing
+	 when unwinding an invalid archive info block (fixes bug #1755539).
+20070717 tzx_read.c,test/{invalid-hardwareinfo.tzx,test.c}: free up tape block
+	 on invalid hardware info blocks (fixes bug #1755545).
+20070719 warajevo_read.c,test/{invalid-warajevo-blockoffset.tap,test.c}: check
+         block offset in Warajevo tapes before reading block header (thanks,
+         Philip Kendall) (fixes bug #1756375) (Fred).
+20070720 warajevo_read.c: try to catch pointer wrap as well (thanks, Philip
+         Kendall) (Fred).
+20070720 tzx_read.c,test/{invalid-customdata.tzx,test.c}: fix memory leak on
+	 invalid custom data blocks (fixes bug #1757587).
+20070720 test/test.c: factor out common code.
+20070723 test/{loopend.tzx,test.c}: add test for bug #1758860 (stray TZX loop
+	 end block causes segfault).
+20070724 tape.c,test/{loop.tzx,test.c}: fix another aspect of bug #1758860 (TZX
+	 loop blocks broken).
+20070724 tape.c: fix stray TZX loop end block causes segfault (fixes bug
+	 #1758860).
+20070724 test/test.c: allow individual tests to be selected.
+20070904 Makefile.am,generate.pl.in: allowing building in directories other
+	 than the main source directory.
+20070904 plusd.c: fix support for +D snapshots (fixes bug #1765021) (Stuart).
+20070904 Makefile.am: rebuild make-perl when config.h is updated (Stuart).
+20070905 Makefile.am: clean generated files on 'make clean' etc. (Stuart).
+20070905 configure.in: add --without-libaudiofile option (Stuart).
+20070925 test/invalid-warajevo-blockoffset.tap: reduce to minimal testcase.
+20070925 Makefile.am,test/{Makefile.am,complete-tzx.pl,edges.c,test.c,test.h,
+	 test15.c}: add beginnings of test to check implementation of every
+	 TZX block type.
+20070926 test/{complete-tzx.pl,edges.c,test.h,test15.c}: add more block types
+	 to the full TZX test.
+20070926 test/{loop2.tzx,test.c}: add test for bug #1802607 (TZX loop blocks
+	 still broken).
+20070926 tape.c: fix bug #1802607.
+20070926 test/{jump.tzx,test.c}: add test for bug #1802618 (TZX jump blocks
+	 broken).
+20070926 tape.c: fix bug #1802618.
+20070926 test/{complete-tzx.pl,edges.c,test15.c}: add more block types to
+	 the full TZX test.
+20070926 test/test.c: factor out common code.
+20070927 test/{complete-tzx.pl,test15.c}: and more block types to the full
+	 TZX test.
+20071006 csw.c: use memset() instead of bzero() for consistency (Stuart).
+20071007 doc/libspectrum.txt,libspectrum.h.in,rzx.c: add functionality
+	 required for updated rzxtool.
+20071024 libspectrum.c: fix compilation on MorphOS (part of patch #1774492)
+	 (Q-Master).
+20071024 libspectrum.c,libspectrum.h.in,sna.c,szx.c,timings.c,z80.c: add
+	 Pentagon 512K and Pentagon 1024K support (part of patch #1774492)
+	 (Q-Master).
+20071026 doc/libspectrum.txt: add Pentagon 512/1024, fix typos (Stuart).
+20071026 ChangeLog: fix typos (Stuart).
+20071030 csw.c,tape.c: fix writing and reading empty csw files (fixes bug
+         #1821425; thanks Stuart Brady) (Fred).
+20071101 csw.c,tape.c,tape_block.c,test/test.c: add test for reading empty
+         csw files and add more fixes to cope (more for bug #1821425) (Fred).
+20071109 tap.c,test/test.c: ensure .tap writing code handles all known block
+         types (fixes bug #1828945; thanks, Stuart Brady).
+20071112 timings.c: timing tweak for TC2048 and TC2068 based on test programs
+         from Phil and Woodster (Fred).
+20071124 accessor.pl,snap_accessors.txt,snapshot.c,szx.c,z80.c: add support
+         for the +D in z80 and szx snapshots (patch #1782512) (Fred).
+20071124 szx.c: fix warnings.
+20071125 test/test.c: fix warnings (Stuart).
+20071125 tap.c: fix error messages (Stuart).
+20071128 ChangeLog: update (Stuart).
+20071129 sna.c: fix misleading comment.
+20071129 sna.c: sanity check SP before attempting to read from it.
+20071129 tests/{sp-2000.sna.gz,sp-ffff.sna.gz,test.c}: add tests for bugs
+         #1841085 (SP not sanity checked when loading 48K .sna file) and
+         #1841111 (compressed snapshots cause segfault).
+20071129 libspectrum.c: check new_filename before checking *new_filename.
+20071130 dll.c: fix typo and remove executable property (Stuart).
+20071130 libspectrum.c: free *new_filename instead of new_filename (Stuart).
+20071130 plusd.c: enable DISCiPLE/+D snapshot support and add support for 128K
+	 DISCiPLE/+D snapshots (feature request #1764996) (Stuart).
+20071130 internals.h,libspectrum.c,libspectrum.h.in,tap.c,tape.c: add support
+	 for .spc, .sta and .ltp tape images (feature request #1764995)
+	 (Stuart).
+20071130 libspectrum.h.in: refer also to the DISCiPLE in comments (Stuart).
+20071130 libspectrum.c,libspectrum.h.in,szx.c: add support for Pentagon 512
+	 and 1024 snapshots.
+20071130 szx.c: save the Pentagon 1024 secondary memory control port as well.
+20071130 doc/libspectrum.{3,txt}: document .spc, .sta and .ltp support (Stuart).
+20071201 szx.c: change to Pentagon 1024 secondary memory control port after
+	 discussion with Jon Needle.
+20071203 szx.c: also check if a +D custom ROM is supplied but not specified and
+         make sure all variables passed to the +D custom ROM zlib decompression
+         are initialised (Fred).
+20071205 accessor.pl,snap_accessors.txt,snapshot.c,szx.c,z80.c: add support for
+         Interface 1 in z80 and szx snapshots (Fred).
+20071205 z80.c: fix writing joystick info to z80 snapshots (Fred).
+20071205 szx.c: fix writing if1 info to szx snapshots (Fred).
+20071218 ChangeLog,Makefile.am,README,configure.in,doc/libspectrum.{3,txt},
+	 libspectrum.h.in,test/test.c: update for 0.4.0 release (Stuart).
+20071219 szx.c: fix warning (Stuart).
+20071219 libspectrum.c: avoid warnings when building without gcrypt (Stuart).
+20071219 plusd.c: #include <string.h> (Stuart).
+20071221 BRANCH: libspectrum_0_4_0-branch
+20071221 TAG: libspectrum_0_4_0pre1
+20080104 ChangeLog,README,doc/libspectrum.3: update dates
+	 (libspectrum_0_4_0-branch) (Stuart).
+20080105 test/Makefile.am: distribute complete-tzx.pl and clean up after
+	 ourselves (thanks, make distcheck) (libspectrum_0_4_0-branch).
+20080105 test/Makefile.am: distribute test data files
+         (libspectrum_0_4_0-branch).
+20080105 TAG: libspectrum_0_4_0 (libspectrum_0_4_0-branch).
+20080107 Merge libspectrum_0_4_0-branch changes r3447:3479 to trunk.
+20080107 doc/libspectrum.txt: add Microdrive support to feature list (Stuart).
+20080109 TODO: remove unused file.
+20080127 libspectrum.c: compilation fix for Amiga (part of patch #1712260)
+         (Chris Young).
+20080217 libspectrum.c: and matching compilation fix for MorphOS (part of patch
+         #1712260) (thanks, Q-Master) (Fred).
+20080217 libspectrum.c: really fix compilation on MorphOS (update to patch
+	 #1712260) (thanks, Q-Master) (Stuart).
+20080311 snapshot.c,snap_accessors.txt,szx.c,accessor.pl: add support for
+         saving custom machine ROMs in snapshots (szx only so far) (Fred).
+20080312 szx.c: don't regard 24k ROM blocks as invalid as they are used in the
+         2068s (Fred).
+20080312 szx.c: try to avoid memory leak on write of custom ROM block (Fred).
+20080315 sna.c,z80.c: note info loss of custom ROM block when writing z80 and
+         sna format snapshots (Fred).
+20080315 accessor.pl,sna.c,snap_accessors.txt,snapshot.c,szx.c,z80.c: support
+         for Beta 128 custom ROMs in snapshots (patch #1844606) (Stuart).
+20080319 ide.c: changes to allow DivIDE to support FATware from
+         http://www.dusky.sk/zxs/; add ATA/ATAPI commands 0x21, 0x31, 0xA1.
+20080319 ide.c: changes to allow DivIDE to support FATware from
+         http://www.dusky.sk/zxs/; per-drive status and error registers, return
+         0x00 when reading the command status register of a missing drive and
+         advance LBA/CHS registers to next sector in seek() only if it is the
+         last sector to read/write. 
+20080319 ide.c: changes to allow DivIDE to support FATware from
+         http://www.dusky.sk/zxs/; improved implementation of INITIALIZE
+         DEVICE PARAMETERS command.
+20080322 configure.in: add --without-libgcrypt option (Stuart).
+20080401 libspectrum.h.in,tape.c,test/{edges.c,test.h,test15.c}: add support
+	 for tape acceleration (patch #1880376).
+20080409 szx.c: write 2 ROMs totalling 32k for Pentagon 128k and 3 ROMs
+         totalling 48k for newer Pentagon models (Fred).
+20080417 accessor.pl,doc/libspectrum.txt,snap_accessors.txt,snapshot.c,szx.c:
+         add support for Kempston mouse for szx snapshots (Fred).
+20080418 accessor.pl,doc/libspectrum.txt,snap_accessors.txt,snapshot.c,szx.c:
+         add support for Simple 8-bit IDE interface for szx snapshots (Fred).
+20080422 szx.c: don't bother with enabled flag for the Simple 8-bit IDE block
+         on the suggestion of Jon Needle (Fred).
+20080422 sna.c,z80.c: note info loss of Simple 8-bit IDE info when writing z80
+         and sna format snapshots (Fred).
+20080425 accessor.pl,doc/libspectrum.txt,internals.h,sna.c,snap_accessors.txt,
+         snapshot.c,szx.c,z80.c: add support for DivIDE interface for szx
+         snapshots (Fred).
+20080522 sna.c: select the Pentagon 128 for 128k sna files (fixes bug #1958647)
+         (Fred).
+20080524 Makefile.am,configure.in,myglib/Makefile.am: don't use a libtool
+         library as some operating systems (e.g. OpenSolaris) don't like the
+         empty myglib.la we produce when glib proper is being used instead
+         (Fred).
+20080607 make-perl.c,myglib/{Makefile.am,garray.c}: add GArray replacement
+	 code.
+20080608 make-perl.c,myglib/ghash.c: add support functions for using
+	 strings as hash table keys.
+20080612 microdrive.c: don't refuse to load mdr files with bad checksums, the
+         if1 ROM takes care of them (Gergely Szasz).
+20080625 test/{Makefile.am,test.[ch],test15.c}: enable tests to be run if
+         configured outside the top level directory.
+20080625 test/{test.c,writeprotected.mdr}: add tests for bug #2002682: .mdr
+	 code does not correctly handle write protect flag.
+20080625 microdrive.c: fix write protect flag handling (fixes bug #2002682).
+20080630 libspectrum.h.in: fix prototype for libspectrum_ide_alloc (Fred).
+20080630 myglib/{garray.c,ghash.c}: add <string.h> to eliminate warnings (Fred).
+20080630 rzx.c,sna.c: initialise error as it can be used uninitialised (Fred).
+20080701 csw.c,libspectrum.h.in,tap.c,tape.c,tape_block.[ch],tzx_read.c,
+         tzx_write.c,warajevo_read.c,wav.c,z80em.c: various functions
+         (notably tzx_write_bytes) could never fail but returned an error
+         code anyway, which we faithfully checked through many levels of code.
+         Stop doing this as it just makes the code less readable.
+20080701 memory.c: allow calloc function to be changed.
+20080717 make-perl.c,libspectrum.h.in: Win32: fix functions export for dll
+	 (Marek).
+20080821 sna.c: make 128Kb SNA files actually loadable again.
+20080911 internals.h,libspectrum.{c,h.in},tape_block.c,test/test.c: add
+	 function to get block length.
+20080928 internals.h,tape.c,tape_block.[ch],test/test.c: extend timing support
+         to raw data blocks, RLE pulse blocks and the block o' doom (Fred).
+20081020 tape_block.c: remove warning.
+20081021 sna.c,test/{empty.z80,test.c}: SP wasn't being decremented and
+         could have been written to freed memory.
+20081021 libspectrum.h.in,sna.c,tap.c,tzx_read.c,tzx_write.c,warajevo_read.c,
+         z80.c: remove deprecated functions libspectrum_sna_read(),
+         libspectrum_z80_read(),libspectrum_z80_write(),libspectrum_tap_read(),
+         libspectrum_tap_write(),libspectrum_tzx_read(),
+         libspectrum_tzx_write() and libspectrum_warajevo_read() (Fred).
+20081021 libspectrum.h.in,rzx.c: add "automatic" flag to snapshots in RZX
+	 files.
+20081027 ChangeLog: bring up to date.
+20081027 libspectrum.h.in: Win32: fixed dll export for
+	 libspectrum_tape_block_length (Marek).
+20081027 doc/libspectrum.txt: bring up to date.
+20081027 README: haven't been using CVS for a while now.
+20081108 doc/libspectrum.txt,libspectrum.c,libspectrum.h.in: allow for
+	 identification of more disk images (part of patch #2233744)
+	 (Gergely Szasz).
+20081109 doc/cvs-tags: document 0.5.0 branch tag.
+20081110 doc/libspectrum.txt: minor documentation updates
+         (libspectrum_0_5_0-branch).
+20081117 configure.in: bump version number for 0.5.0-pre1 release
+	 (libspectrum_0_5_0-branch).
+20081118 test/Makefile.am: distribute empty.z80 and writeprotected.mdr test
+         data files (Fred).
+20081118 configure.in: set glib status off if we can't find it (thanks, Chris
+         Young) (Fred).
+20081129 timings.c: correct first contended tstate for TS2068 based on updated
+         fusetest from Phil (Fred).
+20081129 configure.in,doc/libspectrum.{3,txt},hacking/ChangeLog,Makefile.am,
+	 README: final tweaks for 0.5.0 release (libspectrum_0_5_0-branch).
+20081130 ChangeLog: add reference to TS2068 timing update
+         (libspectrum_0_5_0-branch) (Fred).
+20081203 ChangeLog,Makefile.am,README,doc/libspectrum.{3,txt},hacking/ChangeLog,
+	 configure.in: merge libspectrum_0_5_0-branch changes onto trunk.
+20081214 libspectrum.c: loosen signature checks for .dsk files (Gergely;
+	 thanks, zx81 and Simon Owen).
+20090128 configure.in: add --without-(bzip2 /zlib) for gentoo and similar
+         distros (patch #2533274) (José Manuel Ferrer Ortiz).
+20090411 doc/libspectrum.txt,tape.c: add a new tape flag for end of tape
+         (part of fixes for bug #2743838) (Fred).
+20090411 libspectrum.h.in: export new end of tape flag.
+20090509 tape_block.c: handle querying the block length for turbo and pure data
+         blocks with 0 length (Fred).
+20090608 accessor.pl,doc/libspectrum.txt,libspectrum.c,snap_accessors.txt,
+         snapshot.c,szx.c,z80.c: add support for the Fuller Box in snapshots
+         (Fred).
+20090610 accessor.pl,doc/libspectrum.txt,libspectrum.c,snap_accessors.txt,
+         snapshot.c,szx.c,z80.c: add support for the Melodik and similar AY
+         interfaces (feature request #1841501) (Fred).
+20090611 sna.c: note info loss of Fuller or Melodik info when writing sna
+         format snapshots (Fred).
+20090627 doc/libspectrum.txt,libspectrum.h.in,make-perl.c,myglib/gslist.c,
+         tape.c,tzx_write.c,warajevo_read.c: fix loading Warajevo TAPs of raw
+         samples (e.g. BRUCELEE.TAP) (Fred).
+20090729 accessor.pl,libspectrum.c,libspectrum.h.in,sna.c,snap_accessors.txt,
+         snapshot.c,szx.c,z80.c: add snapshot support for Opus Discovery
+         (Fred & Gergely).
+20090901 dck.c,rzx.c,snapshot.c,tape.c: give up if file decompression fails
+         (Fred).
+20090901 rzx.c,snapshot.c,tape.c: remove unused uncompressed variable (Fred).
+20090901 plusd.c: remove unused buffer modification in
+         libspectrum_plusd_read_header (Fred).
+20090901 szx.c: remove unused block_size initialisation (Fred).
+20090902 plusd.c: return error from libspectrum_plusd_read_data (Fred).
+20090912 szx.c: libspectrum was reading and writing AF and AF' in the wrong
+         order in SZX files (fixes bug #2857419; thanks, velesoft) (Fred).
+20091022 wav.c: we expect mono sound files, tell audiofile to make the required
+         adjustments (fixes bug #2883135; thanks, Gilberto Almeida) (Fred).
+20100116 internals.h,libspectrum.h.in,make-perl.c,szx.c: export
+         libspectrum_zlib_inflate() and libspectrum_zlib_compress() (patch
+         #2927624) (Gergely Szasz and Fred).
+20100221 dll.c: correct switch variable name (part of patch #2533274) (Simon
+         Owen).
+20100221 warajevo_read.c: don't declare variables mid-block for C89 (part of
+         patch #2533274) (Simon Owen).
+20100221 myglib/ghash.c: should use libspectrum_dword instead of uint32_t (part
+         of patch #2533274) (Simon Owen).
+20100221 generate.pl.in,libspectrum.h.in,make-perl.c: WIN32_DLL
+         [__declspec(dllexport)] should be before the return type in
+         declarations, rather than between return type and function name (part
+         of patch #2533274) (Simon Owen).
+20100221 internals.h: define __func__ in MSVC (part of patch #2533274) (Simon
+         Owen).
+20100221 internals.h: define M_LN2 for use with non C99 math.h (part of patch
+         #2533274) (Simon Owen).
+20100222 make-perl.c: VC6 has __int64 instead of long long (Fred; thanks, Simon
+         Owen).
+20100526 tape_block.c: declare libspectrum_bits_set_n_bits static as it isn't
+         used outside its file to silence a warning on LLVM 4.2 (Fred).
+20100711 doc/libspectrum.txt: fix a typo in libspectrum_rzx_start_input (Fred).
+20100825 libspectrum.c,libspectrum.h.in,sna.c,szx.c,timings.c,z80.c:
+         reintegrate NTSC Spectrum branch.
+20100831 szx.c: add SZX read support for NTSC Spectrum machine ID (Fred).
+20100912 rzx.c: don't log error message when encountering an external snapshot
+         (common in competition mode rzx files made by Spectaculator) (patch
+         #3054536) (Sergio Baldovi).
+20100912 Makefile.am,configure.in,windres.rc: add Windows version encoding
+         similar to Fuse (patch #3061430) (Sergio Baldovi).
+20100929 test/test.c,z80.c: ensure last OUT to 0x1ffd is serialised into .z80
+         files (fixes bug #3078262; thanks, Nick Corey).
+20100930 test/plus3.z80: remember to add test file.
+20100930 ChangeLog,README: first updates for a "1.0" release.
+20101002 configure.in,szx.c,test/{empty.szx,test.c}: check for SZX files
+         written with A and F swapped and read them in appropriately. Bump
+         libspectrum version number so we know that new files are written
+         without the bug.
+20101003 szx.c,test/{empty.szx,test.c}: we also need to swap A' and F'.
+20101010 configure.in: pad version number for Win32 if needed (patch #3084574)
+         (Sergio Baldovi).
+20101129 ChangeLog,README,doc/libspectrum.{3,txt}: more 1.0 updates.
+20101130 warajevo_read.c: remove potential signedness problem.
+20101130 Makefile.am,configure.in: bump version numbers for 1.0 release.
+20101216 README,configure.in,doc/libspectrum.3: bump version numbers and dates
+         for 1.0.0 release.
+20101216 ChangeLog: update date here as well.
+20101216 test/Makefile.am: ensure all test files are distributed.
+20101217 Makefile.am: mark windres.rc as a source file so it is distributed
+         (thanks, Guesser).
+20110120 make-perl.c,myglib/ghash.c: add the g_hash_table_foreach() function and
+         update g_hash_table_new() function to support the
+         g_hash_table_new( NULL, NULL ) syntax (patch #3160211) (Sergio
+         Baldovi).
+20110130 accessor.pl,doc/libspectrum.txt,snap_accessors.txt,snapshot.c,szx.c:
+         add support for SpecDrum in SZX snapshots (patch #3164313) (Jon
+         Mitchell).
+20110131 sna.c,z80.c: note info loss of SpecDrum info when writing sna or z80
+         format snapshots (Fred).
+20110327 configure.in: allow the user to say they do not want to use windres
+         (works around bug #3248008; thanks, Cygnus).
+20110405 libspectrum.h.in: add missing WIN32_DLL (Stuart).
+20110407 accessor.pl,snap_accessors.txt,snapshot.c,szx.c: add support for Beta
+         128 interface autoboot setting in SZX snapshots (Fred).
+20110422 tape_block.c: ROM block duration didn't take into account pilot and
+         sync pulses (Fred).
+20110422 tape.c: don't expect an edge for a jump, group start/end, loop
+         start/end or other non-audio blocks (Fred).
+20110427 Makefile.am,internals.h,tap.c,tape_block.c,tzx_read.c,utilities.c,
+         warajevo_read.c: centralise ms/tstate conversions and tape block pause
+         setting functions (Fred).
+20110427 tzx_read.c,tzx_write.c,warajevo_read.c,wav.c: complete centralisation
+         of tape block pause setting functions (Fred).
+20110427 libspectrum.h.in,tape.c: add comments for
+         LIBSPECTRUM_TAPE_FLAGS_LENGTH_SHORT and
+         LIBSPECTRUM_TAPE_FLAGS_LENGTH_LONG (Fred).
+20110427 tape.c,test/test15.c: use centralised methods for ms/tstate conversions
+         (Fred).
+20110427 tape.c,test/test15.c: use more centralised methods for ms/tstate
+         conversions (Fred).
+20110427 z80.c: initialise machine_type to avoid a warning (Fred).
+20110427 test/test.c: test needed updating for ROM block duration fix (Fred).
+20110427 tzx_read.c: message time in the TZX is in seconds not ms (Fred).
+20110427 doc/libspectrum.txt,tape.c,tape_accessors.txt,tape_block.[ch],
+         utilities.c: directly store pause tstates values in blocks to allow
+         access to either original values or native tstates values (Fred).
+20110427 Makefile.am,doc/{libspectrum.3,libspectrum.txt},internals.h,
+         libspectrum.c,libspectrum.h.in,pzx_read.c,tap.c,tape.c,
+         tape_accessors.txt,tape_block.[ch],tzx_read.c: add read support for PZX
+         tape files (Fred).
+20110429 wav.c: use some more LIBSPECTRUM_BITS_IN_BYTE constants (Fred).
+20110429 tape.c: have raw data blocks report the polarity of pulses (Fred).
+20110502 configure.in: remove unneeded AM_SUBST_NOTMAKE macro as it doesn't get
+         along with older autotools (patch #3295662) (thanks, Tomáš Franke)
+         (Sergio Baldoví).
+20110514 doc/libspectrum.txt,libspectrum.h.in,tape.c,tape_accessors.txt,
+         tape_block.[ch],tzx_read.c,tzx_write.c: add support for the TZX set
+         signal level block (Fred).
+20110514 tape.c,tzx_read.c: tweak set signal level and pause blocks to correct
+         level information (Fred).
+20110514 tzx_write.c: add support for writing PZX blocks to TZX files (Fred).
+20110515 tap.c: add support for the TZX set signal level block (Fred).
+20110515 tzx_write.c: factor out common code for writing signal level and pure
+         tone blocks (Fred).
+20110608 accessor.pl,snap_accessors.txt,snapshot.c,szx.c: beginnings of
+         Spectranet snapshot support.
+20110610 accessor.pl,snap_accessors.txt,szx.c: pretty much working Spectranet
+         snapshot support.
+20110611 accessor.pl,snap_accessors.txt,szx.c: implement Spectranet
+         programmable trap support.
+20110619 accessor.pl,snap_accessors.txt,szx.c: implement Spectranet "deny
+         downstream A15 flag".
+20110621 accessor.pl,snap_accessors.txt,szx.c: implement Spectranet "paged via
+         IO port" flag.
+20110622 accessor.pl,snapshot.c,snap_accessors.txt,szx.c: store core W5100
+         state in snapshots.
+20110811 libspectrum.h.in,libspectrum.c: add support for detecting POK files
+         (patch #3382538) (Sergio Baldoví).
+20110905 libspectrum.c,make-perl.c,myglib/garray.c: remove operations with
+         uninitialised pointers in libspectrum_make_room, at stopping RZX
+         recordings or saving snapshots (part of patch #3404090) (Sergio
+         Baldoví).
+20111106 rzx.c,szx.c: remove unused variables (thanks, gcc 4.6).
+20120203 csw.c: fix less than 0 check on unsigned expression (thanks, clang
+         2.1) (Fred).
+20120203 szx.c: correct error argument in libspectrum_print_error() calls
+         (thanks, clang 2.1) (Fred).
+20120220 make-perl.c: advertise that we support bzip2 compressed and wav files
+         (part of patch #3413549) (Sergio Baldoví).
+20120327 configure.in,Makefile.am,acinclude.m4: simplify detection of GLib
+         and drop support for version 1.x (patch #3508792) (Alberto Garcia)
+20120327 configure.in: add support for audiofile 0.3.x (patch #3508658) (Alberto
+         Garcia).
+20120506 make-perl.c,myglib/gslist.c: fix some const qualifiers for the data
+         argument to g_slist_remove and g_slist_find_custom (part of bug
+         #3514721) (Sergio Baldoví).
+20120507 internals.h,libspectrum.c,libspectrum.h.in,make-perl.c,myglib/{ghash.c,
+         gslist.c}: add g_hash_table_new_full() and libspectrum_end() for memory
+         releasing (part of bug #3515269) (Sergio Baldoví).
+20120916 Makefile.am: allow custom build flags for make-perl to address warning
+         from the debian build system (bug #3567469) (Sergio Baldoví).
+20120928 szx.c: read all possible RAM pages from the snap (thanks, ketmar)
+         (Fred).
+20121021 Makefile.am,acinclude.m4,autogen.sh,configure.ac,configure.in,
+         m4/audiofile.m4,windres.rc: modernise autoconf support (more from patch
+         #3575831) (Sergio).
+20121026 configure.ac: fix the build when libaudiofile is not found and we are
+         using an old pkg-config/autoconf (bug #3579244) (Sergio).
+20121107 Makefile.am: fix the build when source and build trees are different
+         (VPATH) (bug #3584527) (Sergio).
+20121107 szx.c: fix potential calls to memcpy with a null pointer argument
+         (thanks, clang 4.1) (Fred).
+20121107 libspectrum.c: fix potential leak of memory pointed to by
+         'new_filename' (thanks, clang 4.1) (Fred).
+20121126 memory.c,myglib/garray.c,windres.rc: fix hard-coded Id tags and add
+         missing properties (Sergio).
+20121129 configure.ac: don't check for windres when not building for Windows
+         hosts. Remove --without-windres option, previously used as a workaround
+         (Sergio).
+20121129 csw.c,rzx.c,szx.c: remove unused variables when not linking against
+         external libraries (Sergio).
+20121202 configure.ac: fix the macro expansion of PKG_CHECK_MODULES when using
+         both --without-glib and --with-libaudiofile options (Sergio).
+20121208 configure.ac,libspectrum.h.in: preliminary support for 64-bits binaries
+         for Windows (patch #3591613) (Sergio).
+20121208 README: document support for reading PZX files (Sergio).
+20121222 szx.c: split SNET block into SNET, SNEF and SNER so that flash could
+         theoretically be saved separately (patch #3596469) (Fred).
+20121225 accessor.pl,libspectrum.h.in,sna.c,snap_accessors.txt,snapshot.c,szx.c,
+         z80.c: extend SZX support to version 1.5 draft specs (Fred).
+20121226 accessor.pl,snap_accessors.txt,snapshot.c,szx.c: MEMPTR is also in v1.4
+         SZX files (Fred).
+20121226 make-perl.c: fix typo in comment (Fred).
+20121226 szx.c: inline constant in write_snet_chunk() (Fred).
+20121226 doc/libspectrum.txt: add some text about changes to the interface
+         (Fred).
+20121226 configure.ac: bump version number to 1.1.0 (Fred).
+20121226 doc/libspectrum.txt: tweak PZX text (Fred).
+20121226 ChangeLog,README: first updates for a "1.1.0" release (Fred).
+20121227 libspectrum.c: set name for Spectrum 128Ke machine type (Sergio).
+20121229 doc/libspectrum.1: use an em dash (Stuart).
+20121230 timings.c: add timings for 128Ke, copied from those for 128K (Stuart).
+20121231 timings.c: 128Ke timings are intended to be based on +2A (Fred).
+20121231 libspectrum.c: add 128Ke capabilities as long as it is in the library
+         (Fred).
+20121231 accessor.pl,doc/libspectrum.txt,libspectrum.h.in,sna.c,z80.c: rename
+         'Interface II' to 'Interface 2' in comments and documentation (Stuart).
+20130103 configure.ac: make some URLs point to the new sourceforge forge and
+         update copyright date to 2013 (Sergio).
+20130103 configure.ac: add trailing slash to URL of bug tracker (Stuart).
+20130126 accessor.pl,doc/libspectrum.txt,snap_accessors.txt,snapshot.c,szx.c:
+         add support for storing ZX Printer state (bug #274) (Fred).
+20130130 timings.c: correct video timing for +2A/+3 etc machines (part of
+         patch #305).
+20130307 accessor.pl,snap_accessors.txt,szx.c: implement Spectranet's "suppress
+         NMI" flipflop (bug #259).
+20130516 Makefile.am: update library version number for 1.1 release.
+20130516 doc/libspectrum.3: update version number and date for 1.1 release.
+20130516 ChangeLog: update date in main changelog.
+20130517 README: update one more date for the 1.1 release.
+20130518 doc/libspectrum.txt: update version number for 1.1 release (Sergio).
+20130524 Makefile.am: update libtool age to support binaries built against
+         libspectrum 1.0.0 (Stuart).
+20130524 ChangeLog,README,configure.ac,doc/libspectrum.{3,txt},
+         hacking/ChangeLog: updates for a "1.1.1" release (Stuart).
+20130524 doc/libspectrum,README: further updates for 1.1.1(Stuart).
+20130524 ChangeLog: fill in date (Stuart).
+20130526 Makefile.am: add dll.c into the dist tarball (Sergio).

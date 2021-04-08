@@ -2,7 +2,8 @@
 
 # settings-header.pl: generate settings.h from settings.dat
 # Copyright (c) 2002-2003 Philip Kendall
-# Copyright (c) 2015 Stuart Brady
+
+# $Id: settings-header.pl 4961 2013-05-19 05:17:30Z sbaldovi $
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -66,6 +67,8 @@ print << 'CODE';
 #ifndef FUSE_SETTINGS_H
 #define FUSE_SETTINGS_H
 
+#include <config.h>
+
 #include <sys/types.h>
 
 typedef struct settings_info {
@@ -103,8 +106,7 @@ void settings_defaults( settings_info *settings );
 void settings_copy( settings_info *dest, settings_info *src );
 
 #define SETTINGS_ROM_COUNT 30
-char **settings_get_rom_setting( settings_info *settings, size_t which,
-				 int is_peripheral );
+char **settings_get_rom_setting( settings_info *settings, size_t which );
 
 void settings_set_string( char **string_setting, const char *value );
 
@@ -112,7 +114,7 @@ int settings_free( settings_info *settings );
 
 int settings_write_config( settings_info *settings );
 
-void settings_register_startup( void );
+int settings_end( void );
 
 #endif				/* #ifndef FUSE_SETTINGS_H */
 CODE

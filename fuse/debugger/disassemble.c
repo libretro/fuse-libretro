@@ -1,6 +1,7 @@
 /* disassemble.c: Fuse's disassembler
-   Copyright (c) 2002-2015 Darren Salt, Philip Kendall
-   Copyright (c) 2016 BogDan Vatra
+   Copyright (c) 2002-2003 Darren Salt, Philip Kendall
+
+   $Id: disassemble.c 4547 2011-09-27 11:50:15Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,14 +28,12 @@
 #include <config.h>
 
 #include <stdio.h>
-#include <string.h>
 
 #include <libspectrum.h>
 
 #include "debugger.h"
 #include "fuse.h"
-#include "memory_pages.h"
-#include "ui/ui.h"
+#include "../memory.h"
 
 /* Used to flag whether we're after a DD or FD prefix */
 enum hl_type { USE_HL, USE_IX, USE_IY };
@@ -109,18 +108,8 @@ disassemble_main( libspectrum_word address, char *buffer, size_t buflen,
 {
   libspectrum_byte b;
   char buffer2[40], buffer3[40];
-  size_t prefix_length = 0;
 
   b = readbyte_internal( address );
-
-  /* Before we do anything else, strip off any DD or FD prefixes, keeping
-     a count of how many we've seen */
-  while( b == 0xdd || b == 0xfd ) {
-    use_hl = b == 0xdd ? USE_IX : USE_IY;
-    address++;
-    prefix_length++;
-    b = readbyte_internal( address );
-  }
 
   if( b < 0x40 ) {
     disassemble_00xxxxxx( address, buffer, buflen, length, use_hl );
@@ -151,9 +140,6 @@ disassemble_main( libspectrum_word address, char *buffer, size_t buflen,
   } else {
     disassemble_11xxxxxx( address, buffer, buflen, length, use_hl );
   }
-
-  /* Increment the instruction length by the number of prefix bytes */
-  *length += prefix_length;
 }
 
 /* Disassemble something of the form 00xxxxxx */
@@ -357,7 +343,7 @@ disassemble_11xxx001( libspectrum_byte b, char *buffer, size_t buflen,
   case 0x03: snprintf( buffer, buflen, "EXX" ); *length = 1; break;
 
   case 0x05: 
-    snprintf( buffer, buflen, "JP (%s)", hl_ix_iy( use_hl ) ); *length = 1;
+    snprintf( buffer, buflen, "JP %s", hl_ix_iy( use_hl ) ); *length = 1;
     break;
 
   case 0x06: snprintf( buffer, buflen, "POP AF" ); *length = 1; break;
@@ -443,11 +429,7 @@ disassemble_11xxx101( libspectrum_word address, char *buffer, size_t buflen,
     break;
 
   case 0x03:
-  case 0x07:
-    /* These should never happen as we strip off all DD/FD prefixes before
-     * disassembling the instruction itself */
-    ui_error( UI_ERROR_ERROR, "disassemble_11xx101: b = 0x%02x", b );
-    fuse_abort();
+    disassemble_main( address+1, buffer, buflen, length, USE_IX ); (*length)++;
     break;
 
   case 0x05:
@@ -456,6 +438,10 @@ disassemble_11xxx101( libspectrum_word address, char *buffer, size_t buflen,
 
   case 0x06:
     snprintf( buffer, buflen, "PUSH AF" ); *length = 1;
+    break;
+
+  case 0x07:
+    disassemble_main( address+1, buffer, buflen, length, USE_IY ); (*length)++;
     break;
   }
 }
@@ -575,7 +561,7 @@ disassemble_ed( libspectrum_word address, char *buffer, size_t buflen,
 
     }
   } else if( b < 0xa0 ) {
-    snprintf( buffer, buflen, "NOPD" ); *length = 1;
+    snprintf( buffer, buflen, "NOPD" ); *length = 1; *length = 1;
   } else {
     /* Note: 0xbc to 0xbf already removed */
     snprintf( buffer, buflen, "%s", opcode_101xxxxx[ b & 0x1f ] ); *length = 1;
@@ -793,108 +779,4 @@ static int
 bit_op_bit( libspectrum_byte b )
 {
   return ( b >> 3 ) & 0x07;
-}
-
-/* Get an instruction relative to a specific address */
-libspectrum_word
-debugger_search_instruction( libspectrum_word address, int delta )
-{
-  size_t j, length, longest;
-  int i;
-
-  if( !delta ) return address;
-
-  if( delta > 0 ) {
-
-    for( i = 0; i < delta; i++ ) {
-      debugger_disassemble( NULL, 0, &length, address );
-      address += length;
-    }
-
-  } else {
-
-    for( i = 0; i > delta; i-- ) {
-      /* Look for _longest_ opcode which produces the current top in second
-         place */
-      for( longest = 1, j = 1; j <= 8; j++ ) {
-        debugger_disassemble( NULL, 0, &length, address - j );
-        if( length == j ) longest = j;
-      }
-      address -= longest;
-    }
-
-  }
-
-  return address;
-}
-
-/* Unit tests */
-
-/* Disassembly test data */
-libspectrum_byte test1_data[] = { 0x00 };
-
-libspectrum_byte test2_data[] = { 0xdd, 0x00 };
-libspectrum_byte test3_data[] = { 0xdd, 0x09 };
-libspectrum_byte test4_data[] = { 0xdd, 0xdd, 0x00 };
-libspectrum_byte test5_data[] = { 0xdd, 0xcb, 0x55, 0x06 };
-
-libspectrum_byte test6_data[] = { 0xfd, 0x00 };
-libspectrum_byte test7_data[] = { 0xfd, 0x09 };
-libspectrum_byte test8_data[] = { 0xfd, 0xfd, 0x00 };
-libspectrum_byte test9_data[] = { 0xfd, 0xcb, 0x55, 0x06 };
-
-libspectrum_byte test10_data[] = { 0xdd, 0xfd, 0x09 };
-libspectrum_byte test11_data[] = { 0xfd, 0xdd, 0x09 };
-
-libspectrum_byte test12_data[] = { 0xdd, 0xfd, 0xdd, 0xfd, 0xdd, 0xfd, 0xdd,
-                                   0xfd, 0xdd, 0xfd, 0xdd, 0xfd, 0x09 };
-libspectrum_byte test13_data[] = { 0xfd, 0xdd, 0xfd, 0xdd, 0xfd, 0xdd, 0xfd,
-                                   0xdd, 0xfd, 0xdd, 0xfd, 0xdd, 0x09 };
-
-libspectrum_byte test14_data[] = { 0x7e };
-libspectrum_byte test15_data[] = { 0xdd, 0x7e, 0x55 };
-
-static int
-run_test( libspectrum_byte *data, size_t data_length, const char *expected )
-{
-  char disassembly[16];
-  size_t length;
-
-  memcpy( memory_map_read[8].page, data, data_length );
-  
-  debugger_disassemble( disassembly, sizeof( disassembly ), &length, 0x4000 );
-
-  if( strcmp( disassembly, expected ) ) return 1;
-  if( length != data_length ) return 1;
-
-  return 0;
-}
-
-int
-debugger_disassemble_unittest( void )
-{
-  int r = 0;
-
-  r += run_test( test1_data, sizeof( test1_data ), "NOP" );
-
-  r += run_test( test2_data, sizeof( test2_data ), "NOP" );
-  r += run_test( test3_data, sizeof( test3_data ), "ADD IX,BC" );
-  r += run_test( test4_data, sizeof( test4_data ), "NOP" );
-  r += run_test( test5_data, sizeof( test5_data ), "RLC (IX+55)" );
-
-  r += run_test( test6_data, sizeof( test6_data ), "NOP" );
-  r += run_test( test7_data, sizeof( test7_data ), "ADD IY,BC" );
-  r += run_test( test8_data, sizeof( test8_data ), "NOP" );
-  r += run_test( test9_data, sizeof( test9_data ), "RLC (IY+55)" );
-
-  r += run_test( test10_data, sizeof( test10_data ), "ADD IY,BC" );
-  r += run_test( test11_data, sizeof( test11_data ), "ADD IX,BC" );
-
-  r += run_test( test12_data, sizeof( test12_data ), "ADD IY,BC" );
-  r += run_test( test13_data, sizeof( test13_data ), "ADD IX,BC" );
-
-  r += run_test( test14_data, sizeof( test14_data ), "LD A,(HL)" );
-  r += run_test( test15_data, sizeof( test15_data ), "LD A,(IX+55)" );
-
-  return r;
 }

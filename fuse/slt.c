@@ -1,7 +1,7 @@
 /* slt.c: SLT data handling routines
-   Copyright (c) 2004-2016 Philip Kendall
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2015 Fredrick Meunier
+   Copyright (c) 2004 Philip Kendall
+
+   $Id: slt.c 4715 2012-06-07 03:32:59Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@
 
 #include <libspectrum.h>
 
-#include "infrastructure/startup_manager.h"
 #include "module.h"
 #include "settings.h"
 #include "slt.h"
@@ -58,20 +57,10 @@ static module_info_t slt_module_info = {
 
 };
 
-static int
-slt_init( void *context )
+void
+slt_init( void )
 {
   module_register( &slt_module_info );
-
-  return 0;
-}
-
-void
-slt_register_startup( void )
-{
-  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
-  startup_manager_register( STARTUP_MANAGER_MODULE_SLT, dependencies,
-                            ARRAY_SIZE( dependencies ), slt_init, NULL, NULL );
 }
 
 int
@@ -107,6 +96,11 @@ slt_from_snapshot( libspectrum_snap *snap )
 
       slt[i] = memory_pool_allocate( slt_length[i] *
 				     sizeof( libspectrum_byte ) );
+      if( !slt[i] ) {
+	ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__,
+		  __LINE__ );
+	return;
+      }
 
       memcpy( slt[i], libspectrum_snap_slt( snap, i ),
 	      libspectrum_snap_slt_length( snap, i ) );
@@ -116,6 +110,10 @@ slt_from_snapshot( libspectrum_snap *snap )
   if( libspectrum_snap_slt_screen( snap ) ) {
 
     slt_screen = memory_pool_allocate( 6912 * sizeof( libspectrum_byte ) );
+    if( !slt_screen ) {
+      ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__, __LINE__ );
+      return;
+    }
 
     memcpy( slt_screen, libspectrum_snap_slt_screen( snap ), 6912 );
     slt_screen_level = libspectrum_snap_slt_screen_level( snap );
@@ -134,7 +132,9 @@ slt_to_snapshot( libspectrum_snap *snap )
 
     if( slt_length[i] ) {
 
-      buffer = libspectrum_new( libspectrum_byte, slt_length[i] );
+      libspectrum_byte *buffer;
+
+      buffer = libspectrum_malloc( slt_length[i] * sizeof(libspectrum_byte) );
 
       memcpy( buffer, slt[i], slt_length[i] );
       libspectrum_snap_set_slt( snap, i, buffer );
@@ -143,7 +143,7 @@ slt_to_snapshot( libspectrum_snap *snap )
 
   if( slt_screen ) {
  
-    buffer = libspectrum_new( libspectrum_byte, 6912 );
+    buffer = libspectrum_malloc( 6912 * sizeof( libspectrum_byte ) );
 
     memcpy( buffer, slt_screen, 6912 );
     libspectrum_snap_set_slt_screen( snap, buffer );

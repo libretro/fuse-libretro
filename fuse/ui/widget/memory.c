@@ -1,6 +1,8 @@
 /* memory.c: memory browser widget
    Copyright (c) 2004 Darren Salt
 
+   $Id: memory.c 4103 2009-11-21 10:16:36Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -51,15 +53,15 @@ widget_memory_draw( void *data )
     libspectrum_word addr = memaddr + y * 8;
 
     sprintf( pbuf, "%04X:", addr );
-    widget_printstring_fixed( LC(1), LR(y), 5, pbuf );
+    widget_printstring_right( LC(5) - 4, LR(y), 5, pbuf );
 
     for( x = 0; x < 8; ++x ) {
       libspectrum_byte b = readbyte_internal( addr + x );
 
-      widget_printchar_fixed( LC(x + 30), LR(y), 7 - (y & 1), b );
+      widget_printchar_fixed( LC(x + 29) / 8, LR(y) / 8, 7 - (y & 1), b );
       sprintf( pbuf + x * 3, "%02X ", b );
     }
-    widget_printstring_fixed( LC(6), LR(y), 7 - (y & 1), pbuf );
+    widget_printstring_fixed( LC(5) / 8, LR(y) / 8, 7 - (y & 1), pbuf );
   }
 
   widget_display_lines( LR(0) / 8, 17 );

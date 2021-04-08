@@ -8,8 +8,8 @@ $ ./configure
 There are now some options you can give to configure; `configure
 --help' will list them all, but the most important are:
 
---with-fb		Use the framebuffer interface, rather than GTK.
---with-sdl		Use the SDL interface, rather than GTK.
+--with-fb		Use the framebuffer interface, rather than GTK+.
+--with-sdl		Use the SDL interface, rather than GTK+.
 --with-svgalib		Use the SVGAlib interface.
 --without-gtk		Use the plain Xlib interface.
 
@@ -39,7 +39,7 @@ do this bit.
 
 Once you've got Fuse configured and built, read the man page :-)
 
-Note that if you're using version of Fuse from Git rather than
+Note that if you're using version of Fuse from Subversion rather than
 one of the released tarballs, you'll need to run `autogen.sh' before
 running 'configure' for the first time.
 
@@ -64,7 +64,8 @@ Then, use this configure line:
 
 ./configure --target=powerpc-gekko --host=powerpc-gekko \
 	    --with-wii \
-	    --without-libxml2 --without-libiconv --without-gpm --without-x \
+	    --without-libxml2 --without-libiconv --without-gpm \
+	    --without-x --without-glib \
 	    CFLAGS="-g -I$DEVKITPPC/include -I$DEVKITPRO/libogc/include -DGEKKO" \
 	    LDFLAGS="-g -mrvl -mcpu=750 -meabi -mhard-float \
                      -Wl,-Map,fuse.elf.map -L$DEVKITPPC/lib \
@@ -81,66 +82,65 @@ methods.
 Building the Win32 version of Fuse
 ----------------------------------
 
-You'll need to have the Mingw-w64 toolchain <http://mingw-w64.org/>, e.g., on
-Debian: `apt-get install mingw-w64'
+You'll need to have the MinGW <http://www.mingw.org> or MinGW-w64 toolchain
+<http://mingw-w64.sourceforge.net>, e.g., on Debian:
+`apt-get install mingw32 mingw32-binutils mingw32-runtime'
 
 On Windows, besides the former toolchain, you'll need an environment that
-includes a collection of Unix tools, like MSYS2 <https://msys2.github.io/> or
+includes a collection of Unix tools, like MSYS <http://www.mingw.org> or
 Cygwin <http://cygwin.com>.
 
 The next examples build libspectrum and Fuse without any external library for
-the sake of clarity, but all these libraries successfully compile with a MinGW
+the sake of clarity, but all these libraries successfully compile with MingGW
 environment - in case of problems with compiling any of the libs please refer to
 the lib's homepage for help.
 
-1) On Linux, first build libspectrum:
+1) On Linux, first have to compile libspectrum:
 
-./configure --host=i686-w64-mingw32 --without-libaudiofile --without-zlib \
-            --without-libgcrypt --without-bzip2 --with-fake-glib --prefix=`pwd`
+./configure --host=i586-mingw32msvc --without-libaudiofile --without-zlib \
+	    --without-libgcrypt --without-bzip2 --without-glib --prefix=`pwd`
 make install
 
-This should install libspectrum into the same source directory.
+This should `install' into the source directory.
 
 Then, compile Fuse:
 
-PKG_CONFIG_LIBDIR=`pwd`/../libspectrum/lib/pkgconfig \
-./configure --host=i686-w64-mingw32 --prefix=`pwd` --with-win32 \
-            --without-libxml2 --without-zlib --without-png --without-pthread
+./configure --host=i586-mingw32msvc --without-glib --prefix=`pwd` \
+	    --with-libspectrum-prefix=`pwd`/../libspectrum --with-win32 \
+	    --without-libxml2 --without-zlib --without-png --without-x
 make
 
-You have to use the real path of libspectrum with `PKG_CONFIG_LIBDIR'.
+You have to use the real path of libspectrum with `--with-libspectrum-prefix='.
 This should build `fuse.exe' without any external lib, but you can run it on
 Windows or Linux (with Wine).
 
-You need libwinpthread-1.dll in the same directory as `fuse.exe', most
-likely it is located in /usr/i686-w64-mingw32/lib/
+With wine you need `fltmgr.sys' in Windows `system32' directory. (e.g.:
+~/.wine/c_drive/windows/system32).
 
-2) On Windows, using MSYS2 + Mingw-w64 toolchain, first build libspectrum:
+2) On Windows, using MSYS + MinGW toolchain, first build libspectrum:
 
-./configure --with-fake-glib --without-libaudiofile --without-libgcrypt \
-            --without-zlib --without-bzip2 --prefix=/usr/local
+./configure --without-glib --without-libaudiofile --without-libgcrypt \
+	    --without-zlib --without-bzip2 --prefix=/usr/local
 make install
 
 Then, build Fuse:
-
-PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
-./configure --with-win32 --without-libxml2 --without-zlib --without-png \
-            --prefix=/usr/local
+	    
+./configure --with-win32 --without-glib --without-libxml2 --without-zlib \
+	    --without-png --prefix=/usr/local
 make
 
-3) On Windows, using Cygwin + Mingw-w64 toolchain, first build libspectrum:
+3) On Windows, using Cygwin + MinGW toolchain, first build libspectrum:
 
-./configure --build=i686-pc-cygwin --host=i686-w64-mingw32 --with-fake-glib \
-            --without-libaudiofile --without-libgcrypt --without-zlib \
-            --without-bzip2 --prefix=/usr/local/i686-w64-mingw32
+./configure --build=i686-pc-cygwin --host=i686-pc-mingw32 --without-glib \
+	    --without-libaudiofile --without-libgcrypt --without-zlib \
+	    --without-bzip2 --prefix=/usr/local/i686-pc
 make install
 
 Then, build Fuse:
 
-PKG_CONFIG_LIBDIR=/usr/local/i686-w64-mingw32/lib/pkgconfig \
-./configure --build=i686-pc-cygwin --host=i686-w64-mingw32 --without-libxml2 \
-            --without-zlib --without-png --with-win32 \
-            --prefix=/usr/local/i686-w64-mingw32
+./configure --build=i686-pc-cygwin --host=i686-pc-mingw32 --with-win32 \
+        --without-glib --without-libxml2 --without-zlib --without-png \
+        --prefix=/usr/local/i686-pc
 make
 
 Note: you need `libspectrum-8.dll' and the `roms' directory and the `lib'
@@ -161,3 +161,5 @@ Note: you need `libspectrum-8.dll' and the `roms' directory and the `lib'
   Additional tools are required for the former rules: Info-Zip, p7zip and NSIS,
   respectively. That will make a temporary subdirectory (fuse-VERSION-win32)
   in the build directory and then will create a package.
+
+$Id: INSTALL 4763 2012-11-16 11:01:59Z fredm $

@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2001-2004 Philip Kendall
-## Copyright (c) 2015 Sergio Baldoví
+
+## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -20,29 +21,27 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-if UI_SDL
+AUTOMAKE_OPTIONS = foreign
 
-fuse_SOURCES += $(ui_sdl_files)
+AM_CPPFLAGS = -I$(srcdir)/../..
 
-BUILT_SOURCES += $(ui_sdl_built)
+noinst_LIBRARIES = libuisdl.a
 
-endif
+AM_CPPFLAGS += @GLIB_CFLAGS@ @LIBSPEC_CFLAGS@ @SDL_CFLAGS@
 
+libuisdl_a_SOURCES = sdldisplay.c \
+		     sdljoystick.c \
+		     sdlkeyboard.c \
+		     sdlui.c \
+		     keysyms.c
 
-CLEANFILES += $(ui_sdl_built)
+BUILT_SOURCES = keysyms.c
 
-ui_sdl_files = \
-               ui/sdl/sdldisplay.c \
-               ui/sdl/sdldisplay.h \
-               ui/sdl/sdljoystick.c \
-               ui/sdl/sdljoystick.h \
-               ui/sdl/sdlkeyboard.c \
-               ui/sdl/sdlkeyboard.h \
-               ui/sdl/sdlui.c \
-               ui/sdl/keysyms.c
+keysyms.c: $(srcdir)/../../keysyms.pl $(srcdir)/../../keysyms.dat
+	@PERL@ -I$(srcdir)/../../perl $(srcdir)/../../keysyms.pl sdl $(srcdir)/../../keysyms.dat > $@.tmp && mv $@.tmp $@
 
-ui_sdl_built = ui/sdl/keysyms.c
+noinst_HEADERS = sdldisplay.h \
+		 sdljoystick.h \
+		 sdlkeyboard.h
 
-ui/sdl/keysyms.c: $(srcdir)/keysyms.pl $(srcdir)/keysyms.dat
-	@$(MKDIR_P) ui/sdl
-	$(AM_V_GEN)$(PERL) -I$(srcdir)/perl $(srcdir)/keysyms.pl sdl $(srcdir)/keysyms.dat > $@.tmp && mv $@.tmp $@
+CLEANFILES = keysyms.c

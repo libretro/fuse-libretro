@@ -9,8 +9,7 @@ Beta Disk
 +D
 
 * Acquire the +D system tape from
-  http://www.worldofspectrum.org/pub/sinclair/utils/PlusDSystemTape.tzx.zip
-* Uncompress PlusDSystemTape.tzx.zip
+  ftp://ftp.worldofspectrum.org/pub/sinclair/utils/PlusDSystemTape.tzx.zip
 * Uncompress lib/tests/success.mgt.bz2
 * Start fuse as
   ./fuse --plusd --plusddisk lib/tests/success.mgt PlusDSystemTape.tzx
@@ -20,21 +19,14 @@ Beta Disk
 * Enter LOAD d1"Success"
 * You should see "Congraturation! You sucsess!"
 
-Didaktik 80
-
-* Start fuse as ./fuse --didaktik80 --didaktik80disk lib/tests/success.d80
-* Enter LOAD *"success"
-* You should see "Congraturation! You sucsess!"
-
 DISCiPLE
 
 * Acquire the DISCiPLE system tape from
-  http://www.worldofspectrum.org/pub/sinclair/utils/DISCiPLESystemTapeV3d.tzx.zip
-* Uncompress DISCiPLESystemTapeV3d.tzx.zip
+  ftp://ftp.worldofspectrum.org/pub/sinclair/utils/DISCiPLESystemTapeV3d.tzx.zip
 * Uncompress lib/tests/success.mgt.bz2
 * Place a DISCiPLE ROM image in the 'roms' directory.
 * Start fuse as
-  ./fuse --disciple --discipledisk lib/tests/success.mgt GDOS\ 3d.tzx
+  ./fuse --disciple --discipledisk lib/tests/success.mgt DISCiPLESystemTapeV3d.tzx.zip
 * Hit enter
 * Hit <Break>
 * Enter NEW
@@ -43,8 +35,7 @@ DISCiPLE
 
 DivIDE
 
-* Acquire the FATware installer from
-  http://web.archive.org/web/20150302052256/http://baze.au.com/divide/
+* Acquire the FATware installer from http://baze.au.com/divide/
 * Uncompress lib/tests/fatware-success.hdf.bz2
 * Start fuse as
   ./fuse --divide --divide-masterfile fatware-success.hdf FATware-0-12.tap

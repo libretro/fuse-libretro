@@ -1,8 +1,7 @@
 /* debugger.c: the Win32 debugger
    Copyright (c) 2004-2012 Philip Kendall, Marek Januszewski
-   Copyright (c) 2013-2015 Sergio Baldoví
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2016 BogDan Vatra
+
+   $Id: debugger.c 4773 2012-11-25 22:49:17Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -53,7 +52,7 @@
 /* FIXME: delete whatever is not needed
 
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 
  */
 
@@ -108,21 +107,13 @@ static void win32ui_debugger_done_close( void );
 static INT_PTR CALLBACK win32ui_debugger_proc( HWND hWnd, UINT msg,
                                                WPARAM wParam, LPARAM lParam );
 
-static LRESULT CALLBACK
-disassembly_listview_proc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
-
-/* Debugger window handle */
-HWND fuse_hDBGWnd;
-
 /* The top line of the current disassembly */
 static libspectrum_word disassembly_top;
-
-/* The next line below the current disassembly */
-static libspectrum_word disassembly_bottom;
 
 /* helper constants for disassembly listview's scrollbar */
 static const int disassembly_min = 0x0000;
 static const int disassembly_max = 0xffff;
+static const float disassembly_step = 0.5;
 /* Visual styles could change visible rows */
 static unsigned int disassembly_page = 20;
 
@@ -166,12 +157,6 @@ ui_debugger_activate( void )
   return 0;
 }
 
-void
-ui_breakpoints_updated( void )
-{
-  /* TODO: Refresh debugger list here */
-}
-
 static int
 hide_hidden_panes( void )
 {
@@ -187,8 +172,8 @@ hide_hidden_panes( void )
     mii.cbSize = sizeof( MENUITEMINFO );
     if( ! GetMenuItemInfo( GetMenu( fuse_hDBGWnd ), checkitem, FALSE, &mii ) )
       return 1;
-
-    if( mii.fState & MFS_CHECKED ) continue;
+    
+    if( mii.fState && MFS_CHECKED ) continue;
 
     if( ! show_hide_pane( i, SW_HIDE ) ) return 1;
   }
@@ -289,7 +274,7 @@ ui_debugger_deactivate( int interruptable )
 }
 
 static int
-create_dialog( void )
+create_dialog()
 {
   int error;
   debugger_pane i;
@@ -343,7 +328,7 @@ toggle_display( debugger_pane pane, UINT menu_item_id )
     
   /* Windows doesn't automatically checks/unchecks
      the menus when they're clicked */
-  if( mii.fState & MFS_CHECKED ) {
+  if( mii.fState && MFS_CHECKED ) {
     show_hide_pane( pane, SW_HIDE );
     mii.fState = MFS_UNCHECKED;
     SetMenuItemInfo( GetMenu( fuse_hDBGWnd ), menu_item_id, FALSE, &mii );
@@ -360,7 +345,7 @@ create_register_display( HFONT font )
   /* this display is created in rc, just set the monospaced font */
   size_t i;
 
-  for( i = 0; i < NUM_DBG_REGS; i++ ) {
+  for( i = 0; i < 18; i++ ) {
     win32ui_set_font( fuse_hDBGWnd, IDC_DBG_REG_PC + i, font );
   }
 
@@ -368,13 +353,12 @@ create_register_display( HFONT font )
 }
 
 static int
-create_breakpoints( void )
+create_breakpoints()
 {
   size_t i;
-
-  LPCTSTR breakpoint_titles[] = { _T( "ID" ), _T( "Type" ), _T( "Value" ),
-                                  _T( "Ignore" ), _T( "Life" ), 
-                                  _T( "Condition" ) };
+  
+  TCHAR *breakpoint_titles[] = { "ID", "Type", "Value", "Ignore", "Life",
+                                 "Condition" };
   /* set extended listview style to select full row, when an item is selected */
   DWORD lv_ext_style;
   lv_ext_style = SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_BPS,
@@ -392,7 +376,7 @@ create_breakpoints( void )
     if( i != 0 )
       lvc.mask |= LVCF_SUBITEM;
     lvc.cx = _tcslen( breakpoint_titles[i] ) * 8 + 10;
-    lvc.pszText = (LPTSTR)breakpoint_titles[i];
+    lvc.pszText = breakpoint_titles[i];
     SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_BPS, LVM_INSERTCOLUMN, i,
                         ( LPARAM ) &lvc );
   }
@@ -405,23 +389,15 @@ create_disassembly( HFONT font )
 {
   size_t i;
 
-  LPCTSTR disassembly_titles[] = { TEXT( "Address" ), TEXT( "Instruction" ) };
+  TCHAR *disassembly_titles[] = { TEXT( "Address" ), TEXT( "Instruction" ) };
 
   /* The disassembly listview itself */
-
-  /* subclass listview to catch keydown and mousewheel messages */
-  HWND hwnd_list = GetDlgItem( fuse_hDBGWnd, IDC_DBG_LV_PC );
-  WNDPROC orig_proc = (WNDPROC) GetWindowLongPtr( hwnd_list, GWLP_WNDPROC );
-  SetProp( hwnd_list, "original_proc", (HANDLE) orig_proc );
-  SetWindowLongPtr( hwnd_list, GWLP_WNDPROC, 
-                    (LONG_PTR) (WNDPROC) disassembly_listview_proc );
 
   /* set extended listview style to select full row, when an item is selected */
   DWORD lv_ext_style;
   lv_ext_style = SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_PC,
                                      LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0 ); 
   lv_ext_style |= LVS_EX_FULLROWSELECT;
-  lv_ext_style |= LVS_EX_DOUBLEBUFFER;
   SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_PC,
                       LVM_SETEXTENDEDLISTVIEWSTYLE, 0, lv_ext_style ); 
 
@@ -434,12 +410,13 @@ create_disassembly( HFONT font )
 
   for( i = 0; i < 2; i++ ) {
     if( i != 0 ) lvc.mask |= LVCF_SUBITEM;
-    lvc.pszText = (LPTSTR)disassembly_titles[i];
+    lvc.pszText = disassembly_titles[i];
     SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_PC, LVM_INSERTCOLUMN, i,
                         ( LPARAM ) &lvc );
   }
 
   /* Set columns width */
+  HWND hwnd_list = GetDlgItem( fuse_hDBGWnd, IDC_DBG_LV_PC );
   ListView_SetColumnWidth( hwnd_list, 0, LVSCW_AUTOSIZE_USEHEADER );
   ListView_SetColumnWidth( hwnd_list, 1, LVSCW_AUTOSIZE_USEHEADER );
 
@@ -465,9 +442,9 @@ static int
 create_stack_display( HFONT font )
 {
   size_t i;
-
-  LPCTSTR stack_titles[] = { _T( "Address" ), _T( "Value" ) };
-
+  
+  TCHAR *stack_titles[] = { "Address", "Value" };
+  
   /* set extended listview style to select full row, when an item is selected */
   DWORD lv_ext_style;
   lv_ext_style = SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_STACK,
@@ -485,7 +462,7 @@ create_stack_display( HFONT font )
 
   for( i = 0; i < 2; i++ ) {
     if( i != 0 ) lvc.mask |= LVCF_SUBITEM;
-    lvc.pszText = (LPTSTR)stack_titles[i];
+    lvc.pszText = stack_titles[i];
     SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_STACK, LVM_INSERTCOLUMN, i,
                         ( LPARAM ) &lvc );
   }
@@ -532,11 +509,12 @@ stack_click( LPNMITEMACTIVATE lpnmitem )
 }
 
 static int
-create_events( void )
+create_events()
 {
   size_t i;
-  LPCTSTR titles[] = { _T( "Time" ), _T( "Type" ) };
-
+  
+  TCHAR *titles[] = { "Time", "Type" };
+  
   /* set extended listview style to select full row, when an item is selected */
   DWORD lv_ext_style;
   lv_ext_style = SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_EVENTS,
@@ -552,7 +530,7 @@ create_events( void )
 
   for( i = 0; i < 2; i++ ) {
     if( i != 0 ) lvc.mask |= LVCF_SUBITEM;
-    lvc.pszText = (LPTSTR)titles[i];
+    lvc.pszText = titles[i];
     SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_EVENTS, LVM_INSERTCOLUMN, i,
                         ( LPARAM ) &lvc );
   }
@@ -651,9 +629,6 @@ ui_debugger_update( void )
   SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_REG_R,
                       WM_SETTEXT, (WPARAM) 0, (LPARAM) buffer );
 
-  _sntprintf( buffer, 80, TEXT( "Halted %d" ), z80.halted );
-  SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_REG_HALTED,
-                      WM_SETTEXT, (WPARAM) 0, (LPARAM) buffer );
   _sntprintf( buffer, 80, TEXT( "T-states %5d" ), tstates );
   SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_REG_T_STATES,
                       WM_SETTEXT, (WPARAM) 0, (LPARAM) buffer );
@@ -910,7 +885,7 @@ update_breakpoints( void )
 }
 
 static void
-update_disassembly( void )
+update_disassembly()
 {
   size_t i, length; libspectrum_word address;
   TCHAR buffer[80];
@@ -935,7 +910,8 @@ update_disassembly( void )
     address += length;
 
     /* append the item */
-    lvi.iItem = i;
+    lvi.iItem = SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_PC,
+                                    LVM_GETITEMCOUNT, 0, 0 );
     lvi.iSubItem = 0;
     lvi.pszText = disassembly_text[0];
     SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_PC, LVM_INSERTITEM, 0,
@@ -946,7 +922,6 @@ update_disassembly( void )
                         ( LPARAM ) &lvi );
   }
 
-  disassembly_bottom = address;
 }
 
 static void
@@ -976,7 +951,6 @@ add_event( gpointer data, gpointer user_data GCC_UNUSED )
   _sntprintf( event_text[0], 40, "%d", ptr->tstates );
   /* FIXME: event_name() is not unicode compliant */
   _tcsncpy( event_text[1], event_name( ptr->type ), 40 );
-  event_text[1][39] = '\0';
 
   /* append the item */
   lvi.iItem = SendDlgItemMessage( fuse_hDBGWnd, IDC_DBG_LV_EVENTS,
@@ -1004,18 +978,12 @@ deactivate_debugger( void )
 int
 ui_debugger_disassemble( libspectrum_word address )
 {
-  /* Note: the scroll bar can not cope with "upper bound - page_size" value and
-     higher. PC register, key and wheel scrolling are fine with that */
   SCROLLINFO si;
   si.cbSize = sizeof(si); 
   si.fMask = SIF_POS; 
   si.nPos = disassembly_top = address;
   SetScrollInfo( GetDlgItem( fuse_hDBGWnd, IDC_DBG_SB_PC ),
                  SB_CTL, &si, TRUE );
-
-  /* And update the disassembly if the debugger is active */
-  if( debugger_active ) update_disassembly();
-
   return 0;
 }
 
@@ -1023,64 +991,80 @@ ui_debugger_disassemble( libspectrum_word address )
 static int
 move_disassembly( WPARAM scroll_command )
 {
-  libspectrum_word address;
-  int cursor_row;
+  SCROLLINFO si;
+  si.cbSize = sizeof(si); 
+  si.fMask = SIF_POS; 
+  GetScrollInfo( GetDlgItem( fuse_hDBGWnd, IDC_DBG_SB_PC ), SB_CTL, &si );
 
+  float value = si.nPos;
+  
   /* in Windows we have to read the command and scroll the scrollbar manually */
   switch( LOWORD( scroll_command ) ) {
     case SB_BOTTOM:
-      if( disassembly_bottom == disassembly_min ) return 0;
-      address = debugger_search_instruction( disassembly_min,
-                                             -disassembly_page );
+      value = disassembly_max;
       break;
     case SB_TOP:
-      if( disassembly_top == disassembly_min ) return 0;
-      address = disassembly_min;
+      value = disassembly_min;
       break;
     case SB_LINEDOWN:
-      if( disassembly_bottom == disassembly_min ) return 0;
-      address = debugger_search_instruction( disassembly_top, 1 );
+      value += disassembly_step;
       break;
     case SB_LINEUP:
-      if( disassembly_top == disassembly_min ) return 0;
-      address = debugger_search_instruction( disassembly_top, -1);
+      value -= disassembly_step;
       break;
     case SB_PAGEUP:
-      address = debugger_search_instruction( disassembly_top,
-                                             -disassembly_page );
+      value -= disassembly_page;
       break;
     case SB_PAGEDOWN:
-      address = debugger_search_instruction( disassembly_top,
-                                             disassembly_page );
+      value += disassembly_page;
       break;
     case SB_THUMBPOSITION:
     case SB_THUMBTRACK:
-      /* just set disassembly_top to that value */
-      address = HIWORD( scroll_command );
-
-      /* The scrollbar should constrain to min/max values */
-      if( address > disassembly_max - disassembly_page )
-        address = debugger_search_instruction( disassembly_min,
-                                               -disassembly_page );
+      value = HIWORD( scroll_command );
       break;
     default:
       return 1;
   }
+  if( value > disassembly_max ) value = disassembly_max;
+  if( value < disassembly_min ) value = disassembly_min;
+  /* FIXME when holding sb's down arrow at 0xffff, 0x0000 is showing */
 
-  /* Get selected row */
-  cursor_row = ListView_GetNextItem( GetDlgItem( fuse_hDBGWnd, IDC_DBG_LV_PC ),
-                                     -1, LVNI_SELECTED );
+  size_t length;
 
-  /* Scroll to new position */
-  ui_debugger_disassemble( address );
+  /* disassembly_top < value < disassembly_top + 1 => 'down' button pressed
+     Move the disassembly on by one instruction */
+  if( value > disassembly_top && value - disassembly_top < 1 ) {
 
-  /* Mark selected row */
-  if( cursor_row >= 0 ) {
-    ListView_SetItemState( GetDlgItem( fuse_hDBGWnd, IDC_DBG_LV_PC ),
-                           cursor_row, LVIS_FOCUSED|LVIS_SELECTED,
-                           LVIS_FOCUSED|LVIS_SELECTED );
+    debugger_disassemble( NULL, 0, &length, disassembly_top );
+    ui_debugger_disassemble( disassembly_top + length );
+
+  /* disassembly_top - 1 < value < disassembly_top => 'up' button pressed
+     
+     See notes regarding how this function works in GTK's move_disassembly
+  */
+  } else if( value < disassembly_top && disassembly_top - value < 1 ) {
+
+    size_t i, longest = 1;
+
+    for( i = 1; i <= 8; i++ ) {
+
+      debugger_disassemble( NULL, 0, &length, disassembly_top - i );
+      if( length == i ) longest = i;
+
+    }
+
+    ui_debugger_disassemble( disassembly_top - longest );
+
+  /* Anything else, just set disassembly_top to that value */
+  } else {
+
+    ui_debugger_disassemble( value );
+
   }
 
+  /* And update the disassembly if the debugger is active */
+  if( debugger_active ) update_disassembly();
+        
   return 0;
 }
 
@@ -1222,116 +1206,4 @@ win32ui_debugger_proc( HWND hWnd GCC_UNUSED, UINT msg,
       break;
   }
   return FALSE;
-}
-
-static LRESULT CALLBACK
-disassembly_key_press( HWND hWnd, WPARAM wParam )
-{
-  libspectrum_word initial_top, address;
-  int cursor_row;
-
-  initial_top = disassembly_top;
-
-  /* Get selected row */
-  cursor_row = ListView_GetNextItem( hWnd, -1, LVNI_SELECTED );
-
-  switch( wParam ) {
-  case VK_DOWN:
-    if( cursor_row == disassembly_page - 1 ) {
-      address = debugger_search_instruction( disassembly_top, 1 );
-      ui_debugger_disassemble( address );
-    }
-    break;
-
-  case VK_UP:
-    if( cursor_row == 0 ) {
-      address = debugger_search_instruction( disassembly_top, -1 );
-      ui_debugger_disassemble( address );
-    }
-    break;
-
-  case VK_NEXT:
-    ui_debugger_disassemble( disassembly_bottom );
-    break;
-
-  case VK_PRIOR:
-    address = debugger_search_instruction( disassembly_top,
-                                           -disassembly_page );
-    ui_debugger_disassemble( address );
-    break;
-
-  case VK_HOME:
-    cursor_row = 0;
-    ui_debugger_disassemble( disassembly_min );
-    break;
-
-  case VK_END:
-    cursor_row = disassembly_page - 1;
-    address = debugger_search_instruction( disassembly_min,
-                                           -disassembly_page );
-    ui_debugger_disassemble( address );
-    break;
-  }
-
-  if( initial_top != disassembly_top ) {
-    /* Mark selected row */
-    if( cursor_row >= 0 ) {
-      ListView_SetItemState( hWnd, cursor_row, LVIS_FOCUSED|LVIS_SELECTED,
-                             LVIS_FOCUSED|LVIS_SELECTED );
-    }
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-static LRESULT CALLBACK
-disassembly_wheel_scroll( HWND hWnd, WPARAM wParam )
-{
-  libspectrum_word address;
-  int cursor_row;
-  short delta;
-
-  /* Get selected row */
-  cursor_row = ListView_GetNextItem( hWnd, -1, LVNI_SELECTED );
-
-  /* Convert wheel displacement to instruction displacement */
-  delta = (short) HIWORD( wParam ) / WHEEL_DELTA;
-
-  /* Scroll to new position */
-  address = debugger_search_instruction( disassembly_top, -delta );
-  ui_debugger_disassemble( address );
-
-  /* Mark selected row */
-  if( cursor_row >= 0 ) {
-    ListView_SetItemState( hWnd, cursor_row, LVIS_FOCUSED|LVIS_SELECTED,
-                           LVIS_FOCUSED|LVIS_SELECTED );
-  }
-
-  return TRUE;
-}
-
-static LRESULT CALLBACK
-disassembly_listview_proc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
-{
-  WNDPROC orig_proc;
-
-  switch( msg ) {
-  case WM_DESTROY:
-    orig_proc = (WNDPROC) GetProp( hWnd, "original_proc" );
-    SetWindowLongPtr( hWnd, GWLP_WNDPROC, (LONG_PTR) orig_proc );
-    RemoveProp( hWnd, "original_proc" );
-    break;
-
-  case WM_KEYDOWN:
-    if( disassembly_key_press( hWnd, wParam ) ) return 0;
-    break;
-
-  case WM_MOUSEWHEEL:
-    disassembly_wheel_scroll( hWnd, wParam );
-    return 0;
-  }
-
-  orig_proc = (WNDPROC) GetProp( hWnd, "original_proc" );
-  return CallWindowProc( orig_proc, hWnd, msg, wParam, lParam );
 }

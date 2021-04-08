@@ -1,6 +1,8 @@
 /* movie.h: header for movie.c
    Copyright (c) 2006 Gergely Szasz
 
+   $Id: movie.h 4775 2012-11-26 23:03:36Z sbaldovi $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

@@ -1,6 +1,8 @@
 /* win32mouse.c: Win32 routines for emulating Spectrum mice
    Copyright (c) 2008 Marek Januszewski
 
+   $Id: win32mouse.c 3588 2008-03-27 17:48:10Z zubzero $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

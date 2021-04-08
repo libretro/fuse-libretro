@@ -1,5 +1,7 @@
 /* fuse.c: The Free Unix Spectrum Emulator
-   Copyright (c) 1999-2018 Philip Kendall and others
+   Copyright (c) 1999-2012 Philip Kendall and others
+
+   $Id: fuse.c 4846 2013-01-03 09:14:29Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -39,7 +41,7 @@
 
 /* We need to include SDL.h on Mac O X and Windows to do some magic
    bootstrapping by redefining main. As we now allow SDL joystick code to be
-   used in the GTK and Xlib UIs we need to also do the magic when that code is
+   used in the GTK+ and Xlib UIs we need to also do the magic when that code is
    in use, feel free to look away for the next line */
 #if defined UI_SDL || (defined USE_JOYSTICK && !defined HAVE_JSW_H && (defined UI_X || defined UI_GTK) )
 #include <SDL.h>		/* Needed on MacOS X and Windows */
@@ -49,53 +51,40 @@
 #include <fat.h>
 #endif				/* #ifdef GEKKO */
 
-#ifdef HAVE_LIB_XML2
-#include <libxml/encoding.h>
-#endif
-
 #include "debugger/debugger.h"
 #include "display.h"
 #include "event.h"
 #include "fuse.h"
-#include "infrastructure/startup_manager.h"
 #include "keyboard.h"
 #include "machine.h"
 #include "machines/machines_periph.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "module.h"
 #include "movie.h"
 #include "mempool.h"
 #include "peripherals/ay.h"
 #include "peripherals/dck.h"
 #include "peripherals/disk/beta.h"
-#include "peripherals/disk/didaktik.h"
 #include "peripherals/disk/fdd.h"
 #include "peripherals/fuller.h"
 #include "peripherals/ide/divide.h"
-#include "peripherals/ide/divmmc.h"
 #include "peripherals/ide/simpleide.h"
 #include "peripherals/ide/zxatasp.h"
 #include "peripherals/ide/zxcf.h"
-#include "peripherals/ide/zxmmc.h"
 #include "peripherals/joystick.h"
 #include "peripherals/if1.h"
 #include "peripherals/if2.h"
 #include "peripherals/kempmouse.h"
 #include "peripherals/melodik.h"
-#include "peripherals/multiface.h"
 #include "peripherals/printer.h"
 #include "peripherals/scld.h"
 #include "peripherals/speccyboot.h"
 #include "peripherals/spectranet.h"
-#include "peripherals/ttx2000s.h"
 #include "peripherals/ula.h"
-#include "peripherals/usource.h"
-#include "phantom_typist.h"
 #include "pokefinder/pokemem.h"
 #include "profile.h"
 #include "psg.h"
 #include "rzx.h"
-#include "screenshot.h"
 #include "settings.h"
 #include "slt.h"
 #include "snapshot.h"
@@ -105,14 +94,13 @@
 #include "timer/timer.h"
 #include "ui/scaler/scaler.h"
 #include "ui/ui.h"
-#include "ui/uimedia.h"
 #include "unittests/unittests.h"
 #include "utils.h"
 
 #include "z80/z80.h"
 
 /* What name were we called under? */
-const char *fuse_progname;
+char *fuse_progname;
 
 /* A flag to say when we want to exit the emulator */
 int fuse_exiting;
@@ -124,7 +112,7 @@ int fuse_emulation_paused;
 libspectrum_creator *fuse_creator;
 
 /* The earliest version of libspectrum we need */
-static const char * const LIBSPECTRUM_MIN_VERSION = "0.5.0";
+static const char *LIBSPECTRUM_MIN_VERSION = "0.5.0";
 
 /* The various types of file we may want to run on startup */
 typedef struct start_files_t {
@@ -133,7 +121,6 @@ typedef struct start_files_t {
   const char *disk_opus;
   const char *disk_plusd;
   const char *disk_beta;
-  const char *disk_didaktik80;
   const char *disk_disciple;
   const char *dock;
   const char *if2;
@@ -146,19 +133,13 @@ typedef struct start_files_t {
   const char *zxatasp_master, *zxatasp_slave;
   const char *zxcf;
   const char *divide_master, *divide_slave;
-  const char *divmmc;
-  const char *zxmmc;
   const char *mdr[8];
 
 } start_files_t;
 
-/* Context for the display startup routine */
-static display_startup_context display_context;
-
 static int fuse_init(int argc, char **argv);
 
-static void creator_register_startup( void );
-
+static int creator_init( void );
 static void fuse_show_copyright(void);
 static void fuse_show_version( void );
 static void fuse_show_help( void );
@@ -201,154 +182,13 @@ int main(int argc, char **argv)
       z80_do_opcodes();
       event_do_events();
     }
-    r = debugger_get_exit_code();
+    r = 0;
   }
 
   fuse_end();
   
   return r;
-}
 
-static int
-fuse_libspectrum_init( void *context )
-{
-  if( libspectrum_check_version( LIBSPECTRUM_MIN_VERSION ) ) {
-    if( libspectrum_init() ) return 1;
-  } else {
-    ui_error( UI_ERROR_ERROR,
-              "libspectrum version %s found, but %s required",
-	      libspectrum_version(), LIBSPECTRUM_MIN_VERSION );
-    return 1;
-  }
-
-  return 0;
-}
-
-static void
-libspectrum_register_startup( void )
-{
-  startup_manager_module dependencies[] = {
-    STARTUP_MANAGER_MODULE_DISPLAY
-  };
-  startup_manager_register( STARTUP_MANAGER_MODULE_LIBSPECTRUM, dependencies,
-                            ARRAY_SIZE( dependencies ), fuse_libspectrum_init,
-                            NULL, NULL );
-}
-
-static int
-libxml2_init( void *context )
-{
-#ifdef HAVE_LIB_XML2
-  LIBXML_TEST_VERSION
-#endif
-
-  return 0;
-}
-
-static void
-libxml2_register_startup( void )
-{
-  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
-  startup_manager_register( STARTUP_MANAGER_MODULE_LIBXML2, dependencies,
-                            ARRAY_SIZE( dependencies ), libxml2_init, NULL,
-                            NULL );
-}
-
-static int
-setuid_init( void *context )
-{
-#ifdef HAVE_GETEUID
-  int error;
-
-  /* Drop root privs if we have them */
-  if( !geteuid() ) {
-    error = setuid( getuid() );
-    if( error ) {
-      ui_error( UI_ERROR_ERROR, "Could not drop root privileges" );
-      return 1;
-    }
-  }
-#endif				/* #ifdef HAVE_GETEUID */
-
-  return 0;
-}
-
-static void
-setuid_register_startup()
-{
-  startup_manager_module dependencies[] = {
-    STARTUP_MANAGER_MODULE_DISPLAY,
-    STARTUP_MANAGER_MODULE_LIBSPECTRUM,
-  };
-  startup_manager_register( STARTUP_MANAGER_MODULE_SETUID, dependencies,
-                            ARRAY_SIZE( dependencies ), setuid_init, NULL,
-                            NULL );
-}
-
-static int
-run_startup_manager( int *argc, char ***argv )
-{
-  startup_manager_init();
-
-  display_context.argc = argc;
-  display_context.argv = argv;
-
-  /* Get every module to register its init function */
-  ay_register_startup();
-  beta_register_startup();
-  creator_register_startup();
-  covox_register_startup();
-  debugger_register_startup();
-  didaktik80_register_startup();
-  disciple_register_startup();
-  display_register_startup( &display_context );
-  divide_register_startup();
-  divmmc_register_startup();
-  event_register_startup();
-  fdd_register_startup();
-  fuller_register_startup();
-  if1_register_startup();
-  if2_register_startup();
-  joystick_register_startup();
-  kempmouse_register_startup();
-  keyboard_register_startup();
-  libspectrum_register_startup();
-  libxml2_register_startup();
-  machine_register_startup();
-  machines_periph_register_startup();
-  melodik_register_startup();
-  memory_register_startup();
-  mempool_register_startup();
-  multiface_register_startup();
-  opus_register_startup();
-  phantom_typist_register_startup();
-  plusd_register_startup();
-  printer_register_startup();
-  profile_register_startup();
-  psg_register_startup();
-  rzx_register_startup();
-  scld_register_startup();
-  screenshot_register_startup();
-  settings_register_startup();
-  setuid_register_startup();
-  simpleide_register_startup();
-  slt_register_startup();
-  sound_register_startup();
-  speccyboot_register_startup();
-  specdrum_register_startup();
-  spectranet_register_startup();
-  spectrum_register_startup();
-  tape_register_startup();
-  ttx2000s_register_startup();
-  timer_register_startup();
-  ula_register_startup();
-  usource_register_startup();
-  z80_register_startup();
-  zxatasp_register_startup();
-  zxcf_register_startup();
-  zxmmc_register_startup();
-
-  return startup_manager_run();
 }
 
 static int fuse_init(int argc, char **argv)
@@ -387,12 +227,89 @@ static int fuse_init(int argc, char **argv)
 
   start_scaler = utils_safe_strdup( settings_current.start_scaler_mode );
 
+  /* Windows will create a console for our output if there isn't one already,
+   * so we don't display the copyright message on Win32. */
+#ifndef WIN32
   fuse_show_copyright();
+#endif
 
-  if( run_startup_manager( &argc, &argv ) ) return 1;
+  /* FIXME: order of these initialisation calls. Work out what depends on
+     what */
+  /* FIXME FIXME 20030407: really do this soon. This is getting *far* too
+     hairy */
+  fuse_joystick_init ();
+  fuse_keyboard_init();
+
+  event_init();
+  
+#ifndef GEKKO
+  if( display_init(&argc,&argv) ) return 1;
+#endif
+
+  if( libspectrum_check_version( LIBSPECTRUM_MIN_VERSION ) ) {
+    if( libspectrum_init() ) return 1;
+  } else {
+    ui_error( UI_ERROR_ERROR,
+              "libspectrum version %s found, but %s required",
+	      libspectrum_version(), LIBSPECTRUM_MIN_VERSION );
+    return 1;
+  }
+
+  /* Must be called after libspectrum_init() so we can get the gcrypt
+     version */
+  if( creator_init() ) return 1;
+
+#ifdef HAVE_GETEUID
+  /* Drop root privs if we have them */
+  if( !geteuid() ) { setuid( getuid() ); }
+#endif				/* #ifdef HAVE_GETEUID */
+
+  mempool_init();
+  memory_init();
+
+  debugger_init();
+
+  spectrum_init();
+  printer_init();
+  rzx_init();
+  psg_init();
+  beta_init();
+  opus_init();
+  plusd_init();
+  disciple_init();
+  fdd_init_events();
+  if( simpleide_init() ) return 1;
+  if( zxatasp_init() ) return 1;
+  if( zxcf_init() ) return 1;
+  if1_init();
+  if2_init();
+  if( divide_init() ) return 1;
+  scld_init();
+  ula_init();
+  ay_init();
+  slt_init();
+  profile_init();
+  kempmouse_init();
+  fuller_init();
+  melodik_init();
+  speccyboot_init();
+  specdrum_init();
+  spectranet_init();
+  machines_periph_init();
+
+  z80_init();
+
+  if( timer_init() ) return 1;
+
+  error = timer_estimate_reset(); if( error ) return error;
+
+  error = machine_init_machines();
+  if( error ) return error;
 
   error = machine_select_id( settings_current.start_machine );
   if( error ) return error;
+
+  tape_init();
 
   error = scaler_select_id( start_scaler ); libspectrum_free( start_scaler );
   if( error ) return error;
@@ -412,12 +329,12 @@ static int fuse_init(int argc, char **argv)
   return 0;
 }
 
-static int
-creator_init( void *context )
+static
+int creator_init( void )
 {
   size_t i;
   unsigned int version[4] = { 0, 0, 0, 0 };
-  char *custom, osname[ 192 ];
+  char *custom, osname[ 256 ];
   static const size_t CUSTOM_SIZE = 256;
   
   libspectrum_error error; int sys_error;
@@ -445,7 +362,7 @@ creator_init( void *context )
 					 version[2] * 0x100 + version[3] );
   if( error ) { libspectrum_creator_free( fuse_creator ); return error; }
 
-  custom = libspectrum_new( char, CUSTOM_SIZE );
+  custom = libspectrum_malloc( CUSTOM_SIZE );
 
   gcrypt_version = libspectrum_gcrypt_version();
   if( !gcrypt_version ) gcrypt_version = "not available";
@@ -463,21 +380,6 @@ creator_init( void *context )
   }
 
   return 0;
-}
-
-static void
-creator_end( void )
-{
-  libspectrum_creator_free( fuse_creator );
-}
-
-static void
-creator_register_startup( void )
-{
-  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
-  startup_manager_register( STARTUP_MANAGER_MODULE_CREATOR, dependencies,
-                            ARRAY_SIZE( dependencies ), creator_init, NULL,
-                            creator_end );
 }
 
 static void fuse_show_copyright(void)
@@ -510,10 +412,13 @@ static void fuse_show_help( void )
    "\nAvailable command-line options:\n\n"
    "Boolean options (use `--no-<option>' to turn off):\n\n"
    "--auto-load            Automatically load tape files when opened.\n"
+   "--beeper-stereo        Add fake stereo to beeper emulation.\n"
    "--compress-rzx         Write RZX files out compressed.\n"
+   "--double-screen        Write screenshots out as double size.\n"
    "--issue2               Emulate an Issue 2 Spectrum.\n"
    "--kempston             Emulate the Kempston joystick on QAOP<space>.\n"
    "--loading-sound        Emulate the sound of tapes loading.\n"
+   "--separation           Use ACB stereo for the AY-3-8912 sound chip.\n"
    "--sound                Produce sound.\n"
    "--sound-force-8bit     Generate 8-bit sound even if 16-bit is available.\n"
    "--slt                  Turn SLT traps on.\n"
@@ -523,16 +428,11 @@ static void fuse_show_help( void )
    "--machine <type>       Which machine should be emulated?\n"
    "--playback <filename>  Play back RZX file <filename>.\n"
    "--record <filename>    Record to RZX file <filename>.\n"
-   "--separation <type>    Use ACB/ABC stereo for the AY-3-8912 sound chip.\n"
    "--snapshot <filename>  Load snapshot <filename>.\n"
    "--speed <percentage>   How fast should emulation run?\n"
    "--fb-mode <mode>       Which mode should be used for FB?\n"
    "--tape <filename>      Open tape file <filename>.\n"
-   "--version              Print version number and exit.\n"
-   "\n"
-   "For help, please mail <fuse-emulator-devel@lists.sf.net> or use\n"
-   "the forums at <http://sourceforge.net/p/fuse-emulator/discussion/>.\n"
-   "For complete documentation, see the manual page of Fuse.\n\n" );
+   "--version              Print version number and exit.\n\n" );
 }
 
 /* Stop all activities associated with actual Spectrum emulation */
@@ -581,7 +481,6 @@ setup_start_files( start_files_t *start_files )
   start_files->disk_plus3 = settings_current.plus3disk_file;
   start_files->disk_opus = settings_current.opusdisk_file;
   start_files->disk_plusd = settings_current.plusddisk_file;
-  start_files->disk_didaktik80 = settings_current.didaktik80disk_file;
   start_files->disk_disciple = settings_current.discipledisk_file;
   start_files->disk_beta = settings_current.betadisk_file;
   start_files->dock = settings_current.dck_file;
@@ -607,11 +506,6 @@ setup_start_files( start_files_t *start_files )
     utils_safe_strdup( settings_current.divide_master_file );
   start_files->divide_slave =
     utils_safe_strdup( settings_current.divide_slave_file );
-
-  start_files->divmmc =
-    utils_safe_strdup( settings_current.divmmc_file );
-
-  start_files->zxmmc = utils_safe_strdup( settings_current.zxmmc_file );
 
   start_files->mdr[0] = settings_current.mdr_file;
   start_files->mdr[1] = settings_current.mdr_file2;
@@ -673,10 +567,6 @@ parse_nonoption_args( int argc, char **argv, int first_arg,
 	start_files->simpleide_master = filename;
       } else if( settings_current.divide_enabled ) {
 	start_files->divide_master = filename;
-      } else if( settings_current.divmmc_enabled ) {
-	start_files->divmmc = filename;
-      } else if( settings_current.zxmmc_enabled ) {
-	start_files->zxmmc = filename;
       } else {
 	/* No IDE interface active, so activate the ZXCF */
 	settings_current.zxcf_active = 1;
@@ -690,9 +580,6 @@ parse_nonoption_args( int argc, char **argv, int first_arg,
     case LIBSPECTRUM_CLASS_DISK_OPUS:
       start_files->disk_opus = filename; break;
 
-    case LIBSPECTRUM_CLASS_DISK_DIDAKTIK:
-      start_files->disk_didaktik80 = filename; break;
-
     case LIBSPECTRUM_CLASS_DISK_PLUSD:
       if( periph_is_active( PERIPH_TYPE_DISCIPLE ) )
         start_files->disk_disciple = filename;
@@ -704,19 +591,19 @@ parse_nonoption_args( int argc, char **argv, int first_arg,
       start_files->disk_beta = filename; break;
 
     case LIBSPECTRUM_CLASS_DISK_GENERIC:
-      if( machine_current->capabilities &
-                 LIBSPECTRUM_MACHINE_CAPABILITY_PLUS3_DISK )
+      if( machine_current->machine == LIBSPECTRUM_MACHINE_PLUS3 ||
+          machine_current->machine == LIBSPECTRUM_MACHINE_PLUS2A )
         start_files->disk_plus3 = filename;
-      else if( machine_current->capabilities &
-                 LIBSPECTRUM_MACHINE_CAPABILITY_TRDOS_DISK )
+      else if( machine_current->machine == LIBSPECTRUM_MACHINE_PENT ||
+          machine_current->machine == LIBSPECTRUM_MACHINE_PENT512 ||
+          machine_current->machine == LIBSPECTRUM_MACHINE_PENT1024 ||
+          machine_current->machine == LIBSPECTRUM_MACHINE_SCORP )
         start_files->disk_beta = filename; 
       else {
         if( periph_is_active( PERIPH_TYPE_BETA128 ) )
           start_files->disk_beta = filename; 
         else if( periph_is_active( PERIPH_TYPE_PLUSD ) )
           start_files->disk_plusd = filename;
-        else if( periph_is_active( PERIPH_TYPE_DIDAKTIK80 ) )
-          start_files->disk_didaktik80 = filename;
         else if( periph_is_active( PERIPH_TYPE_DISCIPLE ) )
           start_files->disk_disciple = filename;
         else if( periph_is_active( PERIPH_TYPE_OPUS ) )
@@ -828,11 +715,6 @@ do_start_files( start_files_t *start_files )
     if( error ) return error;
   }
 
-  if( start_files->disk_didaktik80 ) {
-    error = utils_open_file( start_files->disk_didaktik80, autoload, NULL );
-    if( error ) return error;
-  }
-
   if( start_files->disk_disciple ) {
     error = utils_open_file( start_files->disk_disciple, autoload, NULL );
     if( error ) return error;
@@ -921,16 +803,6 @@ do_start_files( start_files_t *start_files )
     if( error ) return error;
   }
 
-  if( start_files->divmmc ) {
-    error = divmmc_insert( start_files->divmmc );
-    if( error ) return error;
-  }
-
-  if( start_files->zxmmc ) {
-    error = zxmmc_insert( start_files->zxmmc );
-    if( error ) return error;
-  }
-
   /* Input recordings */
 
   if( start_files->playback ) {
@@ -952,17 +824,46 @@ do_start_files( start_files_t *start_files )
 static int fuse_end(void)
 {
   movie_stop();		/* stop movie recording */
+  /* Must happen before memory is deallocated as we read the character
+     set from memory for the text output */
+  printer_end();
 
-  startup_manager_run_end();
+  /* also required before memory is deallocated on Fuse for OS X where
+     settings need to look up machine names etc. */
+  settings_end();
 
+  psg_end();
+  rzx_end();
+  tape_end();
+  debugger_end();
+  simpleide_end();
+  zxatasp_end();
+  zxcf_end();
+  if1_end();
+  divide_end();
+  beta_end();
+  opus_end();
+  plusd_end();
+  disciple_end();
+  spectranet_end();
+  speccyboot_end();
+
+  machine_end();
+
+  timer_end();
+
+  sound_end();
+  event_end();
   periph_end();
+  fuse_keyboard_end();
+  fuse_joystick_end();
   ui_end();
-  ui_media_drive_end();
+  memory_end();
+  mempool_end();
   module_end();
   pokemem_end();
 
-  svg_capture_end();
-
+  libspectrum_creator_free( fuse_creator );
   libspectrum_end();
 
   return 0;

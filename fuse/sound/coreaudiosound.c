@@ -24,7 +24,9 @@
 
 #include <AssertMacros.h>
 
-#include <AudioToolbox/AudioToolbox.h>
+#include <AudioUnit/AudioComponent.h>
+#include <AudioUnit/AudioUnit.h>
+#include <CoreAudio/AudioHardware.h>
 
 #include "settings.h"
 #include "sfifo.h"
@@ -215,18 +217,13 @@ sound_lowlevel_init( const char *dev, int *freqptr, int *stereoptr )
   return 0;
 }
 
-/* Support pre Xcode 9 SDK */
-#ifndef __Verify_noErr
-#define __Verify_noErr((a))  verify_noerr((a))
-#endif
-
 void
 sound_lowlevel_end( void )
 {
   OSStatus err;
 
   if( audio_output_started )
-    __Verify_noErr( AudioOutputUnitStop( gOutputUnit ) );
+    verify_noerr( AudioOutputUnitStop( gOutputUnit ) );
 
   err = AudioUnitUninitialize( gOutputUnit );
   if( err ) {

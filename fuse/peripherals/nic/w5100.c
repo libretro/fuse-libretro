@@ -2,7 +2,9 @@
    
    Emulates a minimal subset of the Wiznet W5100 TCP/IP controller.
 
-   Copyright (c) 2011-2015 Philip Kendall
+   Copyright (c) 2011 Philip Kendall
+   
+   $Id: w5100.c 4912 2013-03-24 19:34:06Z sbaldovi $
    
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,7 +26,7 @@
  
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <pthread.h>
 #include <string.h>
@@ -144,11 +146,14 @@ nic_w5100_alloc( void )
 {
   int error;
   int i;
-  nic_w5100_t *self;
   
   compat_socket_networking_init();
 
-  self = libspectrum_new( nic_w5100_t, 1 );
+  nic_w5100_t *self = malloc( sizeof( *self ) );
+  if( !self ) {
+    ui_error( UI_ERROR_ERROR, "%s:%d out of memory", __FILE__, __LINE__ );
+    fuse_abort();
+  }
 
   self->selfpipe = compat_socket_selfpipe_alloc();
 
@@ -186,7 +191,7 @@ nic_w5100_free( nic_w5100_t *self )
 
     compat_socket_networking_end();
 
-    libspectrum_free( self );
+    free( self );
   }
 }
 
@@ -349,8 +354,13 @@ nic_w5100_from_snapshot( nic_w5100_t *self, libspectrum_byte *data )
 libspectrum_byte*
 nic_w5100_to_snapshot( nic_w5100_t *self )
 {
-  libspectrum_byte *data = libspectrum_new( libspectrum_byte, 0x30 );
+  libspectrum_byte *data = malloc( 0x30 * sizeof(*data) );
   int i;
+
+  if( !data ) {
+    ui_error( UI_ERROR_ERROR, "%s:%d: out of memory\n", __FILE__, __LINE__ );
+    fuse_abort();
+  }
 
   for( i = 0; i < 0x30; i++ )
     data[i] = nic_w5100_read( self, i );
