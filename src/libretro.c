@@ -376,6 +376,21 @@ int update_variables(int force)
    settings_current.fastload = coreopt(env_cb, core_vars, "fuse_fast_load", NULL) != 1;
    settings_current.accelerate_loader = settings_current.fastload;
 
+   if (coreopt(env_cb, core_vars, "fuse_fast_load", NULL) == 0)
+   {
+      // Fastload enabled
+      settings_current.fastload = 1;
+      settings_current.accelerate_loader = 1;
+      settings_current.tape_traps = 1;
+      settings_current.slt_traps = 1;
+   } else {
+      // Fastload disabled
+      settings_current.fastload = 0;
+      settings_current.accelerate_loader = 0;
+      settings_current.tape_traps = 0;
+      settings_current.slt_traps = 0;
+   }
+
    settings_current.sound_load = coreopt(env_cb, core_vars, "fuse_load_sound", NULL) != 1;
 
    {
