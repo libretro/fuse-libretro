@@ -1,8 +1,7 @@
-/* debugger.c: the GTK debugger
-   Copyright (c) 2002-2015 Philip Kendall
-   Copyright (c) 2013 Sergio Baldoví
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2016 BogDan Vatra
+/* debugger.c: the GTK+ debugger
+   Copyright (c) 2002-2012 Philip Kendall
+
+   $Id: debugger.c 4908 2013-03-10 22:13:57Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +25,6 @@
 
 #include <config.h>
 
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -41,7 +39,7 @@
 #include "gtkcompat.h"
 #include "gtkinternals.h"
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "peripherals/ide/zxcf.h"
 #include "peripherals/scld.h"
 #include "peripherals/ula.h"
@@ -121,11 +119,11 @@ static void toggle_display_disassembly( GtkToggleAction* action,
                                         gpointer data );
 static void toggle_display_stack( GtkToggleAction* action, gpointer data );
 static void toggle_display_events( GtkToggleAction* action, gpointer data );
-static int create_register_display( GtkBox *parent, PangoFontDescription *font );
+static int create_register_display( GtkBox *parent, gtkui_font font );
 static int create_memory_map( GtkBox *parent );
 static void create_breakpoints( GtkBox *parent );
-static void create_disassembly( GtkBox *parent, PangoFontDescription *font );
-static void create_stack_display( GtkBox *parent, PangoFontDescription *font );
+static void create_disassembly( GtkBox *parent, gtkui_font font );
+static void create_stack_display( GtkBox *parent, gtkui_font font );
 static void stack_activate( GtkTreeView *tree_view, GtkTreePath *path,
 			    GtkTreeViewColumn *column, gpointer user_data );
 static void create_events( GtkBox *parent );
@@ -141,13 +139,6 @@ static void update_disassembly( void );
 static void update_events( void );
 static void add_event( gpointer data, gpointer user_data );
 static int deactivate_debugger( void );
-
-static gboolean
-disassembly_key_press( GtkTreeView *list, GdkEventKey *event,
-                       gpointer user_data );
-static gboolean
-disassembly_wheel_scroll( GtkTreeView *list GCC_UNUSED, GdkEvent *event,
-                          gpointer user_data );
 
 static void move_disassembly( GtkAdjustment *adjustment, gpointer user_data );
 
@@ -181,9 +172,6 @@ static GtkAdjustment *disassembly_scrollbar_adjustment;
 /* The top line of the current disassembly */
 static libspectrum_word disassembly_top;
 
-/* The next line below the current disassembly */
-static libspectrum_word disassembly_bottom;
-
 /* Have we created the above yet? */
 static int dialog_created = 0;
 
@@ -213,6 +201,8 @@ static GtkActionEntry menu_data[] = {
 
 };
 
+static guint menu_data_count = G_N_ELEMENTS( menu_data );
+
 static GtkToggleActionEntry menu_toggles[] = {
 
   { "VIEW_REGISTERS", NULL, "_Registers", NULL, NULL, G_CALLBACK( toggle_display_registers ), TRUE },
@@ -223,6 +213,8 @@ static GtkToggleActionEntry menu_toggles[] = {
   { "VIEW_EVENTS", NULL, "_Events", NULL, NULL, G_CALLBACK( toggle_display_events ), TRUE },
 
 };
+
+static guint menu_toggles_count = G_N_ELEMENTS( menu_toggles );
 
 static const char*
 format_8_bit( void )
@@ -254,12 +246,6 @@ ui_debugger_activate( void )
   if( !debugger_active ) activate_debugger();
 
   return 0;
-}
-
-void
-ui_breakpoints_updated( void )
-{
-  /* TODO: Refresh debugger list here */
 }
 
 static int
@@ -357,7 +343,7 @@ create_dialog( void )
   GtkWidget *hbox, *vbox, *hbox2, *content_area;
   GtkAccelGroup *accel_group;
 
-  PangoFontDescription *font;
+  gtkui_font font;
 
   error = gtkui_get_monospaced_font( &font ); if( error ) return error;
 
@@ -421,10 +407,10 @@ create_menu_bar( GtkBox *parent, GtkAccelGroup **accel_group )
 
   /* Load actions */
   menu_action_group = gtk_action_group_new( "DebuggerActionGroup" );
-  gtk_action_group_add_actions( menu_action_group, menu_data,
-				ARRAY_SIZE( menu_data ), NULL );
+  gtk_action_group_add_actions( menu_action_group, menu_data, menu_data_count,
+                                NULL );
   gtk_action_group_add_toggle_actions( menu_action_group, menu_toggles,
-                                       ARRAY_SIZE( menu_toggles ), NULL );
+                                       menu_toggles_count, NULL );
   gtk_ui_manager_insert_action_group( ui_manager_debugger, menu_action_group,
                                       0 );
   g_object_unref( menu_action_group );
@@ -500,7 +486,7 @@ toggle_display_events( GtkToggleAction* action, gpointer data GCC_UNUSED )
 }
 
 static int
-create_register_display( GtkBox *parent, PangoFontDescription *font )
+create_register_display( GtkBox *parent, gtkui_font font )
 {
   size_t i;
 
@@ -519,16 +505,8 @@ create_register_display( GtkBox *parent, PangoFontDescription *font )
   gtk_box_pack_start( parent, register_display, FALSE, FALSE, 0 );
 
   for( i = 0; i < 18; i++ ) {
-    PangoAttrList *list;
-    PangoAttribute *attr;
-
     registers[i] = gtk_label_new( "" );
-
-    list = pango_attr_list_new();
-    attr = pango_attr_font_desc_new( font );
-    pango_attr_list_insert( list, attr );
-    gtk_label_set_attributes( GTK_LABEL( registers[i] ), list );
-    pango_attr_list_unref( list );
+    gtkui_set_font( registers[i], font );
 
 #if GTK_CHECK_VERSION( 3, 0, 0 )
     gtk_grid_attach( GTK_GRID( register_display ), registers[i],
@@ -593,8 +571,8 @@ create_breakpoints( GtkBox *parent )
 {
   size_t i;
 
-  static const gchar *const titles[] =
-    { "ID", "Type", "Value", "Ignore", "Life", "Condition" };
+  gchar *titles[] = { "ID", "Type", "Value", "Ignore", "Life",
+		      "Condition" };
 
   breakpoints_model = gtk_list_store_new( BREAKPOINTS_COLUMN_COUNT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING );
 
@@ -609,13 +587,12 @@ create_breakpoints( GtkBox *parent )
 }
 
 static void
-create_disassembly( GtkBox *parent, PangoFontDescription *font )
+create_disassembly( GtkBox *parent, gtkui_font font )
 {
   size_t i;
 
   GtkWidget *scrollbar;
-  static const gchar *const titles[] =
-    { "Address", "Instruction" };
+  const gchar *titles[] = { "Address", "Instruction" };
 
   /* A box to hold the disassembly listing and the scrollbar */
   disassembly_box = gtk_box_new( GTK_ORIENTATION_HORIZONTAL, 0 );
@@ -637,30 +614,24 @@ create_disassembly( GtkBox *parent, PangoFontDescription *font )
 
   /* The disassembly scrollbar */
   disassembly_scrollbar_adjustment = GTK_ADJUSTMENT(
-    gtk_adjustment_new( 0, 0x0000, 0x10000, 1, 20, 20 ) );
+    gtk_adjustment_new( 0, 0x0000, 0xffff, 0.5, 20, 20 ) );
   g_signal_connect( G_OBJECT( disassembly_scrollbar_adjustment ),
 		    "value-changed", G_CALLBACK( move_disassembly ),
 		    NULL );
   scrollbar = gtk_scrollbar_new( GTK_ORIENTATION_VERTICAL,
                                  disassembly_scrollbar_adjustment );
   gtk_box_pack_start( GTK_BOX( disassembly_box ), scrollbar, FALSE, FALSE, 0 );
-
-  /* Scrolling with keys */
-  g_signal_connect( GTK_TREE_VIEW( disassembly ), "key-press-event",
-                    G_CALLBACK( disassembly_key_press ),
-                    disassembly_scrollbar_adjustment );
-
-  /* Scrolling with mouse wheel */
-  g_signal_connect( GTK_TREE_VIEW( disassembly ), "scroll-event",
-                    G_CALLBACK( disassembly_wheel_scroll ),
-                    disassembly_scrollbar_adjustment );
+/*
+  gtkui_scroll_connect( GTK_CLIST( disassembly ),
+			disassembly_scrollbar_adjustment );
+*/
 }
 
 static void
-create_stack_display( GtkBox *parent, PangoFontDescription *font )
+create_stack_display( GtkBox *parent, gtkui_font font )
 {
   size_t i;
-  static const gchar *const titles[] = { "Address", "Instruction" };
+  const gchar *titles[] = { "Address", "Instruction" };
   
   stack_model =
     gtk_list_store_new( STACK_COLUMN_COUNT, G_TYPE_STRING, G_TYPE_STRING,
@@ -707,7 +678,7 @@ stack_activate( GtkTreeView *tree_view, GtkTreePath *path,
 static void
 create_events( GtkBox *parent )
 {
-  static const gchar *const titles[] = { "Time", "Type" };
+  const gchar *titles[] = { "Time", "Type" };
   size_t i;
 
   events_model =
@@ -783,9 +754,9 @@ static int
 create_buttons( GtkDialog *parent, GtkAccelGroup *accel_group )
 {
   static const gtkstock_button
-    step  = { "Single step", G_CALLBACK( gtkui_debugger_done_step ), NULL, NULL, 0, 0, 0, 0, GTK_RESPONSE_NONE },
-    cont  = { "Continue", G_CALLBACK( gtkui_debugger_done_continue ), NULL, NULL, 0, 0, 0, 0, GTK_RESPONSE_NONE },
-    brk   = { "Break", G_CALLBACK( gtkui_debugger_break ), NULL, NULL, 0, 0, 0, 0, GTK_RESPONSE_NONE };
+    step  = { "Single step", G_CALLBACK( gtkui_debugger_done_step ), NULL, NULL, 0, 0, 0, 0 },
+    cont  = { "Continue", G_CALLBACK( gtkui_debugger_done_continue ), NULL, NULL, 0, 0, 0, 0 },
+    brk   = { "Break", G_CALLBACK( gtkui_debugger_break ), NULL, NULL, 0, 0, 0, 0 };
 
   /* Create the action buttons for the dialog box */
   gtkstock_create_button( GTK_WIDGET( parent ), accel_group, &step );
@@ -848,7 +819,7 @@ ui_debugger_update( void )
   snprintf( &buffer[6], 80, format_8_bit(), ( R & 0x7f ) | ( R7 & 0x80 ) );
   gtk_label_set_text( GTK_LABEL( registers[13] ), buffer );
 
-  snprintf( buffer, 80, "T-states %5d\nHalted %d", tstates, z80.halted );
+  snprintf( buffer, 80, "T-states %5d", tstates );
   gtk_label_set_text( GTK_LABEL( registers[14] ), buffer );
   snprintf( buffer, 80, "  IM %d\nIFF1 %d\nIFF2 %d", IM, IFF1, IFF2 );
   gtk_label_set_text( GTK_LABEL( registers[15] ), buffer );
@@ -1101,8 +1072,6 @@ update_disassembly( void )
 
     address += length;
   }
-
-  disassembly_bottom = address;
 }
 
 static void
@@ -1138,24 +1107,7 @@ int
 ui_debugger_disassemble( libspectrum_word address )
 {
   disassembly_top = address;
-
-  /* Block further events while adjusting scrollbar. */
-  g_signal_handlers_block_by_func( G_OBJECT( disassembly_scrollbar_adjustment ),
-                                   G_CALLBACK( move_disassembly ), NULL );
-
-  /* Note: GtkAdjustment can not cope with "upper bound - page_size" value and
-     higher */
   gtk_adjustment_set_value( disassembly_scrollbar_adjustment, address );
-
-  /* Enable events for scrollbar */
-  g_signal_handlers_unblock_by_func( G_OBJECT(disassembly_scrollbar_adjustment),
-                                     G_CALLBACK( move_disassembly ),  NULL );
-
-  /* And update the disassembly if the debugger is active */
-  if( debugger_active ) {
-    update_disassembly();
-  }
-
   return 0;
 }
 
@@ -1164,22 +1116,18 @@ static void
 move_disassembly( GtkAdjustment *adjustment, gpointer user_data GCC_UNUSED )
 {
   gdouble value;
-  int cursor_row;
-  libspectrum_word addresss;
+  size_t length;
 
-  /* FIXME: Movements are imprecise while dragging the scroll bar */
   value = gtk_adjustment_get_value( adjustment );
 
-  cursor_row = gtkui_list_get_cursor( GTK_TREE_VIEW( disassembly ) );
-
-  /* disassembly_top < value <= disassembly_top + 1 => 'down' button pressed
+  /* disassembly_top < value < disassembly_top + 1 => 'down' button pressed
      Move the disassembly on by one instruction */
-  if( value > disassembly_top && value - disassembly_top <= 1 ) {
+  if( value > disassembly_top && value - disassembly_top < 1 ) {
 
-    addresss = debugger_search_instruction( disassembly_top, 1 );
-    ui_debugger_disassemble( addresss );
+    debugger_disassemble( NULL, 0, &length, disassembly_top );
+    ui_debugger_disassemble( disassembly_top + length );
 
-  /* disassembly_top - 1 <= value < disassembly_top => 'up' button pressed
+  /* disassembly_top - 1 < value < disassembly_top => 'up' button pressed
      
      The desired state after this is for the current top instruction
      to be the second instruction shown in the disassembly.
@@ -1200,151 +1148,28 @@ move_disassembly( GtkAdjustment *adjustment, gpointer user_data GCC_UNUSED )
      second. In this case, just move back a byte.
 
   */
-  } else if( value < disassembly_top && disassembly_top - value <= 1 ) {
+  } else if( value < disassembly_top && disassembly_top - value < 1 ) {
 
-    addresss = debugger_search_instruction( disassembly_top, -1 );
-    ui_debugger_disassemble( addresss );
+    size_t i, longest = 1;
+
+    for( i = 1; i <= 8; i++ ) {
+
+      debugger_disassemble( NULL, 0, &length, disassembly_top - i );
+      if( length == i ) longest = i;
+
+    }
+
+    ui_debugger_disassemble( disassembly_top - longest );
 
   /* Anything else, just set disassembly_top to that value */
-  } else if( value != disassembly_top ) {
+  } else {
 
     ui_debugger_disassemble( value );
 
   }
 
-  /* Mark selected row */
-  gtkui_list_set_cursor( GTK_TREE_VIEW( disassembly ), cursor_row );
-}
-
-static gboolean
-disassembly_key_press( GtkTreeView *list, GdkEventKey *event,
-                       gpointer user_data )
-{
-  GtkAdjustment *adjustment = user_data;
-  gdouble page_size, page_increment;
-  int cursor_row;
-  libspectrum_word initial_top, addresss;
-
-  initial_top = disassembly_top;
-  page_size = gtk_adjustment_get_page_size( adjustment );
-  page_increment = gtk_adjustment_get_page_increment( adjustment );
-
-  /* Get selected row */
-  cursor_row = gtkui_list_get_cursor( list );
-
-  switch( event->keyval ) {
-
-  case GDK_KEY_Down:
-    if( cursor_row == page_size - 1 ) {
-      addresss = debugger_search_instruction( disassembly_top, 1 );
-      ui_debugger_disassemble( addresss );
-    }
-    break;
-
-  case GDK_KEY_Up:
-    if( cursor_row == 0 ) {
-      addresss = debugger_search_instruction( disassembly_top, -1 );
-      ui_debugger_disassemble( addresss );
-    }
-    break;
-
-  case GDK_KEY_Page_Down:
-    ui_debugger_disassemble( disassembly_bottom );
-    break;
-
-  case GDK_KEY_Page_Up:
-    addresss = debugger_search_instruction( disassembly_top, -page_increment );
-    ui_debugger_disassemble( addresss );
-    break;
-
-  case GDK_KEY_Home:
-    cursor_row = 0;
-    ui_debugger_disassemble( 0x0000 );
-    break;
-
-  case GDK_KEY_End:
-    cursor_row = page_size - 1;
-    addresss = debugger_search_instruction( 0x0000, -page_size );
-    ui_debugger_disassemble( addresss );
-    break;
-
-  default:
-    return FALSE;
-  }
-
-  if( initial_top != disassembly_top ) {
-    update_disassembly();
-
-    /* Mark selected row */
-    gtkui_list_set_cursor( list, cursor_row );
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-/* Called when the wheel mouse is moved on the list (not on the scrollbar) */
-static gboolean
-disassembly_wheel_scroll( GtkTreeView *list GCC_UNUSED, GdkEvent *event,
-                          gpointer user_data )
-{
-  libspectrum_word initial_top, addresss;
-  int cursor_row;
-
-  initial_top = disassembly_top;
-
-  /* Get selected row */
-  cursor_row = gtkui_list_get_cursor( list );
-
-  switch( event->scroll.direction ) {
-  case GDK_SCROLL_UP:
-    addresss = debugger_search_instruction( disassembly_top, -1 );
-    ui_debugger_disassemble( addresss );
-    break;
-
-  case GDK_SCROLL_DOWN:
-    addresss = debugger_search_instruction( disassembly_top, 1 );
-    ui_debugger_disassemble( addresss );
-    break;
-
-#if GTK_CHECK_VERSION( 3, 4, 0 )
-
-  case GDK_SCROLL_SMOOTH:
-    {
-      GtkAdjustment *adjustment = user_data;
-      static gdouble total_dy = 0;
-      gdouble dx, dy, page_size;
-      int delta;
-
-      if( gdk_event_get_scroll_deltas( event, &dx, &dy ) ) {
-        /* Calculate number of instructions to jump */
-        total_dy += dy;
-        page_size = gtk_adjustment_get_page_size( adjustment );
-        delta = total_dy * pow( page_size, 2.0 / 3.0 );
-
-        /* Is movement significative? */
-        if( delta ) {
-          addresss = debugger_search_instruction( disassembly_top, delta );
-          ui_debugger_disassemble( addresss );
-          total_dy = 0;
-        }
-      }
-      break;
-    }
-
-#endif
-
-  default:
-    return FALSE;
-  }
-
-  if( initial_top != disassembly_top ) {
-    /* Mark selected row */
-    gtkui_list_set_cursor( list, cursor_row );
-    return TRUE;
-  }
-
-  return FALSE;
+  /* And update the disassembly if the debugger is active */
+  if( debugger_active ) update_disassembly();
 }
 
 /* Evaluate the command currently in the entry box */

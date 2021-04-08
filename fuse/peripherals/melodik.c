@@ -1,6 +1,7 @@
 /* melodik.c: Routines for handling the Melodik interface
-   Copyright (c) 2009-2016 Fredrick Meunier, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2009-2011 Fredrick Meunier, Philip Kendall
+
+   $Id: melodik.c 4926 2013-05-05 07:58:18Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,7 +29,6 @@
 
 #include "ay.h"
 #include "compat.h"
-#include "infrastructure/startup_manager.h"
 #include "melodik.h"
 #include "module.h"
 #include "periph.h"
@@ -40,11 +40,11 @@ static void melodik_to_snapshot( libspectrum_snap *snap );
 
 static module_info_t melodik_module_info = {
 
-  /* .reset = */ NULL,
-  /* .romcs = */ NULL,
-  /* .snapshot_enabled = */ melodik_enabled_snapshot,
-  /* .snapshot_from = */ melodik_from_snapshot,
-  /* .snapshot_to = */ melodik_to_snapshot,
+  NULL,
+  NULL,
+  melodik_enabled_snapshot,
+  melodik_from_snapshot,
+  melodik_to_snapshot,
 
 };
 
@@ -55,16 +55,17 @@ static const periph_port_t melodik_ports[] = {
 };
 
 static const periph_t melodik_periph = {
-  /* .option = */ &settings_current.melodik,
-  /* .ports = */ melodik_ports,
-  /* .hard_reset = */ 1,
-  /* .activate = */ NULL,
+  &settings_current.melodik,
+  melodik_ports,
+  1,
+  NULL
 };
 
 static void
 melodik_enabled_snapshot( libspectrum_snap *snap )
 {
-  settings_current.melodik = libspectrum_snap_melodik_active( snap );
+  if( libspectrum_snap_melodik_active( snap ) )
+    settings_current.melodik = 1;
 }
 
 static void
@@ -81,20 +82,9 @@ melodik_to_snapshot( libspectrum_snap *snap )
   libspectrum_snap_set_melodik_active( snap, active );
 }
 
-static int
-melodik_init( void *context )
+void
+melodik_init( void )
 {
   module_register( &melodik_module_info );
   periph_register( PERIPH_TYPE_MELODIK, &melodik_periph );
-
-  return 0;
-}
-
-void
-melodik_register_startup( void )
-{
-  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
-  startup_manager_register( STARTUP_MANAGER_MODULE_MELODIK, dependencies,
-                            ARRAY_SIZE( dependencies ), melodik_init, NULL,
-                            NULL );
 }

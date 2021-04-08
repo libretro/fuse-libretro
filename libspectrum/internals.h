@@ -1,6 +1,8 @@
 /* internals.h: functions which need to be called inter-file by libspectrum
                 routines, but not by user code
-   Copyright (c) 2001-2015 Philip Kendall, Darren Salt
+   Copyright (c) 2001-2008 Philip Kendall, Darren Salt
+
+   $Id: internals.h 4695 2012-05-07 02:03:10Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -49,37 +51,6 @@
 #endif				/* _MSC_VER > 1200 */
 #endif				/* #ifdef _MSC_VER */
 
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-  #define GNUC_VERSION \
-    (__GNUC__ << 16) + __GNUC_MINOR__
-  #define GNUC_PREREQ(maj, min) \
-    (GNUC_VERSION >= ((maj) << 16) + (min))
-#else
-  #define GNUC_PREREQ(maj, min) 0
-#endif
-
-#define BUILD_BUG_ON_ZERO(e) \
-  (sizeof(struct { int:-!!(e) * 1234; }))
-
-#if !GNUC_PREREQ(3, 1) || defined( __STRICT_ANSI__ )
-  #define MUST_BE_ARRAY(a) \
-    BUILD_BUG_ON_ZERO(sizeof(a) % sizeof(*a))
-#else
-  #define SAME_TYPE(a, b) \
-    __builtin_types_compatible_p(typeof(a), typeof(b))
-  #define MUST_BE_ARRAY(a) \
-    BUILD_BUG_ON_ZERO(SAME_TYPE((a), &(*a)))
-#endif
-
-#define ARRAY_SIZE(a) ( \
-  (sizeof(a) / sizeof(*a)) \
-   + MUST_BE_ARRAY(a))
-
-/* C90 lacks SIZE_MAX.  size_t is always unsigned so this is safe. */
-#ifndef SIZE_MAX
-#define SIZE_MAX (~(size_t)0)
-#endif
-
 /* VC6 lacks M_LN2, and VS2003+ require _USE_MATH_DEFINES defined before math.h
  */
 #ifndef M_LN2
@@ -99,11 +70,6 @@
 #if !defined(HAVE_STRNCASECMP) && defined(HAVE__STRNICMP)
 #define strncasecmp _strnicmp
 #endif		/* #if !defined(HAVE_STRNCASECMP) && defined(HAVE__STRNICMP) */
-
-#ifndef MAX
-#define MAX(a,b)    (((a) > (b)) ? (a) : (b))
-#define MIN(a,b)    (((a) < (b)) ? (a) : (b))
-#endif
 
 /* Print using the user-provided error function */
 libspectrum_error
@@ -137,16 +103,16 @@ libspectrum_bzip2_inflate( const libspectrum_byte *bzptr, size_t bzlength,
 			   libspectrum_byte **outptr, size_t *outlength );
 
 libspectrum_error
-libspectrum_zip_inflate( const libspectrum_byte *zipptr, size_t ziplength,
-			  libspectrum_byte **outptr, size_t *outlength );
+libspectrum_zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
+        libspectrum_byte **outptr, size_t *outlength );
 
 libspectrum_error
-libspectrum_zip_blind_read( const libspectrum_byte *zipptr, size_t ziplength,
-                            libspectrum_byte **outptr, size_t *outlength );
+libspectrum_zlib_compress( const libspectrum_byte *data, size_t length,
+         libspectrum_byte **gzptr, size_t *gzlength );
 
 /* The TZX file signature */
 
-extern const char * const libspectrum_tzx_signature;
+extern const char *libspectrum_tzx_signature;
 
 /* Convert a 48K memory dump into separate RAM pages */
 
@@ -161,14 +127,10 @@ libspectrum_error libspectrum_split_to_48k_pages( libspectrum_snap *snap,
 #define SNAPSHOT_DOCK_EXROM_PAGES 8
 #define SNAPSHOT_JOYSTICKS 7
 #define SNAPSHOT_DIVIDE_PAGES 4
-#define SNAPSHOT_DIVMMC_PAGES 64
 
 /* Get memory for a snap */
 
-libspectrum_error
-libspectrum_snap_write_buffer( libspectrum_buffer *buffer, int *out_flags,
-                               libspectrum_snap *snap, libspectrum_id_t type,
-                               libspectrum_creator *creator, int in_flags );
+libspectrum_snap* libspectrum_snap_alloc_internal( void );
 
 /* Format specific snapshot routines */
 
@@ -179,8 +141,8 @@ libspectrum_error
 internal_sna_read( libspectrum_snap *snap,
 		   const libspectrum_byte *buffer, size_t buffer_length );
 libspectrum_error
-libspectrum_sna_write( libspectrum_buffer *buffer, int *out_flags,
-                       libspectrum_snap *snap, int in_flags );
+libspectrum_sna_write( libspectrum_byte **buffer, size_t *length,
+		       int *out_flags, libspectrum_snap *snap, int in_flags );
 libspectrum_error
 libspectrum_snp_read( libspectrum_snap *snap,
 		      const libspectrum_byte *buffer, size_t buffer_length );
@@ -191,15 +153,15 @@ libspectrum_error
 libspectrum_szx_read( libspectrum_snap *snap,
 		      const libspectrum_byte *buffer, size_t buffer_length );
 libspectrum_error
-libspectrum_szx_write( libspectrum_buffer *buffer, int *out_flags,
-                       libspectrum_snap *snap, libspectrum_creator *creator,
-                       int in_flags );
+libspectrum_szx_write( libspectrum_byte **buffer, size_t *length,
+		       int *out_flags, libspectrum_snap *snap,
+		       libspectrum_creator *creator, int in_flags );
 libspectrum_error
 internal_z80_read( libspectrum_snap *snap,
 		   const libspectrum_byte *buffer, size_t buffer_length );
 libspectrum_error
-libspectrum_z80_write2( libspectrum_buffer *buffer, int *out_flags,
-                        libspectrum_snap *snap, int in_flags );
+libspectrum_z80_write2( libspectrum_byte **buffer, size_t *length,
+			int *out_flags, libspectrum_snap *snap, int in_flags );
 libspectrum_error
 libspectrum_zxs_read( libspectrum_snap *snap,
 		      const libspectrum_byte *buffer, size_t buffer_length );
@@ -235,15 +197,16 @@ internal_tap_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 		   const size_t length, libspectrum_id_t type );
 
 libspectrum_error
-internal_tap_write( libspectrum_buffer *buffer, libspectrum_tape *tape,
-                    libspectrum_id_t type );
+internal_tap_write( libspectrum_byte **buffer, size_t *length,
+		    libspectrum_tape *tape, libspectrum_id_t type );
 
 libspectrum_error
 internal_tzx_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 		   const size_t length );
 
 libspectrum_error
-internal_tzx_write( libspectrum_buffer *buffer, libspectrum_tape *tape );
+internal_tzx_write( libspectrum_byte **buffer, size_t *length,
+		    libspectrum_tape *tape );
 
 libspectrum_error
 internal_warajevo_read( libspectrum_tape *tape,
@@ -258,7 +221,8 @@ libspectrum_csw_read( libspectrum_tape *tape,
                       const libspectrum_byte *buffer, size_t length );
 
 libspectrum_error
-libspectrum_csw_write( libspectrum_buffer *buffer, libspectrum_tape *tape );
+libspectrum_csw_write( libspectrum_byte **buffer, size_t *length,
+                       libspectrum_tape *tape );
 
 libspectrum_error
 libspectrum_wav_read( libspectrum_tape *tape, const char *filename );
@@ -276,63 +240,6 @@ libspectrum_error
 libspectrum_tape_get_next_edge_internal( libspectrum_dword *tstates, int *flags,
                                          libspectrum_tape *tape,
                                          libspectrum_tape_block_state *it );
-/* Disk routines */
-
-typedef struct libspectrum_hdf_header {
-
-  libspectrum_byte signature[0x06];
-  libspectrum_byte id;
-  libspectrum_byte revision;
-  libspectrum_byte flags;
-  libspectrum_byte datastart_low;
-  libspectrum_byte datastart_hi;
-  libspectrum_byte reserved[0x0b];
-  libspectrum_byte drive_identity[0x6a];
-
-} libspectrum_hdf_header;
-  
-typedef struct libspectrum_ide_drive {
-
-  /* HDF filepointer and information */
-  FILE *disk;
-  libspectrum_word data_offset;
-  libspectrum_word sector_size;
-  libspectrum_hdf_header hdf;
-  
-  /* Drive geometry */
-  int cylinders;
-  int heads;
-  int sectors;
-
-  libspectrum_byte error;
-  libspectrum_byte status;
-  
-} libspectrum_ide_drive;
-
-libspectrum_error
-libspectrum_ide_insert_into_drive( libspectrum_ide_drive *drv,
-                                   const char *filename );
-
-libspectrum_error
-libspectrum_ide_eject_from_drive( libspectrum_ide_drive *drv,
-                                  GHashTable *cache );
-
-int
-libspectrum_ide_read_sector_from_hdf(
-    libspectrum_ide_drive *drv,
-    GHashTable *cache,
-    libspectrum_dword sector_number,
-    libspectrum_byte *dest );
-
-void
-libspectrum_ide_write_sector_to_hdf(
-    libspectrum_ide_drive *drv,
-    GHashTable *cache,
-    libspectrum_dword sector_number,
-    libspectrum_byte *src );
-
-void
-libspectrum_ide_commit_drive( libspectrum_ide_drive *drv, GHashTable *cache );
 
 /* Crypto functions */
 
@@ -357,13 +264,7 @@ void
 libspectrum_set_pause_tstates( libspectrum_tape_block *block,
                                libspectrum_dword pause_tstates );
 
-size_t
-libspectrum_bits_to_bytes( size_t bits );
-
 extern const int LIBSPECTRUM_BITS_IN_BYTE;
-
-char*
-libspectrum_safe_strdup( const char *src );
 
 /* glib replacement functions */
 
@@ -373,18 +274,6 @@ libspectrum_slist_cleanup( void );
 
 void
 libspectrum_hashtable_cleanup( void );
-
-#ifdef HAVE_STDATOMIC_H
-#include <stdatomic.h>
-
-void
-atomic_lock( atomic_char *lock_ptr );
-
-void
-atomic_unlock( atomic_char *lock_ptr );
-
-#endif				/* #ifdef HAVE_STDATOMIC_H */
-
 #endif				/* #ifndef HAVE_LIB_GLIB */
 
 #endif				/* #ifndef LIBSPECTRUM_INTERNALS_H */

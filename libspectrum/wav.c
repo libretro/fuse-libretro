@@ -1,5 +1,7 @@
 /* wav.c: Routines for handling WAV raw audio files
-   Copyright (c) 2007-2015 Fredrick Meunier
+   Copyright (c) 2007 Fredrick Meunier
+
+   $Id: wav.c 4396 2011-04-29 13:54:06Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,7 +23,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 #include <string.h>
 
 #ifdef HAVE_LIB_AUDIOFILE
@@ -86,8 +88,8 @@ libspectrum_wav_read( libspectrum_tape *tape, const char *filename )
   tape_length = length;
   if( tape_length%8 ) tape_length += 8 - (tape_length%8);
 
-  buffer = libspectrum_new0( libspectrum_byte,
-			     tape_length * afGetChannels(handle, track) );
+  buffer = libspectrum_calloc( tape_length * afGetChannels(handle, track),
+                               sizeof( *buffer ) );
 
   frames = afReadFrames( handle, track, buffer, length );
   if( frames == -1 ) {
@@ -133,7 +135,7 @@ libspectrum_wav_read( libspectrum_tape *tape, const char *filename )
   data_length = tape_length / LIBSPECTRUM_BITS_IN_BYTE;
   libspectrum_tape_block_set_data_length( block, data_length );
 
-  tape_buffer = libspectrum_new0( libspectrum_byte, data_length );
+  tape_buffer = libspectrum_calloc( data_length, sizeof( *tape_buffer ) );
 
   libspectrum_byte *from = buffer;
   libspectrum_byte *to = tape_buffer;

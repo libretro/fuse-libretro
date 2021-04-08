@@ -1,6 +1,7 @@
 /* widget.h: Simple dialog boxes for all user interfaces.
    Copyright (c) 2001-2004 Matan Ziv-Av, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: widget.h 4671 2012-02-20 10:33:32Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,10 +41,8 @@ typedef enum widget_type {
   WIDGET_TYPE_FILESELECTOR_SAVE,/* File selector (save) */
   WIDGET_TYPE_GENERAL,		/* General options */
   WIDGET_TYPE_PICTURE,		/* Keyboard picture */
-  WIDGET_TYPE_ABOUT,		/* About info */
   WIDGET_TYPE_MENU,		/* General menu */
   WIDGET_TYPE_SELECT,		/* Select machine */
-  WIDGET_TYPE_MEDIA,		/* Media options */
   WIDGET_TYPE_SOUND,		/* Sound options */
   WIDGET_TYPE_ERROR,		/* Error report */
   WIDGET_TYPE_RZX,		/* RZX options */
@@ -60,7 +59,6 @@ typedef enum widget_type {
   WIDGET_TYPE_QUERY,		/* Query (yes/no) */
   WIDGET_TYPE_QUERY_SAVE,	/* Query (save/don't save/cancel) */
   WIDGET_TYPE_DISKOPTIONS,	/* Disk options widget */
-  WIDGET_TYPE_BINARY,		/* Binary load/save */
 } widget_type;
 
 /* Activate a widget */
@@ -117,161 +115,5 @@ typedef struct widget_error_t {
   ui_error_level severity;
   const char *message;
 } widget_error_t;
-
-typedef struct widget_filesel_data widget_filesel_data;
-typedef struct widget_picture_data widget_picture_data;
-typedef struct widget_text_t widget_text_t;
-typedef struct widget_select_t widget_select_t;
-typedef struct widget_roms_info widget_roms_info;
-
-/* File selector (load) */
-static inline int widget_do_fileselector( widget_filesel_data *data )
-{
-  return widget_do( WIDGET_TYPE_FILESELECTOR, data );
-}
-
-/* File selector (save) */
-static inline int widget_do_fileselector_save( widget_filesel_data *data )
-{
-  return widget_do( WIDGET_TYPE_FILESELECTOR_SAVE, data );
-}
-
-/* General options */
-static inline int widget_do_general( void )
-{
-  return widget_do( WIDGET_TYPE_GENERAL, NULL );
-}
-
-/* Keyboard picture */
-static inline int widget_do_picture( widget_picture_data *data )
-{
-  return widget_do( WIDGET_TYPE_PICTURE, data );
-}
-
-/* About fuse widget */
-static inline int widget_do_about( void )
-{
-  return widget_do( WIDGET_TYPE_ABOUT, NULL );
-}
-
-/* General menu */
-static inline int widget_do_menu( widget_menu_entry *data )
-{
-  return widget_do( WIDGET_TYPE_MENU, data );
-}
-
-/* Select machine */
-static inline int widget_do_select( widget_select_t *data )
-{
-  return widget_do( WIDGET_TYPE_SELECT, data );
-}
-
-/* Media options */
-static inline int widget_do_media( void )
-{
-  return widget_do( WIDGET_TYPE_MEDIA, NULL );
-}
-
-/* Sound options */
-static inline int widget_do_sound( void )
-{
-  return widget_do( WIDGET_TYPE_SOUND, NULL );
-}
-
-/* Error report */
-static inline int widget_do_error( widget_error_t *data )
-{
-  return widget_do( WIDGET_TYPE_ERROR, data );
-}
-
-/* RZX options */
-static inline int widget_do_rzx( void )
-{
-  return widget_do( WIDGET_TYPE_RZX, NULL );
-}
-
-/* Movie options */
-static inline int widget_do_movie( void )
-{
-  return widget_do( WIDGET_TYPE_MOVIE, NULL );
-}
-
-/* Browse tape */
-static inline int widget_do_browse( void )
-{
-  return widget_do( WIDGET_TYPE_BROWSE, NULL );
-}
-
-/* Text entry widget */
-static inline int widget_do_text( widget_text_t *data )
-{
-  return widget_do( WIDGET_TYPE_TEXT, data );
-}
-
-/* Debugger widget */
-static inline int widget_do_debugger( void )
-{
-  return widget_do( WIDGET_TYPE_DEBUGGER, NULL );
-}
-
-/* Poke finder widget */
-static inline int widget_do_pokefinder( void )
-{
-  return widget_do( WIDGET_TYPE_POKEFINDER, NULL );
-}
-
-/* Poke memory widget */
-static inline int widget_do_pokemem( void )
-{
-  return widget_do( WIDGET_TYPE_POKEMEM, NULL );
-}
-
-/* Memory browser widget */
-static inline int widget_do_memorybrowser( void )
-{
-  return widget_do( WIDGET_TYPE_MEMORYBROWSER, NULL );
-}
-
-/* ROM selector widget */
-static inline int widget_do_rom( widget_roms_info *data )
-{
-  return widget_do( WIDGET_TYPE_ROM, data );
-}
-
-/* General peripherals options */
-static inline int widget_do_peripherals_general( void )
-{
-  return widget_do( WIDGET_TYPE_PERIPHERALS_GENERAL, NULL );
-}
-
-/* Disk peripherals options */
-static inline int widget_do_peripherals_disk( void )
-{
-  return widget_do( WIDGET_TYPE_PERIPHERALS_DISK, NULL );
-}
-
-/* Query (yes/no) */
-static inline int widget_do_query( const char *message )
-{
-  return widget_do( WIDGET_TYPE_QUERY, (void *)message );
-}
-
-/* Query (save/don't save/cancel) */
-static inline int widget_do_query_save( const char *message )
-{
-  return widget_do( WIDGET_TYPE_QUERY_SAVE, (void *)message );
-}
-
-/* Disk options widget */
-static inline int widget_do_diskoptions( void )
-{
-  return widget_do( WIDGET_TYPE_DISKOPTIONS, NULL );
-}
-
-/* Binary load/save widget */
-static inline int widget_do_binary( void )
-{
-  return widget_do( WIDGET_TYPE_BINARY, NULL );
-}
 
 #endif				/* #ifndef FUSE_WIDGET_H */

@@ -5,7 +5,7 @@
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
-#define HAVE_DLFCN_H 1
+/* #undef HAVE_DLFCN_H */
 
 /* Define to 1 if you have the <gcrypt.h> header file. */
 /* #undef HAVE_GCRYPT_H */
@@ -19,7 +19,7 @@
 /* Defined if we've got audiofile */
 /* #undef HAVE_LIB_AUDIOFILE */
 
-/* Defined if we've got GLib */
+/* Defined if we've got glib */
 /* #undef HAVE_LIB_GLIB */
 
 /* Define to 1 if you have the <memory.h> header file. */
@@ -27,9 +27,6 @@
 
 /* Define to 1 if you have the `snprintf' function. */
 #define HAVE_SNPRINTF 1
-
-/* Define to 1 if you have the <stdatomic.h> header file. */
-#define HAVE_STDATOMIC_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -62,21 +59,22 @@
 #define HAVE_ZLIB_H 1
 
 /* Define to 1 if you have the `_snprintf' function. */
-/* #undef HAVE__SNPRINTF */
+#define HAVE__SNPRINTF 1
 
 /* Define to 1 if you have the `_stricmp' function. */
-/* #undef HAVE__STRICMP */
+#define HAVE__STRICMP 1
 
 /* Define to 1 if you have the `_strnicmp' function. */
-/* #undef HAVE__STRNICMP */
+#define HAVE__STRNICMP 1
 
 /* Define copyright of libspectrum */
-#define LIBSPECTRUM_COPYRIGHT "(c) 1999-2021 Philip Kendall and others"
+#define LIBSPECTRUM_COPYRIGHT "(c) 1999-2013 Philip Kendall and others"
 
 /* Define version information for win32 dll library */
-#define LIBSPECTRUM_RC_VERSION 1,5,0,0
+#define LIBSPECTRUM_RC_VERSION 1,1,1,0
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */
@@ -89,7 +87,7 @@
 #define PACKAGE_NAME "libspectrum"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libspectrum 1.5.0"
+#define PACKAGE_STRING "libspectrum 1.1.1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libspectrum"
@@ -98,16 +96,16 @@
 #define PACKAGE_URL "http://fuse-emulator.sourceforge.net/libspectrum.php"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.5.0"
+#define PACKAGE_VERSION "1.1.1"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "1.5.0"
+#define VERSION "1.1.1"
 
 /* Exclude rarely used stuff from Windows headers <windows.h> */
-/* #undef WIN32_LEAN_AND_MEAN */
+#define WIN32_LEAN_AND_MEAN /**/
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

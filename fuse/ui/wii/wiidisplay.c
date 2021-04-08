@@ -1,6 +1,8 @@
 /* wiidisplay.c: Routines for dealing with the Wii's framebuffer display
    Copyright (c) 2008-2009 Bjoern Giesler, Marek Januszewski
 
+   $Id: wiidisplay.c 4067 2009-08-30 19:07:21Z specu $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

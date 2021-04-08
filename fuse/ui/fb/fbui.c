@@ -1,6 +1,7 @@
 /* fbui.c: Routines for dealing with the linux fbdev user interface
    Copyright (c) 2000-2004 Philip Kendall, Matan Ziv-Av, Witold Filipczyk
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: fbui.c 4543 2011-09-19 01:46:48Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -80,14 +81,14 @@ ui_init( int *argc, char ***argv )
   return 0;
 }
 
-int ui_event( void )
+int ui_event()
 {
   keyboard_update();
   mouse_update();
   return 0;
 }
 
-int ui_end( void )
+int ui_end(void)
 {
   /* Cleanup handled by atexit function */
   int error;

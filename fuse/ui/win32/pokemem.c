@@ -1,5 +1,7 @@
 /* pokemem.c: Win32 interface to the poke memory
-   Copyright (c) 2011-2015 Philip Kendall, Sergio Baldoví
+   Copyright (c) 2011 Philip Kendall, Sergio Baldoví
+
+   $Id: pokemem.c 4785 2012-12-07 23:56:40Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -244,13 +246,13 @@ listview_proc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
           lvi.iItem = dispinfo->item.iItem;
           lvi.iSubItem = dispinfo->item.iSubItem;
           lvi.pszText = ( dispinfo->item.cchTextMax > 1 )?
-                        dispinfo->item.pszText : (LPTSTR) TEXT( "0" );
+                        dispinfo->item.pszText : TEXT( "0" );
 
           /* Validate value */
           val = _ttol( lvi.pszText );
           if( val > 256 ) {
             val = 0;
-            lvi.pszText = (LPTSTR) TEXT( "0" );
+            lvi.pszText = TEXT( "0" );
           }
 
           /* Update listview */
@@ -385,13 +387,13 @@ initialize_dialog( HWND hwnd_dialog )
   lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT;
   lvc.fmt = LVCFMT_LEFT;
   lvc.cx = cx - ( cx >> 2 );
-  lvc.pszText = (LPTSTR) TEXT( "Trainer" );
+  lvc.pszText = TEXT( "Trainer" );
   SendMessage( hwnd_list, LVM_INSERTCOLUMN, 0, (LPARAM) &lvc );
 
   /* Create value column */
   lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
   lvc.cx = cx >> 2;
-  lvc.pszText = (LPTSTR) TEXT( "Value" );
+  lvc.pszText = TEXT( "Value" );
   SendMessage( hwnd_list, LVM_INSERTCOLUMN, 1, (LPARAM) &lvc );
 
   /* Fill listview with data */

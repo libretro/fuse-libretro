@@ -1,6 +1,8 @@
 /* display.c: Routines for printing the Spectrum screen
-   Copyright (c) 1999-2015 Philip Kendall, Thomas Harte, Witold Filipczyk
+   Copyright (c) 1999-2006 Philip Kendall, Thomas Harte, Witold Filipczyk
                            and Fredrick Meunier
+
+   $Id: display.c 4717 2012-06-07 03:54:45Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,8 +32,8 @@
 #include <string.h>
 
 #include "display.h"
+#include "event.h"
 #include "fuse.h"
-#include "infrastructure/startup_manager.h"
 #include "machine.h"
 #include "movie.h"
 #include "peripherals/scld.h"
@@ -98,6 +100,9 @@ static libspectrum_qword display_all_dirty;
 /* Used to signify that we're redrawing the entire screen */
 static int display_redraw_all;
 
+/* Value used to signify a border line has more than one colour on it. */
+static const int display_border_mixed = 0xff;
+
 /* The last point at which we updated the screen display */
 int critical_region_x = 0, critical_region_y = 0;
 
@@ -132,8 +137,10 @@ alloc_change(void)
 
   if( border_changes_size == border_changes_last ) {
     border_changes_size += 10;
-    border_changes = libspectrum_renew( struct border_change_t,
-                                        border_changes, border_changes_size );
+    border_changes = libspectrum_realloc( border_changes,
+                                          border_changes_size *
+                                            sizeof( struct border_change_t )
+                                        );
   }
   return border_changes + border_changes_last++; 
 }
@@ -200,26 +207,6 @@ display_init( int *argc, char ***argv )
                             display_hires_border : display_lores_border;
 
   return 0;
-}
-
-static int
-display_init_wrapper( void *context )
-{
-  display_startup_context *typed_context =
-    (display_startup_context*) context;
-
-  return display_init( typed_context->argc, typed_context->argv );
-}
-
-void
-display_register_startup( display_startup_context *context )
-{
-  /* The Wii has an explicit call to display_init for now */
-#ifndef GEKKO
-  startup_manager_register_no_dependencies( STARTUP_MANAGER_MODULE_DISPLAY,
-                                            display_init_wrapper, context,
-                                            NULL );
-#endif                          /* #ifndef GEKKO */
 }
 
 /* Mark as 'dirty' the pixels which have been changed by a write to
@@ -420,7 +407,7 @@ display_write_if_dirty_timex( int x, int y )
   }
 }
 
-static inline void
+inline static void
 pentagon_16c_get_colour( libspectrum_byte data, libspectrum_byte *colour1,
                          libspectrum_byte *colour2 )
 {
@@ -612,7 +599,7 @@ copy_critical_region( int beam_x, int beam_y )
   critical_region_x = beam_x;
 }
 
-static inline void
+inline static void
 get_beam_position( int *x, int *y )
 {
   if( tstates < machine_current->line_times[ 0 ] ) {
@@ -658,7 +645,7 @@ display_update_critical( int x, int y )
 
 /* Mark the 8-pixel chunk at (x,y) as maybe dirty and update the critical
    region as appropriate */
-static inline void
+inline static void
 display_dirty_chunk( int x, int y )
 {
   /* If the write is between the start of the critical region and the

@@ -1,6 +1,8 @@
 /* wd_fdc.h: Western Digital floppy disk controller emulation
-   Copyright (c) 2003-2015 Stuart Brady, Fredrick Meunier, Philip Kendall,
+   Copyright (c) 2003-2007 Stuart Brady, Fredrick Meunier, Philip Kendall,
    Gergely Szasz
+
+   $Id: wd_fdc.h 4636 2012-01-20 14:07:15Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,62 +35,58 @@
 #include "fdd.h"
 #include "fuse.h"
 
-/* Status register bits */
-enum {
-  WD_FDC_SR_MOTORON = 1<<7, /* Motor on or READY */
-  WD_FDC_SR_WRPROT  = 1<<6, /* Write-protect */
-  WD_FDC_SR_SPINUP  = 1<<5, /* Record type / Spin-up complete */
-  WD_FDC_SR_RNF     = 1<<4, /* Record Not Found or SEEK Error */
-  WD_FDC_SR_CRCERR  = 1<<3, /* CRC error */
-  WD_FDC_SR_LOST    = 1<<2, /* Lost data or TRACK00 */
-  WD_FDC_SR_IDX_DRQ = 1<<1, /* Index pulse / Data request */
-  WD_FDC_SR_BUSY    = 1<<0  /* Busy (command under execution) */
-};
+static const int WD_FDC_SR_MOTORON = 1<<7; /* Motor on */
+static const int WD_FDC_SR_WRPROT  = 1<<6; /* Write-protect */
+static const int WD_FDC_SR_SPINUP  = 1<<5; /* Record type / Spin-up complete */
+static const int WD_FDC_SR_RNF     = 1<<4; /* Record Not Found */
+static const int WD_FDC_SR_CRCERR  = 1<<3; /* CRC error */
+static const int WD_FDC_SR_LOST    = 1<<2; /* Lost data */
+static const int WD_FDC_SR_IDX_DRQ = 1<<1; /* Index pulse / Data request */
+static const int WD_FDC_SR_BUSY    = 1<<0; /* Busy (command under execution) */
 
-/* Configuration flags (interface-specific) */
-enum {
-  WD_FLAG_NONE      = 0,
-  /* The Beta 128 connects the HLD output pin to the READY input pin and
-   * the MOTOR ON output pin on the FDD interface. */
-  WD_FLAG_BETA128   = 1<<0,
-  /* The Opus Discovery needs a pulse of the DRQ (data request) line for every
-   * byte transferred. */
-  WD_FLAG_DRQ       = 1<<1,
-  /* The MB-02+ provides a READY signal to FDC instead of FDD, so we use
-   * 'extra_signal' for this */
-  WD_FLAG_RDY       = 1<<2,
-  /* HLT (input) pin not connected at all, so we assume it is always 1. */
-  WD_FLAG_NOHLT     = 1<<3
-};
+static const int WD_FLAG_NONE      = 0;
+static const int WD_FLAG_BETA128   = 1<<0; /* Beta128 connects HLD output pin to READY input pin and
+					      MOTOR ON pin on FDD interface */
+static const int WD_FLAG_OPUS      = 1<<1; /* Opus Discovery need `datarq' line for every byte */
 
 typedef enum wd_type_t {
-  WD1773 = 0,
+  WD1773 = 0,		/* WD1773 */
   FD1793,
   WD1770,
   WD1772,
-  WD2797
 } wd_type_t;
 
-typedef struct wd_fdc {
-  fdd_t *current_drive;
+extern int wd_fdc_index_pulse;
+extern int wd_fdc_index_interrupt;
 
-  wd_type_t type;	/* WD1770, FD1793, WD1772, WD1773, WD2797 */
+typedef struct wd_fdc_drive {
+  fdd_t fdd;			/* floppy disk drive */
+  disk_t disk;			/* the floppy disk itself */
+  int index_pulse;
+  int index_interrupt;
+
+} wd_fdc_drive;
+
+typedef struct wd_fdc {
+  wd_fdc_drive *current_drive;
+
+  wd_type_t type;		/* WD1770, WD1772, WD1773 */
 
   int rates[ 4 ];
   int spin_cycles;
-  fdd_dir_t direction;	/* 0 = spindlewards, 1 = rimwards */
-  int dden;		/* SD/DD -> FM/MFM */
-  int intrq;		/* INTRQ line status */
-  int datarq;		/* DRQ line status */
-  int head_load;	/* WD1773/FD1793 */
-  int hlt;		/* WD1773/FD1793 Head Load Timing input pin */
-  int hlt_time;		/* "... When a logic high is found on the HLT input
-			   the head is assumed to be enganged. It is typically
-			   derived from a 1 shot triggered by HLD ..."
-			   if hlt_time > 0 it means trigger time in ms, if = 0
-			   then hlt should be set with wd_fdc_set_hlt()  */
-  unsigned int flags;	/* Configuration flags (interface-specific) */
-  int extra_signal;	/* Extra line for boards with non-standard wiring */
+  fdd_dir_t direction;		/* 0 = spindlewards, 1 = rimwards */
+  int dden;			/* SD/DD -> FM/MFM */
+  int intrq;			/* INTRQ line status */
+  int datarq;			/* DRQ line status */
+  int head_load;		/* WD1773/FD1793 */
+  int hlt;			/* WD1773/FD1793 Head Load Timing input pin */
+  int hlt_time;			/* "... When a logic high is found on the HLT input
+				   the head is assumed to be enganged. It is typically
+				   derived from a 1 shot triggered by HLD ..."
+				   if hlt_time > 0 it means trigger time in ms, if = 0
+				   then hlt should be set with wd_fdc_set_hlt()  */
+  unsigned int flags;		/* Beta128 connects HLD output pin to READY input pin and
+				   MOTOR ON pin on FDD interface */
 
   enum wd_fdc_state {
     WD_FDC_STATE_NONE = 0,
@@ -102,7 +100,7 @@ typedef struct wd_fdc {
     WD_FDC_STATE_READID,
   } state;
 
-  int read_id;		/* FDC try to read a DAM */
+  int read_id;			/* FDC try to read a DAM */
 
   enum wd_fdc_status_type {
     WD_FDC_STATUS_TYPE1,
@@ -119,14 +117,13 @@ typedef struct wd_fdc {
   int id_track;
   int id_head;
   int id_sector;
-  int id_length;	/* sector length code 0, 1, 2, 3 */
-  int non_ibm_len_code;	/* WD2797 can use alternative sector len code set */
-  int sector_length;	/* sector length from length code */
-  int ddam;		/* read a deleted data mark */
-  int rev;		/* revolution counter */
+  int id_length;		/* sector length code 0, 1, 2, 3 */
+  int sector_length;		/* sector length from length code */
+  int ddam;			/* read a deleted data mark */
+  int rev;			/* revolution counter */
 
   /* state during transfer */
-  int data_check_head;	/* -1 no check, 0/1 wait side 0 or 1 */
+  int data_check_head;		/* -1 no check, 0/1 wait side 0 or 1 */
   int data_multisector;
   int data_offset;
 
@@ -142,6 +139,7 @@ typedef struct wd_fdc {
   void ( *reset_intrq ) ( struct wd_fdc *f );
   void ( *set_datarq ) ( struct wd_fdc *f );
   void ( *reset_datarq ) ( struct wd_fdc *f );
+  void *iface;
 
 } wd_fdc;
 

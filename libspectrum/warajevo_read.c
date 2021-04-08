@@ -1,6 +1,8 @@
 /* warajevo_read.c: Routines for reading Warajevo .tap files
    Copyright (c) 2001, 2002 Philip Kendall, Darren Salt
-   Copyright (c) 2003-2015 Fredrick Meunier
+   Copyright (c) 2003 Fredrick Meunier
+
+   $Id: warajevo_read.c 4380 2011-04-27 02:45:18Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,7 +24,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <stddef.h>
 #include <stdio.h>
@@ -209,8 +211,9 @@ get_next_block( size_t *offset, const libspectrum_byte *buffer,
   int error;
   libspectrum_dword next_block;
 
-  /* Check we have enough data */
-  if( end - buffer < *offset || end - buffer - *offset < 8 ) {
+  /* Check we have enough data, and check for pointer wrap */
+  if( buffer + 8 + *offset > end || buffer + *offset < buffer || 
+      buffer + 8 + *offset < buffer ) {
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_CORRUPT,
       "libspectrum_warajevo_read: not enough data in buffer"
@@ -471,7 +474,7 @@ read_rom_block( libspectrum_tape *tape, const libspectrum_byte *ptr,
   }
 
   /* Allocate memory for the data */
-  block_data = libspectrum_new( libspectrum_byte, length );
+  block_data = libspectrum_malloc( length * sizeof( *block_data ) );
   libspectrum_tape_block_set_data( block, block_data );
 
   /* Add flag */
@@ -532,7 +535,7 @@ read_raw_data( libspectrum_tape *tape, const libspectrum_byte *ptr,
   }
 
   /* Allocate memory for the data */
-  block_data = libspectrum_new( libspectrum_byte, length );
+  block_data = libspectrum_malloc( length * sizeof( libspectrum_byte ) );
   libspectrum_tape_block_set_data( block, block_data );
 
   if( compressed_size != decompressed_size ) {
@@ -592,9 +595,8 @@ read_raw_data( libspectrum_tape *tape, const libspectrum_byte *ptr,
     /* Combine the two blocks */
     size_t new_length = libspectrum_tape_block_data_length( last_block ) + 
                           length;
-    block_data = libspectrum_renew( libspectrum_byte,
-				    libspectrum_tape_block_data( last_block ),
-				    new_length );
+    block_data = libspectrum_realloc( libspectrum_tape_block_data( last_block ),
+                                      new_length * sizeof( libspectrum_byte ) );
 
     memcpy( block_data + libspectrum_tape_block_data_length( last_block ),
             libspectrum_tape_block_data( block ), length );

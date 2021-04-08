@@ -1,6 +1,8 @@
 /* module.c: API for Fuse modules
    Copyright (c) 2007 Philip Kendall
 
+   $Id: module.c 4696 2012-05-07 02:05:13Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

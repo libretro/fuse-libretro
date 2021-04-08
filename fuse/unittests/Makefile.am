@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2008 Philip Kendall
-## Copyright (c) 2015 Sergio Baldoví
+
+## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -20,6 +21,14 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-fuse_SOURCES += unittests/unittests.c
+AUTOMAKE_OPTIONS = foreign
 
-noinst_HEADERS += unittests/unittests.h
+AM_CPPFLAGS = -I$(srcdir)/..
+
+AM_CPPFLAGS += @GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBSPEC_CFLAGS@
+
+noinst_LIBRARIES = libunittests.a
+
+libunittests_a_SOURCES = unittests.c
+
+noinst_HEADERS = unittests.h

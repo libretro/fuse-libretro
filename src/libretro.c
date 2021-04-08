@@ -21,8 +21,6 @@
 #include <peripherals/disk/disciple.h>
 #include <pokefinder/pokemem.h>
 
-#include "ui/uimedia.h"
-
 static void dummy_log(enum retro_log_level level, const char *fmt, ...)
 {
    (void)level;
@@ -695,15 +693,15 @@ bool retro_load_game(const struct retro_game_info *info)
 
       for (i = 0; i < 2; i++)
       {
-         ui_media_drive_writeprotect(UI_MEDIA_CONTROLLER_PLUS3, i, 0);
-         ui_media_drive_writeprotect(UI_MEDIA_CONTROLLER_PLUSD, i, 0);
-         ui_media_drive_writeprotect(UI_MEDIA_CONTROLLER_OPUS, i, 0);
-         ui_media_drive_writeprotect(UI_MEDIA_CONTROLLER_DISCIPLE, i, 0);
+         specplus3_disk_writeprotect( i, 0 );
+         plusd_disk_writeprotect( i, 0 );
+         opus_disk_writeprotect( i, 0 );
+         disciple_disk_writeprotect( i, 0 );
       }
 
       for (i = 0; i < 4; i++)
       {
-         ui_media_drive_writeprotect(UI_MEDIA_CONTROLLER_BETA, i, 0);
+         beta_disk_writeprotect( i, 0 );
       }
 
       for (i = 0; i < 8; i++)
@@ -1215,13 +1213,11 @@ unsigned retro_get_region(void)
 
 // Dummy callbacks for the UI
 
-/*
 #define MENU_CALLBACK( name ) void name( int action )
 MENU_CALLBACK(menu_file_savescreenaspng) {}
 MENU_CALLBACK(menu_file_loadbinarydata)  {}
 MENU_CALLBACK(menu_file_savebinarydata)  {}
 MENU_CALLBACK(menu_machine_pause)        {}
-*/
 
 // Dummy mkstemp
 

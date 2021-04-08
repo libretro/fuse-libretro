@@ -1,5 +1,7 @@
-/* gtkcompat.h: various compatibility bits between GTK versions
+/* gtkcompat.h: various compatibility bits between GTK+ versions
    Copyright (c) 2012 Philip Kendall
+
+   $Id: gtkcompat.h 4723 2012-07-08 13:26:15Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -48,8 +50,6 @@ gtk_separator_new( GtkOrientation orientation );
 GtkWidget *
 gtk_scrollbar_new( GtkOrientation orientation, GtkAdjustment *adjustment );
 
-#define gtk_widget_override_font( X, Y ) gtk_widget_modify_font( X, Y )
-
 #endif
 
 
@@ -60,11 +60,9 @@ gtk_scrollbar_new( GtkOrientation orientation, GtkAdjustment *adjustment );
 #define GDK_KEY_Return          GDK_Return
 #define GDK_KEY_Escape          GDK_Escape
 #define GDK_KEY_space           GDK_space
-#define GDK_KEY_quotedbl        GDK_quotedbl
 #define GDK_KEY_exclam          GDK_exclam
 #define GDK_KEY_numbersign      GDK_numbersign
 #define GDK_KEY_dollar          GDK_dollar
-#define GDK_KEY_percent         GDK_percent
 #define GDK_KEY_ampersand       GDK_ampersand
 #define GDK_KEY_apostrophe      GDK_apostrophe
 #define GDK_KEY_parenleft       GDK_parenleft
@@ -90,8 +88,6 @@ gtk_scrollbar_new( GtkOrientation orientation, GtkAdjustment *adjustment );
 #define GDK_KEY_less            GDK_less
 #define GDK_KEY_equal           GDK_equal
 #define GDK_KEY_greater         GDK_greater
-#define GDK_KEY_question        GDK_question
-#define GDK_KEY_at              GDK_at
 #define GDK_KEY_A               GDK_A
 #define GDK_KEY_B               GDK_B
 #define GDK_KEY_C               GDK_C
@@ -118,11 +114,7 @@ gtk_scrollbar_new( GtkOrientation orientation, GtkAdjustment *adjustment );
 #define GDK_KEY_X               GDK_X
 #define GDK_KEY_Y               GDK_Y
 #define GDK_KEY_Z               GDK_Z
-#define GDK_KEY_bracketleft     GDK_bracketleft
-#define GDK_KEY_backslash       GDK_backslash
-#define GDK_KEY_bracketright    GDK_bracketright
 #define GDK_KEY_asciicircum     GDK_asciicircum
-#define GDK_KEY_underscore      GDK_underscore
 #define GDK_KEY_dead_circumflex GDK_dead_circumflex
 #define GDK_KEY_a               GDK_a
 #define GDK_KEY_b               GDK_b
@@ -150,10 +142,7 @@ gtk_scrollbar_new( GtkOrientation orientation, GtkAdjustment *adjustment );
 #define GDK_KEY_x               GDK_x
 #define GDK_KEY_y               GDK_y
 #define GDK_KEY_z               GDK_z
-#define GDK_KEY_braceleft       GDK_braceleft
 #define GDK_KEY_bar             GDK_bar
-#define GDK_KEY_braceright      GDK_braceright
-#define GDK_KEY_asciitilde      GDK_asciitilde
 #define GDK_KEY_BackSpace       GDK_BackSpace
 #define GDK_KEY_KP_Enter        GDK_KP_Enter
 #define GDK_KEY_Up              GDK_Up

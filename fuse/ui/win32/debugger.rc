@@ -1,6 +1,7 @@
 /* debugger.rc: the Win32 debugger
    Copyright (c) 2004 Marek Januszewski
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: debugger.rc 4785 2012-12-07 23:56:40Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -112,7 +113,6 @@ BEGIN
   RTEXT		"I", IDC_DBG_REG_I, 2, 59, 52, 9
   RTEXT		"R", IDC_DBG_REG_R, 58, 59, 52, 9
   LTEXT		"T-states", IDC_DBG_REG_T_STATES, 2, 77, 68, 9
-  LTEXT		"Halted", IDC_DBG_REG_HALTED, 2, 86, 52, 9
   EDITTEXT	IDC_DBG_REG_IM, 68, 68, 42, 27, NOT WS_BORDER | ES_RIGHT | ES_MULTILINE | ES_READONLY
   EDITTEXT	IDC_DBG_REG_FLAGS, 2, 95, 52, 18, NOT WS_BORDER | ES_RIGHT | ES_MULTILINE | ES_READONLY
   EDITTEXT	IDC_DBG_REG_ULA, 58, 95, 52, 48, NOT WS_BORDER | ES_RIGHT | ES_MULTILINE | ES_READONLY

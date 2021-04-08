@@ -1,6 +1,8 @@
 /* pokefinder.c: help with finding pokes
    Copyright (c) 2003-2004 Philip Kendall
 
+   $Id: pokefinder.c 4640 2012-01-21 13:26:35Z pak21 $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -28,7 +30,7 @@
 #include <libspectrum.h>
 
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "pokefinder.h"
 #include "spectrum.h"
 
@@ -44,7 +46,7 @@ pokefinder_clear( void )
   max_page = MEMORY_PAGES_IN_16K * machine_current->ram.valid_pages;
   pokefinder_count = 0;
   for( page = 0; page < MEMORY_PAGES_IN_16K * SPECTRUM_RAM_PAGES; ++page )
-    if( page < max_page && memory_map_ram[page].writable ) {
+    if( memory_map_ram[page].writable && page < max_page ) {
       pokefinder_count += MEMORY_PAGE_SIZE;
       memcpy( pokefinder_possible[page], memory_map_ram[page].page, MEMORY_PAGE_SIZE );
       memset( pokefinder_impossible[page], 0, MEMORY_PAGE_SIZE / 8 );

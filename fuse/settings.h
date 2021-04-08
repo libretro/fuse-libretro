@@ -27,6 +27,8 @@
 #ifndef FUSE_SETTINGS_H
 #define FUSE_SETTINGS_H
 
+#include <config.h>
+
 #include <sys/types.h>
 
 typedef struct settings_info {
@@ -42,12 +44,9 @@ typedef struct settings_info {
    int competition_code;
    int competition_mode;
    int confirm_actions;
-   int covox;
   char *dck_file;
   char *debugger_command;
    int detect_loader;
-   int didaktik80;
-  char *didaktik80disk_file;
    int disciple;
   char *discipledisk_file;
    int disk_ask_merge;
@@ -56,9 +55,6 @@ typedef struct settings_info {
   char *divide_master_file;
   char *divide_slave_file;
    int divide_wp;
-   int divmmc_enabled;
-  char *divmmc_file;
-   int divmmc_wp;
    int doublescan_mode;
    int drive_40_max_track;
    int drive_80_max_track;
@@ -66,8 +62,6 @@ typedef struct settings_info {
   char *drive_beta128b_type;
   char *drive_beta128c_type;
   char *drive_beta128d_type;
-  char *drive_didaktik80a_type;
-  char *drive_didaktik80b_type;
   char *drive_disciple1_type;
   char *drive_disciple2_type;
   char *drive_opus1_type;
@@ -130,7 +124,6 @@ typedef struct settings_info {
    int joystick_keyboard_right;
    int joystick_keyboard_up;
    int kempston_mouse;
-   int keyboard_arrows_shifted;
    int late_timings;
   char *mdr_file;
   char *mdr_file2;
@@ -147,14 +140,9 @@ typedef struct settings_info {
   char *movie_compr;
   char *movie_start;
    int movie_stop_after_rzx;
-   int multiface1;
-   int multiface128;
-   int multiface1_stealth;
-   int multiface3;
    int opus;
   char *opusdisk_file;
    int pal_tv2x;
-  char *phantom_typist_mode;
   char *playback_file;
    int plus3_detect_speedlock;
   char *plus3disk_file;
@@ -165,18 +153,13 @@ typedef struct settings_info {
   char *printer_text_filename;
    int raw_s_net;
   char *record_file;
-   int recreated_spectrum;
   char *rom_128_0;
   char *rom_128_1;
   char *rom_16;
   char *rom_48;
   char *rom_beta128;
-  char *rom_didaktik80;
   char *rom_disciple;
-  char *rom_interface_1;
-  char *rom_multiface1;
-  char *rom_multiface128;
-  char *rom_multiface3;
+  char *rom_interface_i;
   char *rom_opus;
   char *rom_pentagon1024_0;
   char *rom_pentagon1024_1;
@@ -216,14 +199,11 @@ typedef struct settings_info {
   char *rom_tc2068_1;
   char *rom_ts2068_0;
   char *rom_ts2068_1;
-  char *rom_ttx2000s;
-  char *rom_usource;
    int rs232_handshake;
   char *rs232_rx;
   char *rs232_tx;
    int rzx_autosaves;
    int rzx_compression;
-  char *sdl_fullscreen_mode;
    int simpleide_active;
   char *simpleide_master_file;
   char *simpleide_slave_file;
@@ -249,23 +229,11 @@ typedef struct settings_info {
   char *svga_modes;
   char *tape_file;
    int tape_traps;
-  char *teletext_addr_1;
-  char *teletext_addr_2;
-  char *teletext_addr_3;
-  char *teletext_addr_4;
-   int teletext_port_1;
-   int teletext_port_2;
-   int teletext_port_3;
-   int teletext_port_4;
-   int ttx2000s;
    int unittests;
-   int usource;
    int volume_ay;
    int volume_beeper;
-   int volume_covox;
    int volume_specdrum;
    int writable_roms;
-   int z80_is_cmos;
    int zxatasp_active;
   char *zxatasp_master_file;
   char *zxatasp_slave_file;
@@ -274,8 +242,6 @@ typedef struct settings_info {
    int zxcf_active;
   char *zxcf_pri_file;
    int zxcf_upload;
-   int zxmmc_enabled;
-  char *zxmmc_file;
    int zxprinter;
 
   int show_help;
@@ -291,8 +257,7 @@ void settings_defaults( settings_info *settings );
 void settings_copy( settings_info *dest, settings_info *src );
 
 #define SETTINGS_ROM_COUNT 30
-char **settings_get_rom_setting( settings_info *settings, size_t which,
-				 int is_peripheral );
+char **settings_get_rom_setting( settings_info *settings, size_t which );
 
 void settings_set_string( char **string_setting, const char *value );
 
@@ -300,6 +265,6 @@ int settings_free( settings_info *settings );
 
 int settings_write_config( settings_info *settings );
 
-void settings_register_startup( void );
+int settings_end( void );
 
 #endif				/* #ifndef FUSE_SETTINGS_H */

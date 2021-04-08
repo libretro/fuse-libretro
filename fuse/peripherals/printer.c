@@ -1,8 +1,7 @@
 /* printer.c: Printer support
-   Copyright (c) 2001-2016 Ian Collier, Russell Marks, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2015 Fredrick Meunier
-   Copyright (c) 2016 Sergio Baldoví
+   Copyright (c) 2001-2004 Ian Collier, Russell Marks, Philip Kendall
+
+   $Id: printer.c 4926 2013-05-05 07:58:18Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -35,9 +34,8 @@
 #include <ctype.h>
 
 #include "fuse.h"
-#include "infrastructure/startup_manager.h"
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "module.h"
 #include "printer.h"
 #include "settings.h"
@@ -69,22 +67,20 @@ static unsigned char parallel_data=0;
 #define PARALLEL_STROBE_MAX_CYCLES	10000
 
 static void printer_zxp_reset(int hard_reset);
-static libspectrum_byte printer_zxp_read( libspectrum_word port, libspectrum_byte *attached );
+static libspectrum_byte printer_zxp_read( libspectrum_word port, int *attached );
 static void printer_zxp_write( libspectrum_word port, libspectrum_byte b );
 static libspectrum_byte printer_parallel_read(libspectrum_word port GCC_UNUSED,
-				              libspectrum_byte *attached);
+				              int *attached);
 
-static void zx_printer_snapshot_enabled( libspectrum_snap *snap );
+static void zx_printer_from_snapshot( libspectrum_snap *snap );
 static void zx_printer_to_snapshot( libspectrum_snap *snap );
 
 static module_info_t printer_zxp_module_info = {
-
-  /* .reset = */ printer_zxp_reset,
-  /* .romcs = */ NULL,
-  /* .snapshot_enabled = */ zx_printer_snapshot_enabled,
-  /* .snapshot_from = */ NULL,
-  /* .snapshot_to = */ zx_printer_to_snapshot,
-
+  printer_zxp_reset,
+  NULL,
+  NULL,
+  zx_printer_from_snapshot,
+  zx_printer_to_snapshot,
 };
 
 static const periph_port_t printer_zxp_ports[] = {
@@ -93,10 +89,10 @@ static const periph_port_t printer_zxp_ports[] = {
 };
 
 static const periph_t printer_zxp_periph = {
-  /* .option = */ &settings_current.zxprinter,
-  /* .ports = */ printer_zxp_ports,
-  /* .hard_reset = */ 0,
-  /* .activate = */ NULL,
+  &settings_current.zxprinter,
+  printer_zxp_ports,
+  1,
+  NULL
 };
 
 static const periph_port_t printer_zxp_ports_full_decode[] = {
@@ -105,10 +101,10 @@ static const periph_port_t printer_zxp_ports_full_decode[] = {
 };
 
 static const periph_t printer_zxp_periph_full_decode = {
-  /* .option = */ &settings_current.zxprinter,
-  /* .ports = */ printer_zxp_ports_full_decode,
-  /* .hard_reset = */ 0,
-  /* .activate = */ NULL,
+  &settings_current.zxprinter,
+  printer_zxp_ports_full_decode,
+  0,
+  NULL
 };
 
 static const periph_port_t printer_parallel_ports[] = {
@@ -117,10 +113,10 @@ static const periph_port_t printer_parallel_ports[] = {
 };
 
 static const periph_t printer_parallel_periph = {
-  /* .option = */ &settings_current.printer,
-  /* .ports = */ printer_parallel_ports,
-  /* .hard_reset = */ 0,
-  /* .activate = */ NULL,
+  &settings_current.printer,
+  printer_parallel_ports,
+  0,
+  NULL
 };
 
 static void printer_zxp_init(void)
@@ -142,7 +138,7 @@ static void printer_text_init(void)
 
 static int printer_zxp_open_file(void)
 {
-static const char * const pbmstart="P4\n256 ";
+static const char *pbmstart="P4\n256 ";
 FILE *tmpf;
 int overwrite=1;
 
@@ -435,7 +431,7 @@ frames++;
  * It works wonderfully though.
  */
 static libspectrum_byte printer_zxp_read(libspectrum_word port GCC_UNUSED,
-				         libspectrum_byte *attached)
+				         int *attached)
 {
 if(!settings_current.printer)
   return(0xff);
@@ -444,7 +440,7 @@ if(!printer_graphics_enabled)
 if(plusd_available)
   return(0xff);
 
-*attached = 0xff; /* TODO: check this */
+*attached=1;
 
 if(!zxpspeed)
   return 0x3e;
@@ -686,12 +682,12 @@ old_on=on;
 
 
 static libspectrum_byte printer_parallel_read(libspectrum_word port GCC_UNUSED,
-				              libspectrum_byte *attached)
+				              int *attached)
 {
 if(!settings_current.printer)
   return(0xff);
 
-*attached = 0xff; /* TODO: check this */
+*attached = 1;
 
 /* bit 0 = busy. other bits high? */
 
@@ -707,41 +703,26 @@ if(!settings_current.printer)
 parallel_data=b;
 }
 
-static int
-printer_init( void *context )
+
+void printer_init(void)
 {
-  printer_graphics_enabled=printer_text_enabled = 1;
-  printer_graphics_file=printer_text_file = NULL;
+printer_graphics_enabled=printer_text_enabled=1;
+printer_graphics_file=printer_text_file=NULL;
 
-  printer_zxp_init();
-  printer_text_init();
-
-  return 0;
+printer_zxp_init();
+printer_text_init();
 }
 
-static void
-printer_end( void )
+
+void printer_end(void)
 {
-  printer_text_end();
-  printer_zxp_end();
+printer_text_end();
+printer_zxp_end();
 }
 
-void
-printer_register_startup( void )
+static void zx_printer_from_snapshot( libspectrum_snap *snap )
 {
-  startup_manager_module dependencies[] = {
-    STARTUP_MANAGER_MODULE_MACHINE,
-    STARTUP_MANAGER_MODULE_SETUID,
-  };
-  startup_manager_register( STARTUP_MANAGER_MODULE_PRINTER, dependencies,
-                            ARRAY_SIZE( dependencies ), printer_init, NULL,
-                            printer_end );
-}
-
-static void zx_printer_snapshot_enabled( libspectrum_snap *snap )
-{
-  if( libspectrum_snap_zx_printer_active( snap ) )
-    settings_current.zxprinter = 1;
+  settings_current.zxprinter = libspectrum_snap_zx_printer_active( snap );
 }
 
 static void zx_printer_to_snapshot( libspectrum_snap *snap )

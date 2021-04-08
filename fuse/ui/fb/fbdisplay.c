@@ -1,7 +1,8 @@
 /* fbdisplay.c: Routines for dealing with the linux fbdev display
    Copyright (c) 2000-2003 Philip Kendall, Matan Ziv-Av, Darren Salt,
 			   Witold Filipczyk
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: fbdisplay.c 4205 2010-12-03 10:39:39Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -51,10 +52,10 @@ libspectrum_word
 ptrdiff_t fbdisplay_pitch = DISPLAY_SCREEN_WIDTH * sizeof( libspectrum_word );
 
 /* The environment variable specifying which device to use */
-static const char * const DEVICE_VARIABLE = "FRAMEBUFFER";
+static const char *DEVICE_VARIABLE = "FRAMEBUFFER";
 
 /* The device we will use if device_env_variable is not specified */
-static const char * const DEFAULT_DEVICE = "/dev/fb0";
+static const char *DEFAULT_DEVICE = "/dev/fb0";
 
 /* The size of a 1x1 image in units of
    DISPLAY_ASPECT WIDTH x DISPLAY_SCREEN_HEIGHT */

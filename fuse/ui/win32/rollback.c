@@ -1,6 +1,7 @@
 /* rollback.c: select a rollback point
    Copyright (c) 2004-2008 Philip Kendall, Marek Januszewski
-   Copyright (c) 2015 Sergio Baldoví
+
+   $Id: rollback.c 3922 2008-12-31 19:01:31Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -52,7 +53,7 @@ dialog_init( HWND hwndDlg )
   lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT ;
   lvc.fmt = LVCFMT_LEFT;
   lvc.cx = 100; /* FIXME: preferably calculate the whole length */
-  lvc.pszText = (LPTSTR) TEXT( "Seconds" );
+  lvc.pszText = TEXT( "Seconds" );
   SendDlgItemMessage( hwndDlg, IDC_ROLLBACK_LV, LVM_INSERTCOLUMN, 0,
                         ( LPARAM ) &lvc );
 }

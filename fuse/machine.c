@@ -1,5 +1,7 @@
 /* machine.c: Routines for handling the various machine types
-   Copyright (c) 1999-2015 Philip Kendall
+   Copyright (c) 1999-2011 Philip Kendall
+
+   $Id: machine.c 4728 2012-07-16 13:21:53Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,7 +30,6 @@
 
 #include "event.h"
 #include "fuse.h"
-#include "infrastructure/startup_manager.h"
 #include "machine.h"
 #include "machines/machines.h"
 #include "machines/scorpion.h"
@@ -36,12 +37,11 @@
 #include "machines/spec48.h"
 #include "machines/specplus3.h"
 #include "machines/tc2068.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "module.h"
 #include "movie.h"
 #include "peripherals/ula.h"
 #include "pokefinder/pokemem.h"
-#include "rzx.h"
 #include "settings.h"
 #include "snapshot.h"
 #include "sound.h"
@@ -63,8 +63,7 @@ static int machine_select_machine( fuse_machine_info *machine );
 static void machine_set_const_timings( fuse_machine_info *machine );
 static void machine_set_variable_timings( fuse_machine_info *machine );
 
-static int
-machine_init_machines( void *context )
+int machine_init_machines( void )
 {
   int error;
 
@@ -115,9 +114,15 @@ static int machine_add_machine( int (*init_function)( fuse_machine_info *machine
   machine_count++;
 
   machine_types =
-    libspectrum_renew( fuse_machine_info *, machine_types, machine_count );
+    libspectrum_realloc( machine_types,
+                         machine_count * sizeof( fuse_machine_info* ) );
 
-  machine_types[ machine_count - 1 ] = libspectrum_new( fuse_machine_info, 1 );
+  machine_types[ machine_count - 1 ] = malloc( sizeof( fuse_machine_info ) );
+  if( !machine_types[ machine_count - 1 ] ) {
+    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
+    return 1;
+  }
+
   machine = machine_types[ machine_count - 1 ];
 
   error = init_function( machine ); if( error ) return error;
@@ -134,10 +139,6 @@ machine_select( libspectrum_machine type )
 {
   int i;
   int error;
-
-  /* Stop any ongoing RZX */
-  rzx_stop_recording();
-  rzx_stop_playback( 1 );
 
   /* We don't want to have to deal with screen size changes in the movie code
      and recording movies where we change machines seems pretty obscure */
@@ -310,11 +311,11 @@ machine_load_rom_bank( memory_page* bank_map, int page_num,
   int custom = 0;
   int retval;
 
-  if( fallback ) custom = !!strcmp( filename, fallback );
+  if( fallback ) custom = strcmp( filename, fallback );
 
   retval = machine_load_rom_bank_from_file( bank_map, page_num, filename,
     expected_length, custom );
-  if( retval && fallback && custom )
+  if( retval && fallback )
     retval = machine_load_rom_bank_from_file( bank_map, page_num, fallback,
       expected_length, 0 );
   return retval;
@@ -333,9 +334,6 @@ machine_reset( int hard_reset )
 {
   size_t i;
   int error;
-
-  /* Clear poke list (undoes effects of active pokes on Spectrum memory) */
-  pokemem_clear();
 
   sound_ay_reset();
 
@@ -367,6 +365,9 @@ machine_reset( int hard_reset )
 
   /* clear out old display image ready for new one */
   display_refresh_all();
+
+  /* Clear poke list */
+  pokemem_clear();
 
   return 0;
 }
@@ -424,8 +425,7 @@ machine_set_variable_timings( fuse_machine_info *machine )
   }
 }
 
-static void
-machine_end( void )
+int machine_end( void )
 {
   int i;
 
@@ -435,16 +435,6 @@ machine_end( void )
   }
 
   libspectrum_free( machine_types );
-}
 
-void
-machine_register_startup( void )
-{
-  startup_manager_module dependencies[] = {
-    STARTUP_MANAGER_MODULE_MEMORY,
-    STARTUP_MANAGER_MODULE_SETUID
-  };
-  startup_manager_register( STARTUP_MANAGER_MODULE_MACHINE, dependencies,
-                            ARRAY_SIZE( dependencies ), machine_init_machines,
-                            NULL, machine_end );
+  return 0;
 }

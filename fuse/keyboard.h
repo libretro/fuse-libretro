@@ -1,5 +1,7 @@
 /* keyboard.h: Routines for dealing with the Spectrum's keyboard
-   Copyright (c) 1999-2016 Philip Kendall
+   Copyright (c) 1999-2003 Philip Kendall
+
+   $Id: keyboard.h 4696 2012-05-07 02:05:13Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -88,7 +90,8 @@ typedef enum keyboard_key_name {
 
 } keyboard_key_name;
 
-void keyboard_register_startup( void );
+void fuse_keyboard_init(void);
+void fuse_keyboard_end(void);
 libspectrum_byte keyboard_read( libspectrum_byte porth );
 void keyboard_press(keyboard_key_name key);
 void keyboard_release(keyboard_key_name key);
@@ -121,10 +124,5 @@ extern keysyms_map_t keysyms_map[];
 input_key keysyms_remap( libspectrum_dword ui_keysym );
 
 const char* keyboard_key_text( keyboard_key_name key );
-
-/* Simulate what would be returned by the ULA if it is read from with
-   the high byte of the port as "porth" and "key" is pressed */
-libspectrum_byte
-keyboard_simulate_keypress( libspectrum_byte porth, keyboard_key_name key );
 
 #endif			/* #ifndef FUSE_KEYBOARD_H */

@@ -1,5 +1,7 @@
 /* unittests.h: Unit testing framework for Fuse
-   Copyright (c) 2008-2015 Philip Kendall
+   Copyright (c) 2008
+
+   $Id: unittests.h 4624 2012-01-09 20:59:35Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +28,6 @@
 
 int unittests_run( void );
 
-int unittests_assert_2k_page( libspectrum_word base, int source, int page );
 int unittests_assert_4k_page( libspectrum_word base, int source, int page );
 int unittests_assert_8k_page( libspectrum_word base, int source, int page );
 int unittests_assert_16k_page( libspectrum_word base, int source, int page );

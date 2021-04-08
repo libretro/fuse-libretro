@@ -1,5 +1,7 @@
 /* menu.h: general menu callbacks
-   Copyright (c) 2004-2015 Philip Kendall
+   Copyright (c) 2004 Philip Kendall
+
+   $Id: menu.h 4835 2012-12-31 15:35:45Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -54,26 +56,17 @@
  */
 
 MENU_CALLBACK( menu_file_open );
-MENU_CALLBACK( menu_file_recording_continuerecording );
 MENU_CALLBACK( menu_file_recording_insertsnapshot );
 MENU_CALLBACK( menu_file_recording_rollback );
 MENU_CALLBACK( menu_file_recording_rollbackto );
 MENU_CALLBACK( menu_file_recording_play );
 MENU_CALLBACK( menu_file_recording_stop );
-MENU_CALLBACK( menu_file_recording_finalise );
 MENU_CALLBACK( menu_file_aylogging_stop );
-MENU_CALLBACK( menu_file_screenshot_openscrscreenshot );
-MENU_CALLBACK( menu_file_screenshot_openmltscreenshot );
-
-MENU_CALLBACK( menu_file_scalablevectorgraphics_startcaptureinlinemode );
-MENU_CALLBACK( menu_file_scalablevectorgraphics_startcaptureindotmode );
-MENU_CALLBACK( menu_file_scalablevectorgraphics_stopcapture );
-
+MENU_CALLBACK( menu_file_openscrscreenshot );
 MENU_CALLBACK( menu_file_movie_stop );
 MENU_CALLBACK( menu_file_movie_pause );
 
-MENU_CALLBACK_WITH_ACTION( menu_options_selectroms_machine_select );
-MENU_CALLBACK_WITH_ACTION( menu_options_selectroms_peripheral_select );
+MENU_CALLBACK_WITH_ACTION( menu_options_selectroms_select );
 MENU_CALLBACK( menu_options_filter );
 MENU_DETAIL( menu_filter_detail );
 MENU_CALLBACK( menu_options_fullscreen );
@@ -82,8 +75,6 @@ MENU_CALLBACK( menu_options_save );
 MENU_CALLBACK( menu_machine_profiler_start );
 MENU_CALLBACK( menu_machine_profiler_stop );
 MENU_CALLBACK( menu_machine_nmi );
-MENU_CALLBACK( menu_machine_multifaceredbutton );
-MENU_CALLBACK( menu_machine_didaktiksnap );
 
 MENU_CALLBACK( menu_media_tape_browse );
 MENU_CALLBACK( menu_media_tape_open );
@@ -113,6 +104,11 @@ MENU_CALLBACK_WITH_ACTION( menu_media_ide_insert );
 MENU_CALLBACK_WITH_ACTION( menu_media_ide_commit );
 MENU_CALLBACK_WITH_ACTION( menu_media_ide_eject );
 
+MENU_CALLBACK( menu_media_ide_zxatasp_upload );
+MENU_CALLBACK( menu_media_ide_zxatasp_writeprotect );
+MENU_CALLBACK( menu_media_ide_zxcf_upload );
+MENU_CALLBACK( menu_media_ide_divide_writeprotect );
+
 /*
  * Things to be defined elsewhere
  */
@@ -128,15 +124,13 @@ MENU_CALLBACK( menu_file_exit );
 
 MENU_CALLBACK( menu_file_aylogging_record );
 
-MENU_CALLBACK( menu_file_screenshot_savescreenasscr );
-MENU_CALLBACK( menu_file_screenshot_savescreenaspng );
-MENU_CALLBACK( menu_file_screenshot_savescreenasmlt );
+MENU_CALLBACK( menu_file_savescreenasscr );
+MENU_CALLBACK( menu_file_savescreenaspng );
 
 MENU_CALLBACK( menu_file_movie_record );
 MENU_CALLBACK( menu_file_movie_record_recordfromrzx );
 
 MENU_CALLBACK( menu_options_general );
-MENU_CALLBACK( menu_options_media );
 MENU_CALLBACK( menu_options_sound );
 MENU_CALLBACK( menu_options_peripherals_general );
 MENU_CALLBACK( menu_options_peripherals_disk );
@@ -153,8 +147,6 @@ MENU_DETAIL( menu_opus1_detail );
 MENU_DETAIL( menu_opus2_detail );
 MENU_DETAIL( menu_plusd1_detail );
 MENU_DETAIL( menu_plusd2_detail );
-MENU_DETAIL( menu_didaktik_a_detail );
-MENU_DETAIL( menu_didaktik_b_detail );
 MENU_DETAIL( menu_disciple1_detail );
 MENU_DETAIL( menu_disciple2_detail );
 MENU_CALLBACK_WITH_ACTION( menu_options_joysticks_select );
@@ -177,8 +169,10 @@ MENU_CALLBACK( menu_help_about );
 /* Called from elsewhere (generally from one of the routines defined
    in menu.c) */
 
+int menu_select_roms( libspectrum_machine machine, size_t start,
+		      size_t count );
 int menu_select_roms_with_title( const char *title, size_t start,
-				 size_t count, int is_peripheral );
+				 size_t count );
 scaler_type menu_get_scaler( scaler_available_fn selector );
 int menu_check_media_changed( void );
 

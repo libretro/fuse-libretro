@@ -1,11 +1,13 @@
 /* scaler_internals.h: functions internal to the scaler code
    Copyright (c) 2003 Fredrick Meunier, Philip Kendall
 
+   $Id: scaler_internals.h 3612 2008-05-02 12:56:05Z fredm $
+
    Originally taken from ScummVM - Scumm Interpreter
    Copyright (C) 2001  Ludvig Strigeus
    Copyright (C) 2001/2002 The ScummVM project
 
-   HQ2x, HQ3x and HQ4x scalers taken from HiEnd3D Demos (http://www.hiend3d.com)
+   HQ2x and HQ3x scalers taken from HiEnd3D Demos (http://www.hiend3d.com)
    Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
 
    This program is free software; you can redistribute it and/or modify
@@ -53,19 +55,15 @@ DECLARE_SCALER(HalfSkip);
 DECLARE_SCALER(Normal1x);
 DECLARE_SCALER(Normal2x);
 DECLARE_SCALER(Normal3x);
-DECLARE_SCALER(Normal4x);
 DECLARE_SCALER(Timex1_5x);
 DECLARE_SCALER(TV2x);
 DECLARE_SCALER(TV3x);
-DECLARE_SCALER(TV4x);
 DECLARE_SCALER(TimexTV);
 DECLARE_SCALER(DotMatrix);
 DECLARE_SCALER(PalTV);
 DECLARE_SCALER(PalTV2x);
 DECLARE_SCALER(PalTV3x);
-DECLARE_SCALER(PalTV4x);
 DECLARE_SCALER(HQ2x);
 DECLARE_SCALER(HQ3x);
-DECLARE_SCALER(HQ4x);
 
 #endif				/* #ifndef FUSE_SCALER_INTERNALS_H */

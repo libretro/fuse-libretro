@@ -1,6 +1,7 @@
 /* fileselector.c: Win32 fileselector routines
    Copyright (c) 2008 Marek Januszewski
-   Copyright (c) 2016 Sergio Baldoví
+
+   $Id: fileselector.c 4643 2012-01-21 16:12:10Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,54 +34,6 @@
 static char *current_folder;
 */
 
-/* TODO: poll libspectrum for supported file extensions and avoid duplication
-   between UIs */
-static LPCTSTR file_filter = TEXT(
-"Supported Files\0"
-"*.mgtsnp;*.slt;*.sna;*.snapshot;*.snp;*.sp;*.szx;*.z80;*.zx-state;"
-"*.csw;*.ltp;*.pzx;*.raw;*.spc;*.sta;*.tzx;*.tap;*.wav;"
-"*.d40;*.d80;*.dsk;*.fdi;*.img;*.mgt;*.opd;*.opu;*.sad;*.scl;*.td0;*.trd;*.udi;"
-"*.dck;*.rom;*.hdf;*.mdr;*.fmf;*.rzx;"
-"*.bin;*.log;*.mlt;*.png;*.pok;*.scr;*.svg"
-#ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION
-";*.gz;*.zip"
-#endif
-#ifdef LIBSPECTRUM_SUPPORTS_BZ2_COMPRESSION
-";*.bz2"
-#endif
-"\0"
-"All Files (*.*)\0"
-"*.*\0"
-"Auxiliary Files (*.scr;*.mlt;*.pok;*.png;*.svg;...)\0"
-"*.bin;*.log;*.mlt;*.png;*.pok;*.scr;*.svg\0"
-#ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION
-"Compressed files (*.gz;*.zip;...)\0"
-"*.gz;*.zip"
-#ifdef LIBSPECTRUM_SUPPORTS_BZ2_COMPRESSION
-";*.bz2"
-#endif
-"\0"
-#endif
-"Disk Files (*.dsk;*.udi;*.scl;*.trd;*.fdi;...)\0"
-"*.d40;*.d80;*.dsk;*.fdi;*.img;*.mgt;*.opd;*.opu;*.sad;*.scl;*.td0;*.trd;*.udi\0"
-"Dock Files (*.dck;*.rom)\0"
-"*.dck;*.rom\0"
-"Harddisk Files (*.hdf)\0"
-"*.hdf\0"
-"Microdrive Files (*.mdr)\0"
-"*.mdr\0"
-"Movie Files (*.fmf)\0"
-"*.fmf\0"
-"Recording Files (*.rzx)\0"
-"*.rzx\0"
-"Snapshot Files (*.szx;*.z80;*.sna;...)\0"
-"*.mgtsnp;*.slt;*.sna;*.snapshot;*.snp;*.sp;*.szx;*.z80;*.zx-state\0"
-"Tape Files (*.tap;*.tzx;*.pzx;*.wav;*.csw;...)\0"
-"*.csw;*.ltp;*.pzx;*.raw;*.spc;*.sta;*.tzx;*.tap;*.wav\0"
-"\0" );
-
-static DWORD filter_index = 0;
-
 static char*
 run_dialog( const char *title, int is_saving )
 {
@@ -93,11 +46,9 @@ run_dialog( const char *title, int is_saving )
 
   ofn.lStructSize = sizeof( ofn );
   ofn.hwndOwner = fuse_hWnd;
-  ofn.lpstrFilter = file_filter;
+  ofn.lpstrFilter = "All Files\0*.*\0\0";
   ofn.lpstrCustomFilter = NULL;
-  /* TODO: select filter based on UI operation (snapshot, recording, screenshot) */
-  /* TODO: custom filter based file action (open, save) */
-  ofn.nFilterIndex = filter_index;
+  ofn.nFilterIndex = 0;
   ofn.lpstrFile = szFile;
   ofn.nMaxFile = sizeof( szFile );
   ofn.lpstrFileTitle = NULL;
@@ -120,8 +71,6 @@ run_dialog( const char *title, int is_saving )
   } else {
     result = GetOpenFileName( &ofn );
   }
-
-  filter_index = ofn.nFilterIndex;
 
   if( !result ) {
     return NULL;

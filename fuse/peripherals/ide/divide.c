@@ -1,6 +1,7 @@
 /* divide.c: DivIDE interface routines
-   Copyright (c) 2005-2017 Matthew Westcott, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2005-2008 Matthew Westcott, Philip Kendall
+
+   $Id: divide.c 4972 2013-05-19 16:46:43Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +31,6 @@
 
 #include "debugger/debugger.h"
 #include "ide.h"
-#include "infrastructure/startup_manager.h"
 #include "machine.h"
 #include "module.h"
 #include "periph.h"
@@ -38,13 +38,15 @@
 #include "ui/ui.h"
 #include "unittests/unittests.h"
 #include "divide.h"
-#include "divxxx.h"
 
 /* Private function prototypes */
 
-static libspectrum_byte divide_ide_read( libspectrum_word port, libspectrum_byte *attached );
+static libspectrum_byte divide_ide_read( libspectrum_word port, int *attached );
 static void divide_ide_write( libspectrum_word port, libspectrum_byte data );
 static void divide_control_write( libspectrum_word port, libspectrum_byte data );
+static void divide_control_write_internal( libspectrum_byte data );
+static void divide_page( void );
+static void divide_unpage( void );
 static libspectrum_ide_register port_to_ide_register( libspectrum_byte port );
 static void divide_activate( void );
 
@@ -57,20 +59,36 @@ static const periph_port_t divide_ports[] = {
 };
 
 static const periph_t divide_periph = {
-  /* .option = */ &settings_current.divide_enabled,
-  /* .ports = */ divide_ports,
-  /* .hard_reset = */ 1,
-  /* .activate = */ divide_activate,
+  &settings_current.divide_enabled,
+  divide_ports,
+  1,
+  divide_activate
 };
 
+static const libspectrum_byte DIVIDE_CONTROL_CONMEM = 0x80;
+static const libspectrum_byte DIVIDE_CONTROL_MAPRAM = 0x40;
+
 int divide_automapping_enabled = 0;
-static divxxx_t *divide_state;
+int divide_active = 0;
+static libspectrum_byte divide_control;
+
+/* divide_automap tracks opcode fetches to entry and exit points to determine
+   whether DivIDE memory *would* be paged in at this moment if mapram / wp
+   flags allowed it */
+static int divide_automap = 0;
 
 static libspectrum_ide_channel *divide_idechn0;
 static libspectrum_ide_channel *divide_idechn1;
 
 #define DIVIDE_PAGES 4
 #define DIVIDE_PAGE_LENGTH 0x2000
+static libspectrum_byte *divide_ram[ DIVIDE_PAGES ];
+static libspectrum_byte *divide_eprom;
+static memory_page divide_memory_map_eprom[ MEMORY_PAGES_IN_8K ];
+static memory_page divide_memory_map_ram[ DIVIDE_PAGES ][ MEMORY_PAGES_IN_8K ];
+static int memory_allocated = 0;
+static int divide_memory_source_eprom;
+static int divide_memory_source_ram;
 
 static void divide_reset( int hard_reset );
 static void divide_memory_map( void );
@@ -80,65 +98,80 @@ static void divide_to_snapshot( libspectrum_snap *snap );
 
 static module_info_t divide_module_info = {
 
-  /* .reset = */ divide_reset,
-  /* .romcs = */ divide_memory_map,
-  /* .snapshot_enabled = */ divide_enabled_snapshot,
-  /* .snapshot_from = */ divide_from_snapshot,
-  /* .snapshot_to = */ divide_to_snapshot,
+  divide_reset,
+  divide_memory_map,
+  divide_enabled_snapshot,
+  divide_from_snapshot,
+  divide_to_snapshot,
 
 };
 
 /* Debugger events */
-static const char * const event_type_string = "divide";
+static const char *event_type_string = "divide";
+static int page_event, unpage_event;
 
 /* Housekeeping functions */
 
-static int
-divide_init( void *context )
+int
+divide_init( void )
 {
-  int error;
+  int error, i, j;
 
   divide_idechn0 = libspectrum_ide_alloc( LIBSPECTRUM_IDE_DATA16 );
   divide_idechn1 = libspectrum_ide_alloc( LIBSPECTRUM_IDE_DATA16 );
   
-  error = ide_init( divide_idechn0,
-		    settings_current.divide_master_file,
-		    UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT,
-		    settings_current.divide_slave_file,
-		    UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT );
-  if( error ) return error;
+  ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT, 0 );
+  ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT, 0 );
+
+  if( settings_current.divide_master_file ) {
+    error = libspectrum_ide_insert( divide_idechn0, LIBSPECTRUM_IDE_MASTER,
+				    settings_current.divide_master_file );
+    if( error ) return error;
+    ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT, 1 );
+  }
+
+  if( settings_current.divide_slave_file ) {
+    error = libspectrum_ide_insert( divide_idechn0, LIBSPECTRUM_IDE_SLAVE,
+				    settings_current.divide_slave_file );
+    if( error ) return error;
+    ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT, 1 );
+  }
 
   module_register( &divide_module_info );
 
-  periph_register( PERIPH_TYPE_DIVIDE, &divide_periph );
+  divide_memory_source_eprom = memory_source_register( "DivIDE EPROM" );
+  divide_memory_source_ram = memory_source_register( "DivIDE RAM" );
 
-  divide_state = divxxx_alloc( "DivIDE EPROM", DIVIDE_PAGES, "DivIDE RAM",
-      event_type_string, &settings_current.divide_enabled,
-      &settings_current.divide_wp );
+  for( i = 0; i < MEMORY_PAGES_IN_8K; i++ ) {
+    memory_page *page = &divide_memory_map_eprom[i];
+    page->source = divide_memory_source_eprom;
+    page->page_num = 0;
+  }
+
+  for( i = 0; i < DIVIDE_PAGES; i++ ) {
+    for( j = 0; j < MEMORY_PAGES_IN_8K; j++ ) {
+      memory_page *page = &divide_memory_map_ram[i][j];
+      page->source = divide_memory_source_ram;
+      page->page_num = i;
+    }
+  }
+
+  periph_register( PERIPH_TYPE_DIVIDE, &divide_periph );
+  periph_register_paging_events( event_type_string, &page_event,
+                                 &unpage_event );
 
   return 0;
 }
 
-static void
+int
 divide_end( void )
 {
-  divxxx_free( divide_state );
-  libspectrum_ide_free( divide_idechn0 );
-  libspectrum_ide_free( divide_idechn1 );
-}
+  int error;
+  
+  error = libspectrum_ide_free( divide_idechn0 );
+  error = libspectrum_ide_free( divide_idechn1 ) || error;
 
-void
-divide_register_startup( void )
-{
-  startup_manager_module dependencies[] = {
-    STARTUP_MANAGER_MODULE_DEBUGGER,
-    STARTUP_MANAGER_MODULE_DISPLAY,
-    STARTUP_MANAGER_MODULE_MEMORY,
-    STARTUP_MANAGER_MODULE_SETUID,
-  };
-  startup_manager_register( STARTUP_MANAGER_MODULE_DIVIDE, dependencies,
-                            ARRAY_SIZE( dependencies ), divide_init, NULL,
-                            divide_end );
+  return error;
 }
 
 /* DivIDE does not page in immediately on a reset condition (we do that by
@@ -147,7 +180,17 @@ divide_register_startup( void )
 static void
 divide_reset( int hard_reset )
 {
-  divxxx_reset( divide_state, hard_reset );
+  divide_active = 0;
+
+  if( !settings_current.divide_enabled ) return;
+
+  if( hard_reset ) {
+    divide_control = 0;
+  } else {
+    divide_control &= DIVIDE_CONTROL_MAPRAM;
+  }
+  divide_automap = 0;
+  divide_refresh_page_state();
 
   libspectrum_ide_reset( divide_idechn0 );
   libspectrum_ide_reset( divide_idechn1 );
@@ -156,12 +199,25 @@ divide_reset( int hard_reset )
 int
 divide_insert( const char *filename, libspectrum_ide_unit unit )
 {
-  return ide_master_slave_insert(
-    divide_idechn0, unit, filename,
-    &settings_current.divide_master_file,
-    UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT,
-    &settings_current.divide_slave_file,
-    UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT );
+  char **setting;
+  ui_menu_item item;
+
+  switch( unit ) {
+  case LIBSPECTRUM_IDE_MASTER:
+    setting = &settings_current.divide_master_file;
+    item = UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT;
+    break;
+    
+  case LIBSPECTRUM_IDE_SLAVE:
+    setting = &settings_current.divide_slave_file;
+    item = UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT;
+    break;
+    
+  default: return 1;
+  }
+
+  return ide_insert( filename, divide_idechn0, unit, divide_commit, setting,
+		     item );
 }
 
 int
@@ -177,12 +233,24 @@ divide_commit( libspectrum_ide_unit unit )
 int
 divide_eject( libspectrum_ide_unit unit )
 {
-  return ide_master_slave_eject(
-    divide_idechn0, unit,
-    &settings_current.divide_master_file,
-    UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT,
-    &settings_current.divide_slave_file,
-    UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT );
+  char **setting;
+  ui_menu_item item;
+
+  switch( unit ) {
+  case LIBSPECTRUM_IDE_MASTER:
+    setting = &settings_current.divide_master_file;
+    item = UI_MENU_ITEM_MEDIA_IDE_DIVIDE_MASTER_EJECT;
+    break;
+
+  case LIBSPECTRUM_IDE_SLAVE:
+    setting = &settings_current.divide_slave_file;
+    item = UI_MENU_ITEM_MEDIA_IDE_DIVIDE_SLAVE_EJECT;
+    break;
+    
+  default: return 1;
+  }
+
+  return ide_eject( divide_idechn0, unit, divide_commit, setting, item );
 }
 
 /* Port read/writes */
@@ -211,11 +279,11 @@ port_to_ide_register( libspectrum_byte port )
 }
 
 libspectrum_byte
-divide_ide_read( libspectrum_word port, libspectrum_byte *attached )
+divide_ide_read( libspectrum_word port, int *attached )
 {
   int ide_register;
 
-  *attached = 0xff; /* TODO: check this */
+  *attached = 1;
   ide_register = port_to_ide_register( port );
 
   return libspectrum_ide_read( divide_idechn0, ide_register );
@@ -234,31 +302,113 @@ divide_ide_write( libspectrum_word port, libspectrum_byte data )
 static void
 divide_control_write( libspectrum_word port GCC_UNUSED, libspectrum_byte data )
 {
-  divxxx_control_write( divide_state, data );
+  int old_mapram;
+
+  /* MAPRAM bit cannot be reset, only set */
+  old_mapram = divide_control & DIVIDE_CONTROL_MAPRAM;
+  divide_control_write_internal( data | old_mapram );
+}
+
+static void
+divide_control_write_internal( libspectrum_byte data )
+{
+  divide_control = data;
+  divide_refresh_page_state();
 }
 
 void
 divide_set_automap( int state )
 {
-  divxxx_set_automap( divide_state, state );
+  divide_automap = state;
+  divide_refresh_page_state();
 }
 
 void
 divide_refresh_page_state( void )
 {
-  divxxx_refresh_page_state( divide_state );
+  if( divide_control & DIVIDE_CONTROL_CONMEM ) {
+    /* always paged in if conmem enabled */
+    divide_page();
+  } else if( settings_current.divide_wp
+    || ( divide_control & DIVIDE_CONTROL_MAPRAM ) ) {
+    /* automap in effect */
+    if( divide_automap ) {
+      divide_page();
+    } else {
+      divide_unpage();
+    }
+  } else {
+    divide_unpage();
+  }
+}
+
+static void
+divide_page( void )
+{
+  divide_active = 1;
+  machine_current->ram.romcs = 1;
+  machine_current->memory_map();
+
+  debugger_event( page_event );
+}
+
+static void
+divide_unpage( void )
+{
+  divide_active = 0;
+  machine_current->ram.romcs = 0;
+  machine_current->memory_map();
+
+  debugger_event( unpage_event );
 }
 
 void
 divide_memory_map( void )
 {
-  divxxx_memory_map( divide_state );
+  int i;
+  int upper_ram_page;
+  int lower_page_writable, upper_page_writable;
+  memory_page *lower_page, *upper_page;
+
+  if( !divide_active ) return;
+
+  /* low bits of divide_control register give page number to use in upper
+     bank; only lowest two bits on original 32K model */
+  upper_ram_page = divide_control & (DIVIDE_PAGES - 1);
+  
+  if( divide_control & DIVIDE_CONTROL_CONMEM ) {
+    lower_page = divide_memory_map_eprom;
+    lower_page_writable = !settings_current.divide_wp;
+    upper_page = divide_memory_map_ram[ upper_ram_page ];
+    upper_page_writable = 1;
+  } else {
+    if( divide_control & DIVIDE_CONTROL_MAPRAM ) {
+      lower_page = divide_memory_map_ram[3];
+      lower_page_writable = 0;
+      upper_page = divide_memory_map_ram[ upper_ram_page ];
+      upper_page_writable = ( upper_ram_page != 3 );
+    } else {
+      lower_page = divide_memory_map_eprom;
+      lower_page_writable = 0;
+      upper_page = divide_memory_map_ram[ upper_ram_page ];
+      upper_page_writable = 1;
+    }
+  }
+
+  for( i = 0; i < MEMORY_PAGES_IN_8K; i++ ) {
+    lower_page[i].writable = lower_page_writable;
+    upper_page[i].writable = upper_page_writable;
+  }
+
+  memory_map_romcs_8k( 0x0000, lower_page );
+  memory_map_romcs_8k( 0x2000, upper_page );
 }
 
 static void
 divide_enabled_snapshot( libspectrum_snap *snap )
 {
-  settings_current.divide_enabled = libspectrum_snap_divide_active( snap );
+  if( libspectrum_snap_divide_active( snap ) )
+    settings_current.divide_enabled = 1;
 }
 
 static void
@@ -270,23 +420,22 @@ divide_from_snapshot( libspectrum_snap *snap )
 
   settings_current.divide_wp =
     libspectrum_snap_divide_eprom_writeprotect( snap );
-  divxxx_control_write_internal( divide_state, libspectrum_snap_divide_control( snap ) );
+  divide_control_write_internal( libspectrum_snap_divide_control( snap ) );
 
   if( libspectrum_snap_divide_eprom( snap, 0 ) ) {
-    memcpy( divxxx_get_eprom( divide_state ),
+    memcpy( divide_eprom,
 	    libspectrum_snap_divide_eprom( snap, 0 ), DIVIDE_PAGE_LENGTH );
   }
 
   for( i = 0; i < libspectrum_snap_divide_pages( snap ); i++ )
-    if( libspectrum_snap_divide_ram( snap, i ) ) {
-      libspectrum_byte *ram = divxxx_get_ram( divide_state, i );
-      memcpy( ram, libspectrum_snap_divide_ram( snap, i ), DIVIDE_PAGE_LENGTH );
-    }
+    if( libspectrum_snap_divide_ram( snap, i ) )
+      memcpy( divide_ram[ i ], libspectrum_snap_divide_ram( snap, i ),
+	      DIVIDE_PAGE_LENGTH );
 
   if( libspectrum_snap_divide_paged( snap ) ) {
-    divxxx_page( divide_state );
+    divide_page();
   } else {
-    divxxx_unpage( divide_state );
+    divide_unpage();
   }
 }
 
@@ -301,21 +450,29 @@ divide_to_snapshot( libspectrum_snap *snap )
   libspectrum_snap_set_divide_active( snap, 1 );
   libspectrum_snap_set_divide_eprom_writeprotect( snap,
                                                   settings_current.divide_wp );
-  libspectrum_snap_set_divide_paged( snap, divxxx_get_active( divide_state ) );
-  libspectrum_snap_set_divide_control( snap, divxxx_get_control( divide_state ) );
+  libspectrum_snap_set_divide_paged( snap, divide_active );
+  libspectrum_snap_set_divide_control( snap, divide_control );
 
-  buffer = libspectrum_new( libspectrum_byte, DIVIDE_PAGE_LENGTH );
+  buffer = malloc( DIVIDE_PAGE_LENGTH * sizeof( libspectrum_byte ) );
+  if( !buffer ) {
+    ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__, __LINE__ );
+    return;
+  }
 
-  memcpy( buffer, divxxx_get_eprom( divide_state ), DIVIDE_PAGE_LENGTH );
+  memcpy( buffer, divide_eprom, DIVIDE_PAGE_LENGTH );
   libspectrum_snap_set_divide_eprom( snap, 0, buffer );
 
   libspectrum_snap_set_divide_pages( snap, DIVIDE_PAGES );
 
   for( i = 0; i < DIVIDE_PAGES; i++ ) {
 
-    buffer = libspectrum_new( libspectrum_byte, DIVIDE_PAGE_LENGTH );
+    buffer = malloc( DIVIDE_PAGE_LENGTH * sizeof( libspectrum_byte ) );
+    if( !buffer ) {
+      ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__, __LINE__ );
+      return;
+    }
 
-    memcpy( buffer, divxxx_get_ram( divide_state, i ), DIVIDE_PAGE_LENGTH );
+    memcpy( buffer, divide_ram[ i ], DIVIDE_PAGE_LENGTH );
     libspectrum_snap_set_divide_ram( snap, i, buffer );
   }
 }
@@ -323,42 +480,62 @@ divide_to_snapshot( libspectrum_snap *snap )
 static void
 divide_activate( void )
 {
-  divxxx_activate( divide_state );
+  if( !memory_allocated ) {
+    int i, j;
+    libspectrum_byte *memory =
+      memory_pool_allocate_persistent( DIVIDE_PAGES * DIVIDE_PAGE_LENGTH, 1 );
+
+    for( i = 0; i < DIVIDE_PAGES; i++ ) {
+      divide_ram[i] = memory + i * DIVIDE_PAGE_LENGTH;
+      for( j = 0; j < MEMORY_PAGES_IN_8K; j++ ) {
+        memory_page *page = &divide_memory_map_ram[i][j];
+        page->page = divide_ram[i] + j * MEMORY_PAGE_SIZE;
+        page->offset = j * MEMORY_PAGE_SIZE;
+      }
+    }
+
+    divide_eprom = memory_pool_allocate_persistent( DIVIDE_PAGE_LENGTH, 1 );
+    for( i = 0; i < MEMORY_PAGES_IN_8K; i++ ) {
+      memory_page *page = &divide_memory_map_eprom[i];
+      page->page = divide_eprom + i * MEMORY_PAGE_SIZE;
+      page->offset = i * MEMORY_PAGE_SIZE;
+    }
+
+    memory_allocated = 1;
+  }
 }
 
 int
 divide_unittest( void )
 {
   int r = 0;
-  int eprom_memory_source = divxxx_get_eprom_memory_source( divide_state );
-  int ram_memory_source = divxxx_get_ram_memory_source( divide_state );
 
   divide_set_automap( 1 );
 
   divide_control_write( 0x00e3, 0x80 );
-  r += unittests_assert_8k_page( 0x0000, eprom_memory_source, 0 );
-  r += unittests_assert_8k_page( 0x2000, ram_memory_source, 0 );
+  r += unittests_assert_8k_page( 0x0000, divide_memory_source_eprom, 0 );
+  r += unittests_assert_8k_page( 0x2000, divide_memory_source_ram, 0 );
   r += unittests_assert_16k_ram_page( 0x4000, 5 );
   r += unittests_assert_16k_ram_page( 0x8000, 2 );
   r += unittests_assert_16k_ram_page( 0xc000, 0 );
 
   divide_control_write( 0x00e3, 0x83 );
-  r += unittests_assert_8k_page( 0x0000, eprom_memory_source, 0 );
-  r += unittests_assert_8k_page( 0x2000, ram_memory_source, 3 );
+  r += unittests_assert_8k_page( 0x0000, divide_memory_source_eprom, 0 );
+  r += unittests_assert_8k_page( 0x2000, divide_memory_source_ram, 3 );
   r += unittests_assert_16k_ram_page( 0x4000, 5 );
   r += unittests_assert_16k_ram_page( 0x8000, 2 );
   r += unittests_assert_16k_ram_page( 0xc000, 0 );
 
   divide_control_write( 0x00e3, 0x40 );
-  r += unittests_assert_8k_page( 0x0000, ram_memory_source, 3 );
-  r += unittests_assert_8k_page( 0x2000, ram_memory_source, 0 );
+  r += unittests_assert_8k_page( 0x0000, divide_memory_source_ram, 3 );
+  r += unittests_assert_8k_page( 0x2000, divide_memory_source_ram, 0 );
   r += unittests_assert_16k_ram_page( 0x4000, 5 );
   r += unittests_assert_16k_ram_page( 0x8000, 2 );
   r += unittests_assert_16k_ram_page( 0xc000, 0 );
 
   divide_control_write( 0x00e3, 0x02 );
-  r += unittests_assert_8k_page( 0x0000, ram_memory_source, 3 );
-  r += unittests_assert_8k_page( 0x2000, ram_memory_source, 2 );
+  r += unittests_assert_8k_page( 0x0000, divide_memory_source_ram, 3 );
+  r += unittests_assert_8k_page( 0x2000, divide_memory_source_ram, 2 );
   r += unittests_assert_16k_ram_page( 0x4000, 5 );
   r += unittests_assert_16k_ram_page( 0x8000, 2 );
   r += unittests_assert_16k_ram_page( 0xc000, 0 );

@@ -1,6 +1,7 @@
 /* sdljoystick.c: routines for dealing with the SDL joystick
    Copyright (c) 2003-2004 Darren Salt, Fredrick Meunier, Philip Kendall
-   Copyright (c) 2015 UB880D
+
+   $Id: sdljoystick.c 4915 2013-04-07 05:32:09Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -46,7 +47,6 @@ static SDL_Joystick *joystick2 = NULL;
 
 static void do_axis( int which, Sint16 value, input_key negative,
 		     input_key positive );
-static void do_hat( int which, Uint8 value, Uint8 mask, input_key direction );
 
 int
 ui_joystick_init( void )
@@ -57,7 +57,7 @@ ui_joystick_init( void )
   error = SDL_InitSubSystem( SDL_INIT_JOYSTICK );
 #else
   /* Other UIs could handle joysticks by the SDL library */
-  error = SDL_Init( SDL_INIT_JOYSTICK );
+  error = SDL_Init(SDL_INIT_JOYSTICK|SDL_INIT_VIDEO);
 #endif
 
   if ( error ) {
@@ -123,9 +123,6 @@ ui_joystick_poll( void )
     case SDL_JOYAXISMOTION:
       sdljoystick_axismove( &(event.jaxis) );
       break;
-    case SDL_JOYHATMOTION:
-      sdljoystick_hatmove( &(event.jhat) );
-      break;
     default:
       break;
     }
@@ -141,7 +138,7 @@ button_action( SDL_JoyButtonEvent *buttonevent, input_event_type type )
   input_event_t event;
   
   button = buttonevent->button;
-  if( button >= NUM_JOY_BUTTONS ) return;	/* We support 'only' NUM_JOY_BUTTONS (15 as defined in ui/uijoystick.h) fire buttons */
+  if( button > 14 ) return;	/* We support 'only' 15 fire buttons */
 
   event.type = type;
   event.types.joystick.which = buttonevent->which;
@@ -197,39 +194,6 @@ do_axis( int which, Sint16 value, input_key negative, input_key positive )
 
   input_event( &event1 );
   input_event( &event2 );
-}
-
-void
-sdljoystick_hatmove( SDL_JoyHatEvent *hatevent )
-{
-  int which = hatevent->which;
-  Uint8 value = hatevent->value;
-
-  if( hatevent->hat != 0 ) {
-    return;
-  }
-
-  do_hat( which, value, SDL_HAT_UP, INPUT_JOYSTICK_UP );
-  do_hat( which, value, SDL_HAT_DOWN, INPUT_JOYSTICK_DOWN );
-  do_hat( which, value, SDL_HAT_RIGHT, INPUT_JOYSTICK_RIGHT );
-  do_hat( which, value, SDL_HAT_LEFT, INPUT_JOYSTICK_LEFT );
-}
-
-static void
-do_hat( int which, Uint8 value, Uint8 mask, input_key direction )
-{
-  input_event_t event;
-
-  event.types.joystick.which = which;
-  event.types.joystick.button = direction;
-
-  event.type = INPUT_EVENT_JOYSTICK_RELEASE;
-  input_event( &event );
-
-  if( value & mask ) {
-    event.type = INPUT_EVENT_JOYSTICK_PRESS;
-    input_event( &event );
-  }
 }
 
 void

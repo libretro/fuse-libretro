@@ -1,5 +1,7 @@
 /* dck.c: Routines for handling Warajevo DCK files
-   Copyright (c) 2003-2015 Darren Salt, Fredrick Meunier
+   Copyright (c) 2003 Darren Salt, Fredrick Meunier
+
+   $Id: dck.c 4076 2009-09-01 11:49:17Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +25,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -38,7 +40,7 @@ libspectrum_dck_block_alloc( libspectrum_dck_block **dck )
 {
   size_t i;
 
-  *dck = libspectrum_new( libspectrum_dck_block, 1 );
+  *dck = libspectrum_malloc( sizeof( **dck ) );
 
   (*dck)->bank = LIBSPECTRUM_DCK_BANK_DOCK;
   for( i = 0; i < 8; i++ ) {
@@ -67,7 +69,7 @@ libspectrum_dck_block_free( libspectrum_dck_block *dck, int keep_pages )
 libspectrum_dck*
 libspectrum_dck_alloc( void )
 {
-  libspectrum_dck *dck = libspectrum_new( libspectrum_dck, 1 );
+  libspectrum_dck *dck = libspectrum_malloc( sizeof( *dck ) );
   size_t i;
   for( i=0; i<256; i++ ) dck->dck[i] = NULL;
   return dck;
@@ -203,7 +205,7 @@ libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
         break;
       case LIBSPECTRUM_DCK_PAGE_RAM_EMPTY:
         dck->dck[num_dck_block]->pages[i] =
-                        libspectrum_new0( libspectrum_byte, DCK_PAGE_SIZE );
+                        libspectrum_calloc( DCK_PAGE_SIZE, sizeof( libspectrum_byte ) );
         if( !dck->dck[num_dck_block]->pages[i] ) {
           libspectrum_print_error( LIBSPECTRUM_ERROR_MEMORY,
                                    "libspectrum_dck_read: out of memory" );
@@ -214,7 +216,7 @@ libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
       case LIBSPECTRUM_DCK_PAGE_ROM:
       case LIBSPECTRUM_DCK_PAGE_RAM:
         dck->dck[num_dck_block]->pages[i] =
-	  libspectrum_new( libspectrum_byte, DCK_PAGE_SIZE );
+	  libspectrum_malloc( DCK_PAGE_SIZE * sizeof( libspectrum_byte ) );
         memcpy( dck->dck[num_dck_block]->pages[i], buffer, DCK_PAGE_SIZE );
         buffer += DCK_PAGE_SIZE;
         break;

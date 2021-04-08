@@ -1,6 +1,8 @@
 /* xdisplay.h: Routines for dealing with the X display
    Copyright (c) 2000 Philip Kendall
 
+   $Id: xdisplay.h 3032 2007-06-28 22:48:54Z zubzero $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

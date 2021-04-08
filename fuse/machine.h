@@ -1,6 +1,8 @@
 /* machine.h: Routines for handling the various machine types
    Copyright (c) 1999-2011 Philip Kendall
 
+   $Id: machine.h 4624 2012-01-09 20:59:35Z pak21 $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -30,7 +32,6 @@
 
 #include "display.h"
 #include "peripherals/ay.h"
-#include "peripherals/covox.h"
 #include "peripherals/specdrum.h"
 #include "spectrum.h"
 
@@ -76,11 +77,9 @@ typedef struct fuse_machine_info {
 						  from a port which isn't
 						  attached to anything */
 
-  ayinfo ay;		/* The AY-3-8912 chip */
+  ayinfo ay;		/* The AY-8-3912 chip */
 
   specdrum_info specdrum; /* SpecDrum settings */
-
-  covox_info covox; /* Covox settings */
 
   int (*shutdown)( void );
 
@@ -93,7 +92,7 @@ extern int machine_count;		/* of which there are this many */
 
 extern fuse_machine_info *machine_current;	/* The currently selected machine */
 
-void machine_register_startup( void );
+int machine_init_machines( void );
 
 int machine_select( libspectrum_machine type );
 int machine_select_id( const char *id );
@@ -107,5 +106,6 @@ int machine_load_rom( int page_num, const char *filename, const char *fallback,
   size_t expected_length );
 
 int machine_reset( int hard_reset );
+int machine_end( void );
 
 #endif			/* #ifndef FUSE_MACHINE_H */

@@ -1,6 +1,7 @@
 /* periph.c: code for handling peripherals
-   Copyright (c) 2005-2016 Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2005-2011 Philip Kendall
+
+   $Id: periph.c 4962 2013-05-19 05:25:15Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,7 +32,6 @@
 #include "fuse.h"
 #include "periph.h"
 #include "peripherals/if1.h"
-#include "peripherals/multiface.h"
 #include "peripherals/ula.h"
 #include "rzx.h"
 #include "settings.h"
@@ -65,8 +65,8 @@ typedef struct periph_port_private_t {
 static GSList *ports = NULL;
 
 /* The strings used for debugger events */
-static const char * const page_event_string = "page",
-  * const unpage_event_string = "unpage";
+static const char *page_event_string = "page",
+  *unpage_event_string = "unpage";
 
 /* Place one port response in the list of currently active ones */
 static void
@@ -74,7 +74,7 @@ port_register( periph_type type, const periph_port_t *port )
 {
   periph_port_private_t *private;
 
-  private = libspectrum_new( periph_port_private_t, 1 );
+  private = libspectrum_malloc( sizeof( *private ) );
 
   private->type = type;
   private->port = *port;
@@ -86,12 +86,10 @@ port_register( periph_type type, const periph_port_t *port )
 void
 periph_register( periph_type type, const periph_t *periph )
 {
-  periph_private_t *private;
-
   if( !peripherals )
     peripherals = g_hash_table_new_full( NULL, NULL, NULL, libspectrum_free );
 
-  private = libspectrum_new( periph_private_t, 1 );
+  periph_private_t *private = libspectrum_malloc( sizeof( *private ) );
 
   private->present = PERIPH_PRESENT_NEVER;
   private->active = 0;
@@ -193,20 +191,6 @@ get_hard_reset( gpointer key, gpointer value, gpointer user_data )
   *machine_hard_reset = ( periph_hard_reset || *machine_hard_reset );
 }
 
-static void
-disable_optional( gpointer key, gpointer value, gpointer user_data )
-{
-  periph_private_t *private = value;
-
-  switch ( private->present ) {
-  case PERIPH_PRESENT_NEVER:
-  case PERIPH_PRESENT_OPTIONAL:
-    if( private->periph->option ) *(private->periph->option) = 0;
-    break;
-  default: break;
-  }
-}
-
 /* Free the memory used by a peripheral-port response pair */
 static void
 free_peripheral( gpointer data, gpointer user_data GCC_UNUSED )
@@ -262,7 +246,7 @@ struct peripheral_data_t {
 
   libspectrum_word port;
 
-  libspectrum_byte attached;
+  int attached;
   libspectrum_byte value;
 };
 
@@ -294,16 +278,13 @@ read_peripheral( gpointer data, gpointer user_data )
 {
   periph_port_private_t *private = data;
   struct peripheral_data_t *callback_info = user_data;
-  libspectrum_byte last_attached;
 
   periph_port_t *port = &( private->port );
 
   if( port->read &&
       ( ( callback_info->port & port->mask ) == port->value ) ) {
-    last_attached = callback_info->attached;
-    callback_info->value &= (   port->read( callback_info->port,
-					    &( callback_info->attached ) )
-			      | last_attached );
+    callback_info->value &= port->read( callback_info->port,
+					&( callback_info->attached ) );
   }
 }
 
@@ -338,29 +319,18 @@ readport_internal( libspectrum_word port )
 
   /* If we're not doing RZX playback, get the byte normally */
   callback_info.port = port;
-  callback_info.attached = 0x00;
+  callback_info.attached = 0;
   callback_info.value = 0xff;
 
   g_slist_foreach( ports, read_peripheral, &callback_info );
 
-  if( callback_info.attached != 0xff )
-    callback_info.value =
-      periph_merge_floating_bus( callback_info.value, callback_info.attached,
-                                 machine_current->unattached_port() );
+  if( !callback_info.attached )
+    callback_info.value = machine_current->unattached_port();
 
   /* If we're RZX recording, store this byte */
   if( rzx_recording ) rzx_store_byte( callback_info.value );
 
   return callback_info.value;
-}
-
-/* Merge the read value with the floating bus. Deliberately doesn't take
-   a callback_info structure to enable it to be unit tested */
-libspectrum_byte
-periph_merge_floating_bus( libspectrum_byte value, libspectrum_byte attached,
-			   libspectrum_byte floating_bus )
-{
-  return value & (floating_bus | attached);
 }
 
 /* Write a byte to a port, taking the appropriate time */
@@ -425,51 +395,20 @@ update_cartridge_menu( void )
 static void
 update_ide_menu( void )
 {
-  int ide, simpleide, zxatasp, zxcf, divide, divmmc, zxmmc;
+  int ide, simpleide, zxatasp, zxcf, divide;
 
   simpleide = settings_current.simpleide_active;
   zxatasp = settings_current.zxatasp_active;
   zxcf = settings_current.zxcf_active;
   divide = settings_current.divide_enabled;
-  divmmc = settings_current.divmmc_enabled;
-  zxmmc = settings_current.zxmmc_enabled;
 
-  ide = simpleide || zxatasp || zxcf || divide || divmmc || zxmmc;
+  ide = simpleide || zxatasp || zxcf || divide;
 
   ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE, ide );
   ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_SIMPLE8BIT, simpleide );
   ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_ZXATASP, zxatasp );
   ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_ZXCF, zxcf );
   ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_DIVIDE, divide );
-  ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_DIVMMC, divmmc );
-  ui_menu_activate( UI_MENU_ITEM_MEDIA_IDE_ZXMMC, zxmmc );
-}
-
-static void
-update_peripherals_status( void )
-{
-  ui_menu_activate( UI_MENU_ITEM_MEDIA_IF1,
-                    periph_is_active( PERIPH_TYPE_INTERFACE1 ) );
-  ui_menu_activate( UI_MENU_ITEM_MEDIA_CARTRIDGE_IF2,
-                    periph_is_active( PERIPH_TYPE_INTERFACE2 ) );
-
-  update_cartridge_menu();
-  update_ide_menu();
-  if1_update_menu();
-  multiface_status_update();
-  specplus3_765_update_fdd();
-}
-
-void
-periph_disable_optional( void )
-{
-  if( ui_mouse_present && ui_mouse_grabbed ) {
-    ui_mouse_grabbed = ui_mouse_release( 1 );
-  }
-
-  g_hash_table_foreach( peripherals, disable_optional, NULL );
-
-  update_peripherals_status();
 }
 
 int
@@ -487,7 +426,15 @@ periph_update( void )
 
   g_hash_table_foreach( peripherals, set_activity, &needs_hard_reset );
 
-  update_peripherals_status();
+  ui_menu_activate( UI_MENU_ITEM_MEDIA_IF1,
+		    periph_is_active( PERIPH_TYPE_INTERFACE1 ) );
+  ui_menu_activate( UI_MENU_ITEM_MEDIA_CARTRIDGE_IF2,
+		    periph_is_active( PERIPH_TYPE_INTERFACE2 ) );
+
+  update_cartridge_menu();
+  update_ide_menu();
+  if1_update_menu();
+  specplus3_765_update_fdd();
   machine_current->memory_map();
 
   return needs_hard_reset;

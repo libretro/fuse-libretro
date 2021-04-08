@@ -1,7 +1,9 @@
 #!/usr/bin/perl -w
 
 # menu_data.pl: generate the menu structure from menu_data.dat
-# Copyright (c) 2004-2015 Philip Kendall, Stuart Brady, Marek Januszewski
+# Copyright (c) 2004-2007 Philip Kendall, Stuart Brady, Marek Januszewski
+
+# $Id: menu_data.pl 4685 2012-03-27 11:38:35Z fredm $
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -150,8 +152,8 @@ sub dump_widget ($) {
 
     print << "HEADERS";
 #include "input.h"
-#include "ui/widget/options_internals.h"
-#include "ui/widget/widget_internals.h"
+#include "options_internals.h"
+#include "widget_internals.h"
 
 HEADERS
 
@@ -237,7 +239,8 @@ HEADERS
 
 };
 
-guint gtkui_menu_data_size = ARRAY_SIZE( gtkui_menu_data );
+guint gtkui_menu_data_size =
+  sizeof( gtkui_menu_data ) / sizeof( GtkActionEntry );
 CODE
 
  } elsif( $mode eq 'ui' ) {
@@ -291,7 +294,7 @@ sub _dump_gtk ($$$$$) {
 
     if( $mode eq 'callbacks' ) {
       if( $item->{type} eq 'Item' && $item->{action} ) {
-        print "static MENU_CALLBACK( ", $function, " )\n{\n";
+        print "MENU_CALLBACK( ", $function, " )\n{\n";
         print "  $binded_function( gtk_action, $item->{action} );\n}\n\n";
       }
     } elsif( $mode eq 'ui' ) {
@@ -339,7 +342,7 @@ sub dump_win32 ($$) {
 
     if( $mode eq 'c' ) {
 	print << "CODE";
-#include "ui/win32/menu_data.h"
+#include "menu_data.h"
 
 int handle_menu( DWORD cmd, HWND window )
 {
@@ -354,7 +357,7 @@ CODE
     } elsif( $mode eq 'rc' ) {
 	print << "CODE";
 #include <windows.h>
-#include "ui/win32/menu_data.h"
+#include "menu_data.h"
 
 win32_menu MENU
 {

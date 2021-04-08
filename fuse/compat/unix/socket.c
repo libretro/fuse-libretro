@@ -1,5 +1,7 @@
 /* socket.c: Socket-related compatibility routines
-   Copyright (c) 2011-2015 Philip Kendall
+   Copyright (c) 2011-2012 Philip Kendall
+
+   $Id: socket.c 4828 2012-12-30 19:43:37Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +28,6 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include "compat.h"
 #include "fuse.h"
@@ -53,16 +54,6 @@ compat_socket_networking_end( void )
 }
 
 int
-compat_socket_blocking_mode( compat_socket_t fd, int blocking )
-{
-  int flags = fcntl( fd, F_GETFL, 0 );
-  if( flags == -1 )
-    return -1;
-  flags = blocking ? ( flags | O_NONBLOCK ) : ( flags & ~O_NONBLOCK );
-  return ( fcntl( fd, F_SETFL, flags ) != 0 );
-}
-
-int
 compat_socket_close( compat_socket_t fd )
 {
   return close( fd );
@@ -84,8 +75,11 @@ compat_socket_selfpipe_t* compat_socket_selfpipe_alloc( void )
   int error;
   int pipefd[2];
 
-  compat_socket_selfpipe_t *self =
-    libspectrum_new( compat_socket_selfpipe_t, 1 );
+  compat_socket_selfpipe_t *self = malloc( sizeof( *self ) );
+  if( !self ) {
+    ui_error( UI_ERROR_ERROR, "%s: %d: out of memory", __FILE__, __LINE__ );
+    fuse_abort();
+  }
 
   error = pipe( pipefd );
   if( error ) {
@@ -103,7 +97,7 @@ void compat_socket_selfpipe_free( compat_socket_selfpipe_t *self )
 {
   close( self->read_fd );
   close( self->write_fd );
-  libspectrum_free( self );
+  free( self );
 }
 
 compat_socket_t compat_socket_selfpipe_get_read_fd( compat_socket_selfpipe_t *self )
@@ -114,8 +108,7 @@ compat_socket_t compat_socket_selfpipe_get_read_fd( compat_socket_selfpipe_t *se
 void compat_socket_selfpipe_wake( compat_socket_selfpipe_t *self )
 {
   const char dummy = 0;
-  ssize_t unused = write( self->write_fd, &dummy, 1 );
-  (void) unused;
+  write( self->write_fd, &dummy, 1 );
 }
 
 void compat_socket_selfpipe_discard_data( compat_socket_selfpipe_t *self )

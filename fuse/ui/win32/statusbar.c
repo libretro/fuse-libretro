@@ -1,6 +1,8 @@
 /* statusbar.c: routines for updating the status bar
    Copyright (c) 2004-2008 Marek Januszewski
 
+   $Id: statusbar.c 4909 2013-03-10 22:23:36Z sbaldovi $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -55,9 +57,6 @@ ui_statusbar_state icons_status[5] = {
 int icons_part_width = 140; /* will be calculated dynamically later */
 int icons_part_height = 27;
 int icons_part_margin = 2;
-
-/* Status bar handle */
-HWND fuse_hStatusWindow;
 
 void
 win32statusbar_create( HWND hWnd )

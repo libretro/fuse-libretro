@@ -1,6 +1,8 @@
 /* memorybrowser.c: the Win32 memory browser
    Copyright (c) 2008 Marek Januszewski
 
+   $Id: memorybrowser.c 4785 2012-12-07 23:56:40Z sbaldovi $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -29,7 +31,7 @@
 
 #include "compat.h"
 #include "fuse.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "win32internals.h"
 
 #include "memorybrowser.h"
@@ -84,7 +86,7 @@ update_display( HWND hwndDlg, libspectrum_word base )
       libspectrum_byte b = readbyte_internal( base );
 
       _sntprintf( buffer2, 4, TEXT( "%02X " ), b );
-      _tcsncat( text[1], buffer2, 64 - _tcslen( text[1] ) - 1 );
+      _tcsncat( text[1], buffer2, 4 );
 
       text[2][j] = ( b >= 32 && b < 127 ) ? b : '.';
     }

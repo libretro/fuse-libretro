@@ -13,12 +13,6 @@
     <icon name="application-x-spectrum"/>
     <glob pattern="*.dck"/>
   </mime-type>
-  <mime-type type="application/x-spectrum-d80">
-    <comment>ZX Spectrum disk</comment>
-    <icon name="application-x-spectrum"/>
-    <glob pattern="*.d40"/>
-    <glob pattern="*.d80"/>
-  </mime-type>
   <mime-type type="application/x-spectrum-dsk">
     <comment>ZX Spectrum disk</comment>
     <magic>

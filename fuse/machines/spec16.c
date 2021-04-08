@@ -1,6 +1,7 @@
 /* spec16.c: Spectrum 16K specific routines
    Copyright (c) 1999-2011 Philip Kendall
-   Copyright (c) 2015 Adrien Destugues
+
+   $Id: spec16.c 4638 2012-01-21 12:52:14Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -32,7 +33,7 @@
 #include "machine.h"
 #include "machines.h"
 #include "machines_periph.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "periph.h"
 #include "settings.h"
 #include "spec48.h"
@@ -68,11 +69,10 @@ static void
 ensure_empty_mapping( void )
 {
   int i;
-  libspectrum_byte *empty_chunk;
 
   if( empty_mapping_allocated ) return;
 
-  empty_chunk = memory_pool_allocate_persistent( 0x4000, 1 );
+  libspectrum_byte *empty_chunk = memory_pool_allocate_persistent( 0x4000, 1 );
   memset( empty_chunk, 0xff, 0x4000 );
 
   for( i = 0; i < MEMORY_PAGES_IN_16K; i++ ) {

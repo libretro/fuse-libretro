@@ -1,5 +1,7 @@
 /* debugger_internals.h: The internals of Fuse's monitor/debugger
-   Copyright (c) 2002-2016 Philip Kendall
+   Copyright (c) 2002-2011 Philip Kendall
+
+   $Id: debugger_internals.h 4696 2012-05-07 02:05:13Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -47,6 +49,13 @@ int debugger_breakpoint_trigger( debugger_breakpoint *bp );
 int debugger_poke( libspectrum_word address, libspectrum_byte value );
 int debugger_port_write( libspectrum_word address, libspectrum_byte value );
 
+int debugger_register_hash( const char *reg );
+libspectrum_word debugger_register_get( int which );
+void debugger_register_set( int which, libspectrum_word value );
+const char* debugger_register_text( int which );
+
+void debugger_exit_emulator( void );
+
 /* Utility functions called by the flex scanner */
 
 int debugger_command_input( char *buf, int *result, int max_size );
@@ -67,23 +76,18 @@ typedef enum debugger_token {
   DEBUGGER_TOKEN_LESS_THAN_OR_EQUAL_TO = 0x2264,
   DEBUGGER_TOKEN_GREATER_THAN_OR_EQUAL_TO = 0x2265,
 
-  /* No real significance to this value */
-  DEBUGGER_TOKEN_DEREFERENCE = 0x1000,
-
 } debugger_token;
 
 /* Numeric expression stuff */
 
 debugger_expression*
 debugger_expression_new_number( libspectrum_dword number, int pool );
+debugger_expression* debugger_expression_new_register( int which, int pool );
 debugger_expression*
 debugger_expression_new_unaryop( int operation, debugger_expression *operand, int pool );
 debugger_expression*
 debugger_expression_new_binaryop( int operation, debugger_expression *operand1,
 				  debugger_expression *operand2, int pool );
-debugger_expression*
-debugger_expression_new_system_variable( const char *type, const char *detail,
-                                         int pool );
 debugger_expression*
 debugger_expression_new_variable( const char *name, int pool );
 
@@ -98,17 +102,6 @@ debugger_expression_evaluate( debugger_expression* expression );
 void debugger_event_init( void );
 int debugger_event_is_registered( const char *type, const char *detail );
 void debugger_event_end( void );
-
-/* System variables handling */
-
-void debugger_system_variable_init( void );
-void debugger_system_variable_end( void );
-int debugger_system_variable_find( const char *type, const char *detail );
-libspectrum_dword debugger_system_variable_get( int system_variable );
-void debugger_system_variable_set( const char *type, const char *detail,
-                                   libspectrum_dword value );
-void debugger_system_variable_text( char *buffer, size_t length,
-                                    int system_variable );
 
 /* Variables handling */
 

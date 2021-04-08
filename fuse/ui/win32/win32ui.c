@@ -1,7 +1,7 @@
 /* win32ui.c: Win32 routines for dealing with the user interface
-   Copyright (c) 2003-2015 Marek Januszewski, Philip Kendall, Stuart Brady
-   Copyright (c) 2015 Kirben
-   Copyright (c) 2016 lordhoto
+   Copyright (c) 2003-2007 Marek Januszewski, Philip Kendall, Stuart Brady
+
+   $Id: win32ui.c 4968 2013-05-19 16:11:17Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "fuse.h"
 #include "keyboard.h"
 #include "menu.h"
+#include "menu_data.h"
 #include "peripherals/joystick.h"
 #include "psg.h"
 #include "rzx.h"
@@ -41,16 +42,9 @@
 #include "tape.h"
 #include "timer/timer.h"
 #include "ui/ui.h"
-#include "ui/win32/menu_data.h"
 #include "utils.h"
 #include "win32internals.h"
 #include "win32joystick.h"
-
-/* Window handler */
-HWND fuse_hWnd;
-
-/* Application instance */
-HINSTANCE fuse_hInstance;
 
 /* fuse_hPrevInstance is needed only to register window class */
 static HINSTANCE fuse_hPrevInstance;
@@ -83,7 +77,7 @@ typedef struct win32ui_select_info {
   int length;
   int selected;
   const char **labels;
-  LPCTSTR dialog_title;
+  TCHAR *dialog_title;
 
 } win32ui_select_info;
 
@@ -98,6 +92,8 @@ static BOOL win32ui_window_resizing( HWND hWnd, WPARAM wParam, LPARAM lParam );
 
 static int
 selector_dialog( win32ui_select_info *items );
+
+#define DIM(X) sizeof((X)) / sizeof((X)[0])
 
 static void
 handle_drop( HDROP hDrop )
@@ -129,6 +125,19 @@ static LRESULT WINAPI
 fuse_window_proc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
   switch( msg ) {
+
+#if defined USE_JOYSTICK && !defined HAVE_JSW_H
+
+    case WM_CREATE:
+      if( joysticks_supported > 0 )
+        if( joySetCapture( hWnd, JOYSTICKID1, 0, FALSE ) )
+          ui_error( UI_ERROR_ERROR, "Couldn't start capture for joystick 1" );
+      if( joysticks_supported > 1 )
+        if( joySetCapture( hWnd, JOYSTICKID2, 0, FALSE ) )
+          ui_error( UI_ERROR_ERROR, "Couldn't start capture for joystick 2" );
+      break;      
+
+#endif			/* if defined USE_JOYSTICK && !defined HAVE_JSW_H */
 
     case WM_COMMAND:
       if( ! handle_menu( LOWORD( wParam ), hWnd ) )
@@ -294,21 +303,7 @@ WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
   fuse_nCmdShow = nCmdShow;
   fuse_hPrevInstance = hPrevInstance;
 
-/* HACK: __argc, __argv are broken and return zero when using mingwrt 4.0+
-   on MinGW.
-   HACK: MinGW-w64 based toolchains neither feature _argc nor _argv. The 32 bit
-   incarnation only defines __MINGW32__. This leads to build breakage due to
-   missing declarations. Luckily MinGW-w64 based toolchains define
-   __MINGW64_VERSION_foo macros inside _mingw.h, which is included from all
-   system headers. Thus we abuse that to detect them.
-*/
-#if defined( __GNUC__ ) && defined( __MINGW32__ ) \
-                        && !defined( __MINGW64_VERSION_MAJOR )
-  return fuse_main( _argc, _argv );
-#else
-  return fuse_main( __argc, __argv );
-#endif
-
+  return fuse_main(__argc, __argv);
   /* FIXME: how do deal with returning wParam */
 }
 
@@ -372,8 +367,6 @@ ui_init( int *argc, char ***argv )
   /* init the display area */
   if( win32display_init() ) return 1;
 
-  win32keyboard_init();
-
   /* show the window finally */
   ShowWindow( fuse_hWnd, fuse_nCmdShow );
   UpdateWindow( fuse_hWnd );
@@ -396,9 +389,7 @@ win32ui_make_menu( void )
   ui_menu_activate( UI_MENU_ITEM_RECORDING, 0 );
   ui_menu_activate( UI_MENU_ITEM_RECORDING_ROLLBACK, 0 );
   ui_menu_activate( UI_MENU_ITEM_TAPE_RECORDING, 0 );
-#ifdef HAVE_LIB_XML2
-  ui_menu_activate( UI_MENU_ITEM_FILE_SVG_CAPTURE, 0 );
-#endif
+
   return FALSE;
 }
 
@@ -415,10 +406,8 @@ ui_end( void )
 {
   int error;
 
-  win32keyboard_end();
-
   error = win32display_end(); if( error ) return error;
-
+   
   /* close the monospaced font handle */     
   if( monospaced_font ) {
     DeleteObject( monospaced_font );
@@ -579,15 +568,8 @@ menu_machine_reset( int action )
 
   if( hard_reset )
     message = "Hard reset?";
-
-  if( !win32ui_confirm( message ) )
-    return;
-
-  /* Stop any ongoing RZX */
-  rzx_stop_recording();
-  rzx_stop_playback( 1 );
-
-  if( machine_reset( hard_reset ) ) {
+  
+  if( win32ui_confirm( message ) && machine_reset( hard_reset ) ) {
     ui_error( UI_ERROR_ERROR, "couldn't reset machine: giving up!" );
 
     /* FIXME: abort() seems a bit extreme here, but it'll do for now */
@@ -655,12 +637,7 @@ ui_widgets_reset( void )
 void
 menu_help_keyboard( int action )
 {
-#ifdef USE_LIBPNG
-  if( win32ui_picture( "keyboard.png", PICTURE_PNG ) == 0 )
-    return;
-#endif
-
-  win32ui_picture( "keyboard.scr", PICTURE_SCR );
+  win32ui_picture( "keyboard.scr", 0 );
 }
 
 /* Functions to activate and deactivate certain menu items */
@@ -717,7 +694,7 @@ ui_confirm_joystick_t
 ui_confirm_joystick( libspectrum_joystick libspectrum_type, int inputs )
 {
   win32ui_select_info items;
-  TCHAR title[ 80 ];
+  char title[ 80 ];
   int i, selection;
   int selected_joystick;
 
@@ -734,8 +711,7 @@ ui_confirm_joystick( libspectrum_joystick libspectrum_type, int inputs )
   fuse_emulation_pause();
 
   /* Populate win32ui_select_info */
-  /* FIXME: libspectrum_joystick_name is not unicode compliant */
-  _sntprintf( title, ARRAY_SIZE( title ), _T( "Fuse - Configure %s Joystick" ),
+  _sntprintf( title, sizeof( title ), "Fuse - Configure %s Joystick",
 	    libspectrum_joystick_name( libspectrum_type ) );
   items.dialog_title = title;
   items.length = JOYSTICK_CONN_COUNT; 
@@ -774,7 +750,7 @@ win32ui_get_monospaced_font( HFONT *font )
 
     *font = CreateFont( font_height, 0, 0, 0, 400, FALSE, FALSE, FALSE, 0,
                         400, 2, 1, 1, TEXT( "Courier New" ) );
-    if( *font == NULL ) {
+    if( !font ) {
       ui_error( UI_ERROR_ERROR, "couldn't find a monospaced font" );
       return 1;
     }
@@ -788,7 +764,7 @@ win32ui_get_monospaced_font( HFONT *font )
 }
 
 int
-window_recommended_width( HWND hwndDlg, LPCTSTR title )
+window_recommended_width( HWND hwndDlg, TCHAR *title )
 {
   HDC dc;
   SIZE sz;
@@ -964,7 +940,7 @@ selector_dialog_proc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam )
       if ( HIWORD( wParam ) != BN_CLICKED ) break;
 
       /* service OK and Cancel buttons */
-      switch( LOWORD( wParam ) )
+      switch LOWORD( wParam )
       {
         case IDOK:
         {
@@ -1044,9 +1020,6 @@ win32ui_window_resize( HWND hWnd, WPARAM wParam, LPARAM lParam )
     if( !size_paused ) {
       size_paused = 1;
       fuse_emulation_pause();
-
-      /* Process UI events until the window is restored */
-      win32ui_process_messages( 0 );
     }
   } else {
     win32display_drawing_area_resize( LOWORD( lParam ), HIWORD( lParam ), 1 );
@@ -1056,9 +1029,6 @@ win32ui_window_resize( HWND hWnd, WPARAM wParam, LPARAM lParam )
     win32statusbar_resize( hWnd, wParam, lParam );
 
     if( size_paused ) {
-      timer_estimate_reset();
-      PostMessage( fuse_hWnd, WM_USER_EXIT_PROCESS_MESSAGES, 0, 0 );
-
       size_paused = 0;
       fuse_emulation_unpause();
     }
@@ -1118,8 +1088,8 @@ win32ui_window_resizing( HWND hWnd, WPARAM wParam, LPARAM lParam )
     width = w_max; height = h_max;
   }
 
-  if( width > MAX_SCALE || height > MAX_SCALE ) {
-    width = MAX_SCALE; height = MAX_SCALE;
+  if( width > 3 || height > 3 ) {
+    width = 3; height = 3;
   }
 
   if( width < height ) {
@@ -1202,7 +1172,7 @@ win32ui_process_messages( int process_queue_once )
       /* FIXME: rethink this loop, IsDialogMessage in particular */
       processMsg = TRUE;
 
-      for( i = 0; processMsg && i < ARRAY_SIZE( hModelessDlgs ); i++) {
+      for( i = 0; processMsg && i < DIM( hModelessDlgs ); i++) {
         if( IsDialogMessage( hModelessDlgs[i], &msg ) ) processMsg = FALSE;
       }
 

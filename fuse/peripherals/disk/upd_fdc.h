@@ -1,6 +1,8 @@
 /* upd_fdc.h: NEC floppy disk controller emulation
-   Copyright (c) 2003-2015 Stuart Brady, Fredrick Meunier, Philip Kendall,
+   Copyright (c) 2003-2010 Stuart Brady, Fredrick Meunier, Philip Kendall,
    Gergely Szasz
+
+   $Id: upd_fdc.h 4636 2012-01-20 14:07:15Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -85,9 +87,14 @@ typedef enum upd_intrq_t {
   UPD_INTRQ_SEEK,
 } upd_intrq_t;
 
+typedef struct upd_fdc_drive {
+  fdd_t fdd;			/* floppy disk drive */
+  disk_t disk;			/* the floppy disk itself */
+} upd_fdc_drive;
+
 typedef struct upd_fdc {
-  fdd_t *current_drive;
-  fdd_t *drive[4];		/* UPD765 control 4 drives */
+  upd_fdc_drive *current_drive;
+  upd_fdc_drive *drive[4];	/* UPD765 control 4 drives */
 
   upd_type_t type;		/* UPD765A UPD765B */
   upd_clock_t clock;		/* clock rate ( 4/8 MHz ) */
@@ -140,7 +147,6 @@ typedef struct upd_fdc {
   int ncn[4];			/* new cylinder numbers */
   int rec[4];			/* recalibrate store pcns */
   int seek[4];			/* seek status for 4 drive */
-  int seek_age[4];		/* order of overlapped seeks for 4 drive */
   int rlen;			/* expected record length */
   upd_scan_t scan;		/* SCAN type: eq/lo/hi */
   

@@ -1,6 +1,8 @@
 /* event.h: Routines needed for dealing with the event list
    Copyright (c) 2000-2004 Philip Kendall
 
+   $Id: event.h 4641 2012-01-21 13:42:51Z pak21 $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -46,6 +48,9 @@ typedef void (*event_fn_t)( libspectrum_dword tstates, int type, void *user_data
 /* When will the next event happen? */
 extern libspectrum_dword event_next_event;
 
+/* Set up the event list */
+void event_init( void );
+
 /* Register a new event type */
 int event_register( event_fn_t fn, const char *description );
 
@@ -83,7 +88,7 @@ void event_foreach( GFunc function, gpointer user_data );
 /* A textual representation of each event type */
 const char *event_name( int type );
 
-/* Register the init and end functions */
-void event_register_startup( void );
+/* Called on exit to clean up */
+void event_end( void );
 
 #endif				/* #ifndef FUSE_EVENT_H */

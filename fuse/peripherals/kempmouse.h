@@ -1,5 +1,7 @@
 /* kempmouse.h: Kempston mouse emulation
-   Copyright (c) 2004-2016 Darren Salt, Fredrick Meunier, Philip Kendall
+   Copyright (c) 2004-2008 Darren Salt, Fredrick Meunier
+
+   $Id: kempmouse.h 4924 2013-05-05 07:40:02Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,7 +26,7 @@
 #ifndef FUSE_KEMPMOUSE_H
 #define FUSE_KEMPMOUSE_H
 
-void kempmouse_register_startup( void );
+void kempmouse_init( void );
 void kempmouse_update( int dx, int dy, int button, int down );
 
 #endif

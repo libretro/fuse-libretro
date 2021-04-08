@@ -1,8 +1,9 @@
 #!/usr/bin/perl -w
 
 # options.pl: generate options dialog boxes
+# $Id: options.pl 4962 2013-05-19 05:25:15Z sbaldovi $
 
-# Copyright (c) 2001-2015 Philip Kendall, Marek Januszewski, Stuart Brady
+# Copyright (c) 2001-2013 Philip Kendall, Marek Januszewski, Stuart Brady
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,11 +52,11 @@ print Fuse::GPL( 'options.c: options dialog boxes',
 #include "options_internals.h"
 #include "periph.h"
 #include "settings.h"
-#include "ui/win32/win32internals.h"
 #include "utils.h"
+#include "win32internals.h"
 
 static int
-option_enumerate_combo( const char * const *options, char *value, int count,
+option_enumerate_combo( const char **options, char *value, int count,
                         int def ) {
   int i;
   if( value != NULL ) {
@@ -94,7 +95,7 @@ foreach( @dialogs ) {
 
 		    print << "CODE";
 
-static const char * const $_->{name}_$widget->{value}_combo[] = {
+static const char *$_->{name}_$widget->{value}_combo[] = {
 CODE
 		    foreach( split( /\|/, $widget->{data1} ) ) {
 			print << "CODE";
@@ -140,8 +141,7 @@ menu_options_$_->{name}_init( HWND hwndDlg )
   int i;
 
   i = 0;
-  buffer[0] = '\\0';
-  if( buffer[i] ) {};          /* Shut gcc up */
+  buffer[0] = '\\0';          /* Shut gcc up */
 
 CODE
     foreach my $widget ( @{ $_->{widgets} } ) {
@@ -157,8 +157,6 @@ CODE
 	} elsif( $widget->{type} eq "Entry" ) {
 	    my $idcname = uc( "$widget->{value}" );
         print << "CODE";
-  SendDlgItemMessage( hwndDlg, IDC_${optname}_${idcname}, EM_LIMITTEXT,
-                      $widget->{data1}, 0 );
   /* FIXME This is asuming SendDlgItemMessage is not UNICODE */
   snprintf( buffer, 80, "%d", settings_current.$widget->{value} );
   SendDlgItemMessage( hwndDlg, IDC_${optname}_${idcname}, WM_SETTEXT,
@@ -198,8 +196,7 @@ menu_options_$_->{name}_done( HWND hwndDlg )
 {
   char buffer[80];
 
-  buffer[0] = '\\0';
-  if( buffer[0] ) {};          /* Shut gcc up */
+  buffer[0] = '\\0';          /* Shut gcc up */
 
 CODE
 
@@ -238,7 +235,7 @@ CODE
 	} elsif( $widget->{type} eq "Combo" ) {
 	    my $idcname = uc( "$widget->{value}" );
 	    print << "CODE";
-  libspectrum_free( settings_current.$widget->{value} );
+  free( settings_current.$widget->{value} );
   settings_current.$widget->{value} =
     utils_safe_strdup( $_->{name}_$widget->{value}_combo[
     SendDlgItemMessage( hwndDlg, IDC_${optname}_${idcname}, CB_GETCURSEL, 0, 0 ) ] );

@@ -1,5 +1,7 @@
 /* garray.c: Minimal replacement for GArray
-   Copyright (c) 2008-2016 Philip Kendall
+   Copyright (c) 2008 Philip Kendall
+
+   $Id: garray.c 4774 2012-11-26 22:57:29Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,7 +23,7 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #ifndef HAVE_LIB_GLIB		/* Use this iff we're not using the 
 				   `proper' glib */
@@ -50,7 +52,7 @@ g_array_new( gboolean zero_terminated, gboolean clear, guint element_size )
   return array;
 }
 
-static void
+static int
 expand_array( GArray *array, guint len )
 {
   size_t new_size = array->len + len;
@@ -63,24 +65,16 @@ expand_array( GArray *array, guint len )
 
   array->data = new_data;
   array->allocated = new_size;
+
+  return 1;
 }
-
-GArray*
-g_array_sized_new( gboolean zero_terminated, gboolean clear,
-                   guint element_size, guint reserved_size )
-{
-  GArray *array = g_array_new( zero_terminated, clear, element_size );
-
-  expand_array( array, reserved_size );
-
-  return array;
-}
+  
 
 GArray*
 g_array_append_vals( GArray *array, gconstpointer data, guint len )
 {
   if( array->len + len > array->allocated )
-    expand_array( array, len );
+    if( !expand_array( array, len ) ) return array;
 
   memcpy( array->data + array->len * array->element_size,
 	  data,
@@ -95,22 +89,9 @@ GArray*
 g_array_set_size( GArray *array, guint length )
 {
   if( length > array->allocated )
-    expand_array( array, length - array->len );
+    if( !expand_array( array, length - array->allocated ) ) return array;
 
   array->len = length;
-
-  return array;
-}
-
-GArray*
-g_array_remove_index_fast( GArray *array, guint index )
-{
-  if( index < array->len - 1 )
-    memcpy( array->data + index * array->element_size,
-            array->data + (array->len - 1) * array->element_size,
-            array->element_size );
-
-  array->len--;
 
   return array;
 }
@@ -119,8 +100,6 @@ gchar*
 g_array_free( GArray *array, gboolean free_segment )
 {
   gchar* segment;
-
-  if( !array ) return NULL;
 
   if( free_segment ) {
     libspectrum_free( array->data );

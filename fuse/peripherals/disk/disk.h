@@ -1,5 +1,7 @@
 /* disk.h: Routines for handling disk images
-   Copyright (c) 2007-2015 Gergely Szasz
+   Copyright (c) 2007-2010 Gergely Szasz
+
+   $Id: disk.h 4893 2013-02-23 15:49:39Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,6 +25,8 @@
 
 #ifndef FUSE_DISK_H
 #define FUSE_DISK_H
+
+#include <config.h>
 
 static const unsigned int DISK_FLAG_NONE = 0x00;
 static const unsigned int DISK_FLAG_PLUS3_CPC = 0x01;	/* try to fix some CPC issue */
@@ -49,6 +53,8 @@ typedef enum disk_type_t {
   DISK_FDI,		/* Full Disk Image ALT */
   DISK_TD0,
 
+  DISK_SDF,		/* SAM Disk Format (deprecated) */
+
   /* DISCiPLE / +D / SAM Coupe */
   DISK_MGT,		/* ALT */
   DISK_IMG,		/* OUT-OUT */
@@ -63,10 +69,6 @@ typedef enum disk_type_t {
 
   /* Opus Discovery */
   DISK_OPD,
-
-  /* Didaktik 40/80 */
-  DISK_D40,
-  DISK_D80,
 
   /* Log disk structure (.log) */
   DISK_LOG,
@@ -124,15 +126,7 @@ TRACK_LEN TYPE TRACK......DATA CLOCK..MARKS MF..MARKS WEAK..MARKS
    d->weak   = d->fm     + DISK_CLEN( d->bpt )
 
 #define DISK_SET_TRACK( d, head, cyl ) \
-   DISK_SET_TRACK_IDX( (d), (d)->sides * cyl + head )
-
-typedef struct disk_position_context_t {
-  libspectrum_byte *track;   /* current track data bytes */
-  libspectrum_byte *clocks;  /* clock marks bits */
-  libspectrum_byte *fm;      /* FM/MFM marks bits */
-  libspectrum_byte *weak;    /* weak marks bits/weak data */
-  int i;                     /* index for track and clocks */
-} disk_position_context_t;
+   DISK_SET_TRACK_IDX( d, d->sides * cyl + head )
 
 const char *disk_strerror( int error );
 /* create an unformatted disk sides -> (1/2) cylinders -> track/side,

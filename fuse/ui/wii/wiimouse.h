@@ -1,6 +1,8 @@
 /* wiimouse.h: routines for dealing with the Wiimote as a mouse
    Copyright (c) 2008 Bjoern Giesler
 
+   $Id: wiimouse.h 3945 2009-01-10 18:44:42Z zubzero $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

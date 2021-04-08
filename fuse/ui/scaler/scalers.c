@@ -1,11 +1,13 @@
 /* scalers.c: the actual graphics scalers
- * Copyright (C) 2003-2015 Fredrick Meunier, Philip Kendall, Gergely Szasz
+ * Copyright (C) 2003-2008 Fredrick Meunier, Philip Kendall, Gergely Szasz
  *
+ * $Id: scalers.c 4624 2012-01-09 20:59:35Z pak21 $
+ * 
  * Originally taken from ScummVM - Scumm Interpreter
  * Copyright (C) 2001  Ludvig Strigeus
  * Copyright (C) 2001-2003 The ScummVM project
  *
- * HQ2x, HQ3x and HQ4x scalers taken from HiEnd3D Demos (http://www.hiend3d.com)
+ * HQ2x and HQ3x scalers taken from HiEnd3D Demos (http://www.hiend3d.com)
  * Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
  *
  * This program is free software; you can redistribute it and/or
@@ -287,14 +289,6 @@ HQ_INTERPOLATE_7( libspectrum_dword A, libspectrum_dword B,
 }
 
 static inline libspectrum_dword
-HQ_INTERPOLATE_8( libspectrum_dword A, libspectrum_dword B )
-{
-  return ( ( ( ( A & greenMask ) * 5 + ( B & greenMask) * 3 ) & green8_Mask ) +
-         ( ( ( A & redblueMask ) * 5 + ( B & redblueMask ) * 3 ) & redblue8_Mask )
-         ) >> 3;
-}
-
-static inline libspectrum_dword
 HQ_INTERPOLATE_9( libspectrum_dword A, libspectrum_dword B,
                   libspectrum_dword C )
 {
@@ -421,151 +415,6 @@ HQ_INTERPOLATE_10( libspectrum_dword A, libspectrum_dword B,
 #define HQ_PIXEL22_4   HQ_INTERPOLATE_4(w[5], w[6], w[8])
 #define HQ_PIXEL22_5   HQ_INTERPOLATE_5(w[6], w[8])
 #define HQ_PIXEL22_C   w[5]
-
-/* dstPtr */
-#define HQ4X_PIXEL00_0     w[5]
-#define HQ4X_PIXEL00_11    HQ_INTERPOLATE_1(w[5], w[4])
-#define HQ4X_PIXEL00_12    HQ_INTERPOLATE_1(w[5], w[2])
-#define HQ4X_PIXEL00_20    HQ_INTERPOLATE_2(w[5], w[2], w[4])
-#define HQ4X_PIXEL00_50    HQ_INTERPOLATE_5(w[2], w[4])
-#define HQ4X_PIXEL00_80    HQ_INTERPOLATE_8(w[5], w[1])
-#define HQ4X_PIXEL00_81    HQ_INTERPOLATE_8(w[5], w[4])
-#define HQ4X_PIXEL00_82    HQ_INTERPOLATE_8(w[5], w[2])
-#define HQ4X_PIXEL01_0     w[5]
-#define HQ4X_PIXEL01_10    HQ_INTERPOLATE_1(w[5], w[1])
-#define HQ4X_PIXEL01_12    HQ_INTERPOLATE_1(w[5], w[2])
-#define HQ4X_PIXEL01_14    HQ_INTERPOLATE_1(w[2], w[5])
-#define HQ4X_PIXEL01_21    HQ_INTERPOLATE_2(w[2], w[5], w[4])
-#define HQ4X_PIXEL01_31    HQ_INTERPOLATE_3(w[5], w[4])
-#define HQ4X_PIXEL01_50    HQ_INTERPOLATE_5(w[2], w[5])
-#define HQ4X_PIXEL01_60    HQ_INTERPOLATE_6(w[5], w[2], w[4])
-#define HQ4X_PIXEL01_61    HQ_INTERPOLATE_6(w[5], w[2], w[1])
-#define HQ4X_PIXEL01_82    HQ_INTERPOLATE_8(w[5], w[2])
-#define HQ4X_PIXEL01_83    HQ_INTERPOLATE_8(w[2], w[4])
-#define HQ4X_PIXEL02_0     w[5]
-#define HQ4X_PIXEL02_10    HQ_INTERPOLATE_1(w[5], w[3])
-#define HQ4X_PIXEL02_11    HQ_INTERPOLATE_1(w[5], w[2])
-#define HQ4X_PIXEL02_13    HQ_INTERPOLATE_1(w[2], w[5])
-#define HQ4X_PIXEL02_21    HQ_INTERPOLATE_2(w[2], w[5], w[6])
-#define HQ4X_PIXEL02_32    HQ_INTERPOLATE_3(w[5], w[6])
-#define HQ4X_PIXEL02_50    HQ_INTERPOLATE_5(w[2], w[5])
-#define HQ4X_PIXEL02_60    HQ_INTERPOLATE_6(w[5], w[2], w[6])
-#define HQ4X_PIXEL02_61    HQ_INTERPOLATE_6(w[5], w[2], w[3])
-#define HQ4X_PIXEL02_81    HQ_INTERPOLATE_8(w[5], w[2])
-#define HQ4X_PIXEL02_83    HQ_INTERPOLATE_8(w[2], w[6])
-#define HQ4X_PIXEL03_0     w[5]
-#define HQ4X_PIXEL03_11    HQ_INTERPOLATE_1(w[5], w[2])
-#define HQ4X_PIXEL03_12    HQ_INTERPOLATE_1(w[5], w[6])
-#define HQ4X_PIXEL03_20    HQ_INTERPOLATE_2(w[5], w[2], w[6])
-#define HQ4X_PIXEL03_50    HQ_INTERPOLATE_5(w[2], w[6])
-#define HQ4X_PIXEL03_80    HQ_INTERPOLATE_8(w[5], w[3])
-#define HQ4X_PIXEL03_81    HQ_INTERPOLATE_8(w[5], w[2])
-#define HQ4X_PIXEL03_82    HQ_INTERPOLATE_8(w[5], w[6])
-/* +dstPitch */
-#define HQ4X_PIXEL10_0     w[5]
-#define HQ4X_PIXEL10_10    HQ_INTERPOLATE_1(w[5], w[1])
-#define HQ4X_PIXEL10_11    HQ_INTERPOLATE_1(w[5], w[4])
-#define HQ4X_PIXEL10_13    HQ_INTERPOLATE_1(w[4], w[5])
-#define HQ4X_PIXEL10_21    HQ_INTERPOLATE_2(w[4], w[5], w[2])
-#define HQ4X_PIXEL10_32    HQ_INTERPOLATE_3(w[5], w[2])
-#define HQ4X_PIXEL10_50    HQ_INTERPOLATE_5(w[4], w[5])
-#define HQ4X_PIXEL10_60    HQ_INTERPOLATE_6(w[5], w[4], w[2])
-#define HQ4X_PIXEL10_61    HQ_INTERPOLATE_6(w[5], w[4], w[1])
-#define HQ4X_PIXEL10_81    HQ_INTERPOLATE_8(w[5], w[4])
-#define HQ4X_PIXEL10_83    HQ_INTERPOLATE_8(w[4], w[2])
-#define HQ4X_PIXEL11_0     w[5]
-#define HQ4X_PIXEL11_30    HQ_INTERPOLATE_3(w[5], w[1])
-#define HQ4X_PIXEL11_31    HQ_INTERPOLATE_3(w[5], w[4])
-#define HQ4X_PIXEL11_32    HQ_INTERPOLATE_3(w[5], w[2])
-#define HQ4X_PIXEL11_70    HQ_INTERPOLATE_7(w[5], w[4], w[2])
-#define HQ4X_PIXEL12_0     w[5]
-#define HQ4X_PIXEL12_30    HQ_INTERPOLATE_3(w[5], w[3])
-#define HQ4X_PIXEL12_31    HQ_INTERPOLATE_3(w[5], w[2])
-#define HQ4X_PIXEL12_32    HQ_INTERPOLATE_3(w[5], w[6])
-#define HQ4X_PIXEL12_70    HQ_INTERPOLATE_7(w[5], w[6], w[2])
-#define HQ4X_PIXEL13_0     w[5]
-#define HQ4X_PIXEL13_10    HQ_INTERPOLATE_1(w[5], w[3])
-#define HQ4X_PIXEL13_12    HQ_INTERPOLATE_1(w[5], w[6])
-#define HQ4X_PIXEL13_14    HQ_INTERPOLATE_1(w[6], w[5])
-#define HQ4X_PIXEL13_21    HQ_INTERPOLATE_2(w[6], w[5], w[2])
-#define HQ4X_PIXEL13_31    HQ_INTERPOLATE_3(w[5], w[2])
-#define HQ4X_PIXEL13_50    HQ_INTERPOLATE_5(w[6], w[5])
-#define HQ4X_PIXEL13_60    HQ_INTERPOLATE_6(w[5], w[6], w[2])
-#define HQ4X_PIXEL13_61    HQ_INTERPOLATE_6(w[5], w[6], w[3])
-#define HQ4X_PIXEL13_82    HQ_INTERPOLATE_8(w[5], w[6])
-#define HQ4X_PIXEL13_83    HQ_INTERPOLATE_8(w[6], w[2])
-/* +dstPitch +dstPitch */
-#define HQ4X_PIXEL20_0     w[5]
-#define HQ4X_PIXEL20_10    HQ_INTERPOLATE_1(w[5], w[7])
-#define HQ4X_PIXEL20_12    HQ_INTERPOLATE_1(w[5], w[4])
-#define HQ4X_PIXEL20_14    HQ_INTERPOLATE_1(w[4], w[5])
-#define HQ4X_PIXEL20_21    HQ_INTERPOLATE_2(w[4], w[5], w[8])
-#define HQ4X_PIXEL20_31    HQ_INTERPOLATE_3(w[5], w[8])
-#define HQ4X_PIXEL20_50    HQ_INTERPOLATE_5(w[4], w[5])
-#define HQ4X_PIXEL20_60    HQ_INTERPOLATE_6(w[5], w[4], w[8])
-#define HQ4X_PIXEL20_61    HQ_INTERPOLATE_6(w[5], w[4], w[7])
-#define HQ4X_PIXEL20_82    HQ_INTERPOLATE_8(w[5], w[4])
-#define HQ4X_PIXEL20_83    HQ_INTERPOLATE_8(w[4], w[8])
-#define HQ4X_PIXEL21_0     w[5]
-#define HQ4X_PIXEL21_30    HQ_INTERPOLATE_3(w[5], w[7])
-#define HQ4X_PIXEL21_31    HQ_INTERPOLATE_3(w[5], w[8])
-#define HQ4X_PIXEL21_32    HQ_INTERPOLATE_3(w[5], w[4])
-#define HQ4X_PIXEL21_70    HQ_INTERPOLATE_7(w[5], w[4], w[8])
-#define HQ4X_PIXEL22_0     w[5]
-#define HQ4X_PIXEL22_30    HQ_INTERPOLATE_3(w[5], w[9])
-#define HQ4X_PIXEL22_31    HQ_INTERPOLATE_3(w[5], w[6])
-#define HQ4X_PIXEL22_32    HQ_INTERPOLATE_3(w[5], w[8])
-#define HQ4X_PIXEL22_70    HQ_INTERPOLATE_7(w[5], w[6], w[8])
-#define HQ4X_PIXEL23_0     w[5]
-#define HQ4X_PIXEL23_10    HQ_INTERPOLATE_1(w[5], w[9])
-#define HQ4X_PIXEL23_11    HQ_INTERPOLATE_1(w[5], w[6])
-#define HQ4X_PIXEL23_13    HQ_INTERPOLATE_1(w[6], w[5])
-#define HQ4X_PIXEL23_21    HQ_INTERPOLATE_2(w[6], w[5], w[8])
-#define HQ4X_PIXEL23_32    HQ_INTERPOLATE_3(w[5], w[8])
-#define HQ4X_PIXEL23_50    HQ_INTERPOLATE_5(w[6], w[5])
-#define HQ4X_PIXEL23_60    HQ_INTERPOLATE_6(w[5], w[6], w[8])
-#define HQ4X_PIXEL23_61    HQ_INTERPOLATE_6(w[5], w[6], w[9])
-#define HQ4X_PIXEL23_81    HQ_INTERPOLATE_8(w[5], w[6])
-#define HQ4X_PIXEL23_83    HQ_INTERPOLATE_8(w[6], w[8])
-/* +dstPitch +dstPitch +dstPitch */
-#define HQ4X_PIXEL30_0     w[5]
-#define HQ4X_PIXEL30_11    HQ_INTERPOLATE_1(w[5], w[8])
-#define HQ4X_PIXEL30_12    HQ_INTERPOLATE_1(w[5], w[4])
-#define HQ4X_PIXEL30_20    HQ_INTERPOLATE_2(w[5], w[8], w[4])
-#define HQ4X_PIXEL30_50    HQ_INTERPOLATE_5(w[8], w[4])
-#define HQ4X_PIXEL30_80    HQ_INTERPOLATE_8(w[5], w[7])
-#define HQ4X_PIXEL30_81    HQ_INTERPOLATE_8(w[5], w[8])
-#define HQ4X_PIXEL30_82    HQ_INTERPOLATE_8(w[5], w[4])
-#define HQ4X_PIXEL31_0     w[5]
-#define HQ4X_PIXEL31_10    HQ_INTERPOLATE_1(w[5], w[7])
-#define HQ4X_PIXEL31_11    HQ_INTERPOLATE_1(w[5], w[8])
-#define HQ4X_PIXEL31_13    HQ_INTERPOLATE_1(w[8], w[5])
-#define HQ4X_PIXEL31_21    HQ_INTERPOLATE_2(w[8], w[5], w[4])
-#define HQ4X_PIXEL31_32    HQ_INTERPOLATE_3(w[5], w[4])
-#define HQ4X_PIXEL31_50    HQ_INTERPOLATE_5(w[8], w[5])
-#define HQ4X_PIXEL31_60    HQ_INTERPOLATE_6(w[5], w[8], w[4])
-#define HQ4X_PIXEL31_61    HQ_INTERPOLATE_6(w[5], w[8], w[7])
-#define HQ4X_PIXEL31_81    HQ_INTERPOLATE_8(w[5], w[8])
-#define HQ4X_PIXEL31_83    HQ_INTERPOLATE_8(w[8], w[4])
-#define HQ4X_PIXEL32_0     w[5]
-#define HQ4X_PIXEL32_10    HQ_INTERPOLATE_1(w[5], w[9])
-#define HQ4X_PIXEL32_12    HQ_INTERPOLATE_1(w[5], w[8])
-#define HQ4X_PIXEL32_14    HQ_INTERPOLATE_1(w[8], w[5])
-#define HQ4X_PIXEL32_21    HQ_INTERPOLATE_2(w[8], w[5], w[6])
-#define HQ4X_PIXEL32_31    HQ_INTERPOLATE_3(w[5], w[6])
-#define HQ4X_PIXEL32_50    HQ_INTERPOLATE_5(w[8], w[5])
-#define HQ4X_PIXEL32_60    HQ_INTERPOLATE_6(w[5], w[8], w[6])
-#define HQ4X_PIXEL32_61    HQ_INTERPOLATE_6(w[5], w[8], w[9])
-#define HQ4X_PIXEL32_82    HQ_INTERPOLATE_8(w[5], w[8])
-#define HQ4X_PIXEL32_83    HQ_INTERPOLATE_8(w[8], w[6])
-#define HQ4X_PIXEL33_0     w[5]
-#define HQ4X_PIXEL33_11    HQ_INTERPOLATE_1(w[5], w[6])
-#define HQ4X_PIXEL33_12    HQ_INTERPOLATE_1(w[5], w[8])
-#define HQ4X_PIXEL33_20    HQ_INTERPOLATE_2(w[5], w[8], w[6])
-#define HQ4X_PIXEL33_50    HQ_INTERPOLATE_5(w[8], w[6])
-#define HQ4X_PIXEL33_80    HQ_INTERPOLATE_8(w[5], w[9])
-#define HQ4X_PIXEL33_81    HQ_INTERPOLATE_8(w[5], w[6])
-#define HQ4X_PIXEL33_82    HQ_INTERPOLATE_8(w[5], w[8])
 
 #define HQ_trY 0x00000030
 #define HQ_trU 0x00000007
@@ -990,9 +839,9 @@ FUNCTION( scaler_AdvMame2x )( const libspectrum_byte *srcPtr,
   while (height--) {
     int i;
 
-    /* B = *(p - 1 - nextlineSrc); */
+    B = *(p - 1 - nextlineSrc);
     E = *(p - 1);
-    /* H = *(p - 1 + nextlineSrc); */
+    H = *(p - 1 + nextlineSrc);
     C = *(p - nextlineSrc);
     F = *(p);
     I = *(p + nextlineSrc);
@@ -1027,9 +876,9 @@ FUNCTION( scaler_AdvMame3x )( const libspectrum_byte *srcPtr,
   unsigned int nextlineDst = dstPitch / sizeof( scaler_data_type );
   scaler_data_type *q = (scaler_data_type*) dstPtr;
 
-  scaler_data_type A, B, C;
+  scaler_data_type /* A, */ B, C;
   scaler_data_type D, E, F;
-  scaler_data_type G, H, I;
+  scaler_data_type /* G, */ H, I;
 
   while (height--) {
     int i;
@@ -1043,18 +892,18 @@ FUNCTION( scaler_AdvMame3x )( const libspectrum_byte *srcPtr,
 
     for (i = 0; i < width; ++i) {
       p++;
-      A = B; B = C; C = *(p - nextlineSrc);
+      /* A = B; */ B = C; C = *(p - nextlineSrc);
       D = E; E = F; F = *(p);
-      G = H; H = I; I = *(p + nextlineSrc);
+      /* G = H; */ H = I; I = *(p + nextlineSrc);
 
       *(q) = D == B && B != F && D != H ? D : E;
-      *(q + 1) = (D == B && B != F && D != H && E != C) || (B == F && B != D && F != H && E != A) ? B : E;
+      *(q + 1) = E;
       *(q + 2) = B == F && B != D && F != H ? F : E;
-      *(q + nextlineDst) = (D == B && B != F && D != H && E != G) || (D == H && D != B && H != F && E != A) ? D : E;
+      *(q + nextlineDst) = E;
       *(q + nextlineDst + 1) = E;
-      *(q + nextlineDst + 2) = (B == F && B != D && F != H && E != I) || (H == F && D != H && B != F && E != C) ? F : E;
+      *(q + nextlineDst + 2) = E;
       *(q + 2 * nextlineDst) = D == H && D != B && H != F ? D : E;
-      *(q + 2 * nextlineDst + 1) = (D == H && D != B && H != F && E != I) || (H == F && D != H && B != F && E != G) ? H : E;
+      *(q + 2 * nextlineDst + 1) = E;
       *(q + 2 * nextlineDst + 2) = H == F && D != H && B != F ? F : E;
       q += 3;
     }
@@ -1184,49 +1033,6 @@ FUNCTION( scaler_Normal3x )( const libspectrum_byte *srcPtr,
   }
 }
 
-void
-FUNCTION( scaler_Normal4x )( const libspectrum_byte *srcPtr,
-			     libspectrum_dword srcPitch,
-			     libspectrum_byte *dstPtr,
-			     libspectrum_dword dstPitch,
-			     int width, int height )
-{
-  libspectrum_byte *r;
-  libspectrum_dword dstPitch2 = dstPitch * 2;
-  libspectrum_dword dstPitch3 = dstPitch * 3;
-  libspectrum_dword dstPitch4 = dstPitch * 4;
-
-  while (height--) {
-    int i;
-    r = dstPtr;
-    for (i = 0; i < width; ++i, r += 4 * SCALER_DATA_SIZE ) {
-      scaler_data_type color = *(((const scaler_data_type*) srcPtr) + i);
-
-      *(scaler_data_type*)( r +                    0             ) = color;
-      *(scaler_data_type*)( r +     SCALER_DATA_SIZE             ) = color;
-      *(scaler_data_type*)( r + 2 * SCALER_DATA_SIZE             ) = color;
-      *(scaler_data_type*)( r + 3 * SCALER_DATA_SIZE             ) = color;
-
-      *(scaler_data_type*)( r +                    0 + dstPitch  ) = color;
-      *(scaler_data_type*)( r +     SCALER_DATA_SIZE + dstPitch  ) = color;
-      *(scaler_data_type*)( r + 2 * SCALER_DATA_SIZE + dstPitch  ) = color;
-      *(scaler_data_type*)( r + 3 * SCALER_DATA_SIZE + dstPitch  ) = color;
-
-      *(scaler_data_type*)( r +                    0 + dstPitch2 ) = color;
-      *(scaler_data_type*)( r +     SCALER_DATA_SIZE + dstPitch2 ) = color;
-      *(scaler_data_type*)( r + 2 * SCALER_DATA_SIZE + dstPitch2 ) = color;
-      *(scaler_data_type*)( r + 3 * SCALER_DATA_SIZE + dstPitch2 ) = color;
-
-      *(scaler_data_type*)( r +                    0 + dstPitch3 ) = color;
-      *(scaler_data_type*)( r +     SCALER_DATA_SIZE + dstPitch3 ) = color;
-      *(scaler_data_type*)( r + 2 * SCALER_DATA_SIZE + dstPitch3 ) = color;
-      *(scaler_data_type*)( r + 3 * SCALER_DATA_SIZE + dstPitch3 ) = color;
-    }
-    srcPtr += srcPitch;
-    dstPtr += dstPitch4;
-  }
-}
-
 void 
 FUNCTION( scaler_Timex1_5x )( const libspectrum_byte *srcPtr,
            libspectrum_dword srcPitch,
@@ -1330,52 +1136,6 @@ FUNCTION( scaler_TV3x )( const libspectrum_byte *srcPtr,
     }
     p += nextlineSrc;
     q += nextlineDst * 3;
-  }
-}
-
-void
-FUNCTION( scaler_TV4x )( const libspectrum_byte *srcPtr,
-                         libspectrum_dword srcPitch, libspectrum_byte *dstPtr,
-                         libspectrum_dword dstPitch,
-                         int width, int height )
-{
-  int i, j;
-  unsigned int nextlineSrc = srcPitch / sizeof( scaler_data_type );
-  const scaler_data_type *p = (const scaler_data_type*)srcPtr;
-
-  unsigned int nextlineDst = dstPitch / sizeof( scaler_data_type );
-  scaler_data_type *q = (scaler_data_type*)dstPtr;
-
-  while(height--) {
-    for (i = 0, j = 0; i < width; ++i, j += 4) {
-      scaler_data_type p1 = *(p + i);
-      scaler_data_type pi;
-
-      pi  = (((p1 & redblueMask) * 7) >> 3) & redblueMask;
-      pi |= (((p1 & greenMask  ) * 7) >> 3) & greenMask;
-
-      *(q + j) = p1;
-      *(q + j + 1) = p1;
-      *(q + j + 2) = p1;
-      *(q + j + 3) = p1;
-
-      *(q + j + nextlineDst) = p1;
-      *(q + j + nextlineDst + 1) = p1;
-      *(q + j + nextlineDst + 2) = p1;
-      *(q + j + nextlineDst + 3) = p1;
-
-      *(q + j + (nextlineDst << 1)) = pi;
-      *(q + j + (nextlineDst << 1) + 1) = pi;
-      *(q + j + (nextlineDst << 1) + 2) = pi;
-      *(q + j + (nextlineDst << 1) + 3) = pi;
-
-      *(q + j + (nextlineDst * 3)) = pi;
-      *(q + j + (nextlineDst * 3) + 1) = pi;
-      *(q + j + (nextlineDst * 3) + 2) = pi;
-      *(q + j + (nextlineDst * 3) + 3) = pi;
-    }
-    p += nextlineSrc;
-    q += nextlineDst * 4;
   }
 }
 
@@ -1912,152 +1672,6 @@ FUNCTION( scaler_PalTV3x )( const libspectrum_byte *srcPtr,
   }
 }
 
-void
-FUNCTION( scaler_PalTV4x )( const libspectrum_byte *srcPtr,
-                              libspectrum_dword srcPitch,
-                              libspectrum_byte *dstPtr,
-                              libspectrum_dword dstPitch,
-                              int width, int height )
-{
-/*
-   1.a. RGB => 255,255,255 RGB
-   1.b. RGB => YUV
-   2. 4:2:2 cosited color subsampling
-   3.a. YUV => RGB
-   3.b  255,255,255 RGB => RGB
-*/
-  int i, j;
-  unsigned int nextlineSrc = srcPitch / sizeof( scaler_data_type );
-  const scaler_data_type *p, *p0 = (const scaler_data_type *)srcPtr;
-
-  unsigned int nextlineDst = dstPitch / sizeof( scaler_data_type );
-  scaler_data_type *q, *q0 = (scaler_data_type *)dstPtr;
-
-  libspectrum_byte  r0, g0, b0,
-                    r1, g1, b1,
-                    rx, gx, bx;
-  libspectrum_signed_dword y1, y2, u1, v1, u2, v2;
-
-/*
- 422 cosited
-    # + # +             + only Y
-                        # Y and Cb Cr
-    # + # +
-
-    abcd...    =>  1/2a + a + 1/2b / 2; ...; 1/2a + b + 1/2c; ... ; ...
-    always 3 sample/proc
-
-*/
-  for( j = height; j; j-- ) {
-    p = p0 - 1; q = q0;
-#if SCALER_DATA_SIZE == 2
-    r0 = R_TO_R( *p );
-    g0 = G_TO_G( *p );
-    b0 = B_TO_B( *p );
-    p++;
-    r1 = R_TO_R( *p );
-    g1 = G_TO_G( *p );
-    b1 = B_TO_B( *p );
-#else
-    r0 = *p & redMask;
-    g0 = (*p & greenMask) >> 8;
-    b0 = (*p & blueMask) >> 16;
-    p++;
-    r1 = *(p) & redMask;
-    g1 = (*(p) & greenMask) >> 8;
-    b1 = (*(p) & blueMask) >> 16;
-#endif
-    y1 = RGB_TO_Y( r1, g1, b1 );
-    u1 = ( RGB_TO_U( r0, g0, b0 ) + 3 * RGB_TO_U( r1, g1, b1 ) ) >> 2;
-    v1 = ( RGB_TO_V( r0, g0, b0 ) + 3 * RGB_TO_V( r1, g1, b1 ) ) >> 2;
-    for( i = width; i; i-- ) {
-      p++;      /* next point */
-#if SCALER_DATA_SIZE == 2
-      /* 1.a. RGB => RGB */
-      r0 = R_TO_R( *p );
-      g0 = G_TO_G( *p );
-      b0 = B_TO_B( *p );
-#else
-      r0 = (*p & redMask);
-      g0 = (*p & greenMask) >> 8;
-      b0 = (*p & blueMask) >> 16;
-#endif
-/* 1.b. RGB => YUV && 2. YUV subsampling */
-      y2 = RGB_TO_Y( r0, g0, b0 );
-      u2 = ( RGB_TO_U( r1, g1, b1 ) + 3 * RGB_TO_U( r0, g0, b0 ) ) >> 2;
-      v2 = ( RGB_TO_V( r1, g1, b1 ) + 3 * RGB_TO_V( r0, g0, b0 ) ) >> 2;
-
-/* 3.a. YUV => RGB  */
-      rx = YUV_TO_R( y1, u1, v1 );      /* [x0][  ]*/
-      gx = YUV_TO_G( y1, u1, v1 );
-      bx = YUV_TO_B( y1, u1, v1 );
-
-      u1 = ( u1 + u2 ) >> 1;
-      v1 = ( v1 + v2 ) >> 1;
-
-      r1 = YUV_TO_R( y1, u1, v1 );
-      g1 = YUV_TO_G( y1, u1, v1 );
-      b1 = YUV_TO_B( y1, u1, v1 );
-
-#if SCALER_DATA_SIZE == 2
-/*
-   q q+1 | q+2 q+3
-   q q+1 | q+2 q+3
-   _______________
-
-*/
-/* 3.b. RGB => RGB */
-      if( green6bit ) {
-        *q = *(q+1) = RGB_TO_PIXEL_565( rx, gx, bx );
-      } else {
-        *q = *(q+1) = RGB_TO_PIXEL_555( rx, gx, bx );
-      }
-#else
-      *q = *(q+1) = rx + ( gx << 8 ) + ( bx << 16 );
-#endif
-
-      if( settings_current.pal_tv2x )
-        *(q + nextlineDst) = *(q + nextlineDst + 1) =
-        *(q + 2 * nextlineDst) = *(q + 2 * nextlineDst + 1) =
-        *(q + 3 * nextlineDst) = *(q + 3 * nextlineDst + 1) =
-            ((((*q & redblueMask) * 7) >> 3) & redblueMask) |
-                ((((*q & greenMask  ) * 7) >> 3) & greenMask);
-      else
-        *(q + nextlineDst) = *(q + nextlineDst + 1) =
-        *(q + 2 * nextlineDst) = *(q + 2 * nextlineDst + 1) =
-        *(q + 3 * nextlineDst) = *(q + 3 * nextlineDst + 1) = *q;
-
-      q++; q++;
-#if SCALER_DATA_SIZE == 2
-/* 3.b. RGB => RGB */
-      if( green6bit ) {
-        *q = *(q + 1) = RGB_TO_PIXEL_565( r1, g1, b1 );
-      } else {
-        *q = *(q + 1) = RGB_TO_PIXEL_555( r1, g1, b1 );
-      }
-#else
-      *q = *(q + 1) = r1 + ( g1 << 8 ) + ( b1 << 16 );
-#endif
-      if( settings_current.pal_tv2x )
-        *(q + nextlineDst) = *(q + nextlineDst + 1) =
-        *(q + 2 * nextlineDst) = *(q + 2 * nextlineDst + 1) =
-        *(q + 3 * nextlineDst) = *(q + 3 * nextlineDst + 1) =
-            ((((*q & redblueMask) * 7) >> 3) & redblueMask) |
-                ((((*q & greenMask  ) * 7) >> 3) & greenMask);
-      else
-        *(q + nextlineDst) = *(q + nextlineDst + 1) =
-        *(q + 2 * nextlineDst) = *(q + 2 * nextlineDst + 1) =
-        *(q + 3 * nextlineDst) = *(q + 3 * nextlineDst + 1) = *q;
-
-      q++; q++;
-      y1 = y2; u1 = u2; v1 = v2;        /* save for next point */
-      r1 = r0; g1 = g0; b1 = b0;
-    }
-    p0 += nextlineSrc;
-    q0 += nextlineDst << 2;
-  }
-}
-
 #define prevline (-nextlineSrc)
 #define nextline nextlineSrc
 #define MOVE_B_TO_A(A,B) \
@@ -2194,6 +1808,8 @@ FUNCTION( scaler_HQ3x ) ( const libspectrum_byte *srcPtr,
        | w7 | w8 | w9 |
        +----+----+----+ */
   for( j = 0; j < height; j++ ) {
+    if( j == height - 1 ) nextline = 0;
+
     p = p0;
     q = q0;
     q1 = q + 1; q2 = q + 2;
@@ -2262,110 +1878,5 @@ FUNCTION( scaler_HQ3x ) ( const libspectrum_byte *srcPtr,
     }
     p0 += nextlineSrc;
     q0 += ( nextlineDst << 1 ) + nextlineDst;
-  }
-}
-
-void
-FUNCTION( scaler_HQ4x ) ( const libspectrum_byte *srcPtr,
-                          libspectrum_dword srcPitch,
-                          libspectrum_byte *dstPtr,
-                          libspectrum_dword dstPitch,
-                          int width, int height )
-{
-  int i, j, k, pattern;
-  int nextlineSrc = srcPitch / sizeof( scaler_data_type );
-  const scaler_data_type *p, *p0 = (const scaler_data_type *)srcPtr;
-  int nextlineDst = dstPitch / sizeof( scaler_data_type );
-  scaler_data_type *q,  *qN,  *qNN,  *qNNN,
-                   *q1, *qN1, *qNN1, *qNNN1,
-                   *q2, *qN2, *qNN2, *qNNN2,
-                   *q3, *qN3, *qNN3, *qNNN3,
-                   *q0 = (scaler_data_type *)dstPtr;
-  libspectrum_qword w[10];
-
-  libspectrum_byte  r, g, b;
-  libspectrum_signed_dword y[10], u[10], v[10];
-
-  /*   +----+----+----+
-       |    |    |    |
-       | w1 | w2 | w3 |
-       +----+----+----+
-       |    |    |    |
-       | w4 | w5 | w6 |
-       +----+----+----+
-       |    |    |    |
-       | w7 | w8 | w9 |
-       +----+----+----+ */
-  for( j = 0; j < height; j++ ) {
-    p = p0;
-    q = q0;
-    q1 = q + 1; q2 = q + 2; q3 = q + 3;
-    qN = q + nextlineDst; qN1 = qN + 1; qN2 = qN + 2; qN3 = qN + 3;
-    qNN = qN + nextlineDst; qNN1 = qNN + 1; qNN2 = qNN + 2; qNN3 = qNN + 3;
-    qNNN = qNN + nextlineDst; qNNN1 = qNNN + 1; qNNN2 = qNNN + 2; qNNN3 = qNNN + 3;
-
-    w[2] = *(p + prevline);
-    w[5] = *p;
-    w[8] = *(p + nextline);
-    w[1] = *(p + prevline - 1);
-    w[4] = *(p - 1);
-    w[7] = *(p + nextline - 1);
-    w[3] = *(p + prevline + 1);
-    w[6] = *(p + 1);
-    w[9] = *(p + nextline + 1);
-    for( k = 1; k <= 9; k++ ) {
-#if SCALER_DATA_SIZE == 2
-      r = R_TO_R( w[k] );
-      g = G_TO_G( w[k] );
-      b = B_TO_B( w[k] );
-#else
-      r =  w[k] & redMask;
-      g = (w[k] & greenMask) >> 8;
-      b = (w[k] & blueMask) >> 16;
-#endif
-      y[k] = RGB_TO_Y( r, g, b );
-      u[k] = RGB_TO_U( r, g, b );
-      v[k] = RGB_TO_V( r, g, b );
-    }
-
-    for( i = 0; i < width; i++ ) {
-      pattern = 0;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[1], u[1], v[1] ) ) pattern |= 0x01;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[2], u[2], v[2] ) ) pattern |= 0x02;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[3], u[3], v[3] ) ) pattern |= 0x04;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[4], u[4], v[4] ) ) pattern |= 0x08;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[6], u[6], v[6] ) ) pattern |= 0x10;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[7], u[7], v[7] ) ) pattern |= 0x20;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[8], u[8], v[8] ) ) pattern |= 0x40;
-      if( HQ_YUVDIFF( y[5], u[5], v[5], y[9], u[9], v[9] ) ) pattern |= 0x80;
-
-#include "scaler_hq4x.c"
-
-      p++;
-      q    += 4; q1    += 4; q2    += 4; q3    += 4;
-      qN   += 4; qN1   += 4; qN2   += 4; qN3   += 4;
-      qNN  += 4; qNN1  += 4; qNN2  += 4; qNN3  += 4;
-      qNNN += 4; qNNN1 += 4; qNNN2 += 4; qNNN3 += 4;
-      MOVE_P_RIGHT
-      w[3] = *(p + prevline + 1);
-      w[6] = *(p + 1);
-      w[9] = *(p + nextline + 1);
-      for( k = 3; k <= 9; k += 3 ) {
-#if SCALER_DATA_SIZE == 2
-        r = R_TO_R( w[k] );
-        g = G_TO_G( w[k] );
-        b = B_TO_B( w[k] );
-#else
-        r =   w[k] & redMask;
-        g = ( w[k] & greenMask ) >> 8;
-        b = ( w[k] & blueMask  ) >> 16;
-#endif
-        y[k] = RGB_TO_Y( r, g, b );
-        u[k] = RGB_TO_U( r, g, b );
-        v[k] = RGB_TO_V( r, g, b );
-      }
-    }
-    p0 += nextlineSrc;
-    q0 += ( nextlineDst << 2 );
   }
 }

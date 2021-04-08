@@ -1,8 +1,8 @@
 /* tc2068.c: Timex TC2068 specific routines
-   Copyright (c) 1999-2015 Philip Kendall, Fredrick Meunier, Witold Filipczyk,
+   Copyright (c) 1999-2011 Philip Kendall, Fredrick Meunier, Witold Filipczyk,
                            Darren Salt
-   Copyright (c) 2015 Adrien Destugues
-   Copyright (c) 2015 Stuart Brady
+
+   $Id: tc2068.c 4724 2012-07-08 13:38:21Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ memory_page tc2068_empty_mapping[MEMORY_PAGES_IN_8K];
 static int empty_mapping_allocated = 0;
 
 libspectrum_byte
-tc2068_ay_registerport_read( libspectrum_word port, libspectrum_byte *attached )
+tc2068_ay_registerport_read( libspectrum_word port, int *attached )
 {
   if( machine_current->ay.current_register == 14 ) return 0xff;
 
@@ -56,7 +56,7 @@ tc2068_ay_registerport_read( libspectrum_word port, libspectrum_byte *attached )
 }
 
 libspectrum_byte
-tc2068_ay_dataport_read( libspectrum_word port, libspectrum_byte *attached )
+tc2068_ay_dataport_read( libspectrum_word port, int *attached )
 {
   if (machine_current->ay.current_register != 14) {
     return ay_registerport_read( port, attached );
@@ -68,7 +68,7 @@ tc2068_ay_dataport_read( libspectrum_word port, libspectrum_byte *attached )
        is returned here and were it isn't. In practice, this doesn't
        matter for the TC2068 as it doesn't have a floating bus, so we'll
        get 0xff in both cases anyway */
-    *attached = 0xff; /* TODO: check this */
+    *attached = 1;
 
     ret =   machine_current->ay.registers[7] & 0x40
 	  ? machine_current->ay.registers[14]
@@ -85,11 +85,10 @@ static void
 ensure_empty_mapping( void )
 {
   int i;
-  libspectrum_byte *empty_chunk;
 
   if( empty_mapping_allocated ) return;
 
-  empty_chunk = memory_pool_allocate_persistent( 0x2000, 1 );
+  libspectrum_byte *empty_chunk = memory_pool_allocate_persistent( 0x2000, 1 );
   memset( empty_chunk, 0xff, 0x2000 );
 
   for( i = 0; i < MEMORY_PAGES_IN_8K; i++ ) {
@@ -172,7 +171,8 @@ tc2068_reset( void )
       exrom_page->page_num = i;
     }
 
-  tc2068_tc2048_common_reset();
+  error = tc2068_tc2048_common_reset();
+  if( error ) return error;
 
   error = dck_reset();
   if( error ) {
@@ -183,11 +183,9 @@ tc2068_reset( void )
   return 0;
 }
 
-void
+int
 tc2068_tc2048_common_reset( void )
 {
-  scld_set_exrom_dock_contention();
-
   memory_current_screen = 5;
   memory_screen_mask = 0xdfff;
 
@@ -195,6 +193,8 @@ tc2068_tc2048_common_reset( void )
   scld_hsr_write( 0x00f4, 0x00 );
 
   tc2068_tc2048_common_display_setup();
+
+  return 0;
 }
 
 int

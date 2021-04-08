@@ -1,5 +1,7 @@
 /* rzx.h: .rzx files
-   Copyright (c) 2002-2016 Philip Kendall
+   Copyright (c) 2002-2003 Philip Kendall
+
+   $Id: rzx.h 4631 2012-01-19 22:43:24Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,6 +25,10 @@
 
 #ifndef FUSE_RZX_H
 #define FUSE_RZX_H
+
+#ifdef HAVE_LIB_GLIB
+#include <glib.h>
+#endif			/* #ifdef HAVE_LIB_GLIB */
 
 #include <libspectrum.h>
 
@@ -53,12 +59,10 @@ extern size_t rzx_instruction_count;
 /* The actual RZX data */
 extern libspectrum_rzx *rzx;
 
-void rzx_register_startup( void );
+void rzx_init( void );
 
 int rzx_start_recording( const char *filename, int embed_snapshot );
 int rzx_stop_recording( void );
-int rzx_continue_recording( const char *filename );
-int rzx_finalise_recording( const char *filename );
 
 int rzx_start_playback( const char *filename, int check_snapshot );
 int
@@ -69,6 +73,8 @@ int rzx_stop_playback( int add_interrupt );
 int rzx_frame( void );
 
 int rzx_store_byte( libspectrum_byte value );
+
+int rzx_end( void );
 
 int rzx_rollback( void );
 

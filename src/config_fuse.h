@@ -4,29 +4,20 @@
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
-/* Defined if we can increase Blip Buffer accuracy */
-/* #define BLIP_BUFFER_ACCURACY 32 */
-
 /* Define to 1 if SpeccyBoot is supported. */
 /* #undef BUILD_SPECCYBOOT */
 
 /* Defined if we support spectranet */
 /* #undef BUILD_SPECTRANET */
 
-/* Defined if we support ttx2000s */
-/* #undef BUILD_TTX2000S */
-
 /* DirectX 7 or higher is required */
 /* #undef DIRECTSOUND_VERSION */
 
 /* Define copyright of Fuse */
-#define FUSE_COPYRIGHT "(c) 1999-2021 Philip Kendall and others"
-
-/* Defined if the Fuse icon is installed */
-/* #undef FUSE_ICON_AVAILABLE */
+#define FUSE_COPYRIGHT "(c) 1999-2013 Philip Kendall and others"
 
 /* Define version information for win32 executables */
-#define FUSE_RC_VERSION 1,6,0,0
+#define FUSE_RC_VERSION 1,1,1,0
 
 /* Define to 1 if you have the `dirname' function. */
 /* #undef HAVE_DIRNAME */
@@ -44,7 +35,7 @@
 /* #undef HAVE_GETEUID */
 
 /* Define to 1 if you have the `getopt_long' function. */
-#define HAVE_GETOPT_LONG 1
+/* #undef HAVE_GETOPT_LONG */
 
 /* Defined if gpm in use */
 /* #undef HAVE_GPM_H */
@@ -61,7 +52,13 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
 
-/* Defined if we've got GLib */
+/* Define to 1 if you have the <libpng/png.h> header file. */
+/* #undef HAVE_LIBPNG_PNG_H */
+
+/* Define to 1 if you have the <libspectrum.h> header file. */
+#define HAVE_LIBSPECTRUM_H 1
+
+/* Defined if we've got glib */
 /* #undef HAVE_LIB_GLIB */
 
 /* Defined if we've got libxml2 */
@@ -69,6 +66,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
+
+/* Define to 1 if you have the `mkstemp' function. */
+/* #undef HAVE_MKSTEMP */
 
 /* Define if you have POSIX threads libraries and header files. */
 /* #undef HAVE_PTHREAD */
@@ -90,9 +90,6 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
-
-/* Define if your system has strcasecmp() in string.h */
-#define HAVE_STRING_STRCASECMP 1
 
 /* Define to 1 if you have the <sys/audioio.h> header file. */
 /* #undef HAVE_SYS_AUDIOIO_H */
@@ -118,11 +115,12 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #define HAVE_ZLIB_H 1
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Defined if no sound code is present */
-#define NO_SOUND 1
+/* #undef NO_SOUND */
 
 /* Name of package */
 #define PACKAGE "fuse"
@@ -134,7 +132,7 @@
 #define PACKAGE_NAME "fuse"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "fuse 1.6.0"
+#define PACKAGE_STRING "fuse 1.1.1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "fuse"
@@ -143,7 +141,7 @@
 #define PACKAGE_URL "http://fuse-emulator.sourceforge.net/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.6.0"
+#define PACKAGE_VERSION "1.1.1"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -151,9 +149,6 @@
 
 /* Location of the ROM images */
 /* #undef ROMSDIR */
-
-/* The size of `long', as computed by sizeof. */
-#define SIZEOF_LONG 8
 
 /* Defined if the sound code uses a fifo */
 /* #undef SOUND_FIFO */
@@ -164,11 +159,8 @@
 /* Defined if framebuffer UI in use */
 /* #undef UI_FB */
 
-/* Defined if GTK UI is in use */
+/* Defined if GTK+ UI is in use */
 /* #undef UI_GTK */
-
-/* Defined if null UI is in use */
-#define UI_NULL 1
 
 /* Defined if the SDL UI in use */
 /* #undef UI_SDL */
@@ -195,12 +187,12 @@
 #define USE_WIDGET 1
 
 /* Version number of package */
-#define VERSION "1.6.0"
+#define VERSION "1.1.1"
 
 /* Exclude rarely used stuff from Windows headers <windows.h> */
 /* #undef WIN32_LEAN_AND_MEAN */
 
-/* Minimal supported version of Windows is 2000 */
+/* Minimal supported version of Windows is 95 or NT4 */
 /* #undef WINVER */
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
@@ -216,13 +208,13 @@
 #endif
 
 /* Define to 1 if the X Window System is missing or not being used. */
-/* #undef X_DISPLAY_MISSING */
+#define X_DISPLAY_MISSING 1
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #define YYTEXT_POINTER 1
 
-/* Internet Explorer 5.01 or higher is required */
+/* Internet Explorer is 4.0 or higher is required */
 /* #undef _WIN32_IE */
 
 /* Define to empty if `const' does not conform to ANSI C. */

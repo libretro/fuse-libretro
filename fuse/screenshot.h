@@ -1,6 +1,8 @@
 /* screenshot.h: Routines for saving .png screenshots
    Copyright (c) 2002 Philip Kendall
 
+   $Id: screenshot.h 4664 2012-02-12 11:51:01Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -28,8 +30,6 @@
 #include "ui/scaler/scaler.h"
 #endif				/* #ifndef SCALER_H */
 
-void screenshot_register_startup( void );
-
 #ifdef USE_LIBPNG
 
 int screenshot_write( const char *filename, scaler_type scaler );
@@ -39,9 +39,6 @@ int screenshot_available_scalers( scaler_type scaler );
 
 int screenshot_scr_write( const char *filename );
 int screenshot_scr_read( const char *filename );
-
-int screenshot_mlt_write( const char *filename );
-int screenshot_mlt_read( const char *filename );
 
 #define STANDARD_SCR_SIZE 6912
 

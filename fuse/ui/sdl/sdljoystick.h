@@ -1,6 +1,8 @@
 /* sdljoystick.h: routines for dealing with the SDL joystick
    Copyright (c) 2003 Fredrick Meunier
 
+   $Id: sdljoystick.h 2889 2007-05-26 17:45:08Z zubzero $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -29,6 +31,5 @@
 void sdljoystick_buttonpress( SDL_JoyButtonEvent *buttonevent );
 void sdljoystick_buttonrelease( SDL_JoyButtonEvent *buttonevent );
 void sdljoystick_axismove( SDL_JoyAxisEvent *axisevent );
-void sdljoystick_hatmove( SDL_JoyHatEvent *hatevent );
 
 #endif			/* #ifndef FUSE_SDLJOYSTICK_H */

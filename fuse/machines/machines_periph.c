@@ -1,7 +1,7 @@
 /* machines_periph.c: various machine-specific peripherals
-   Copyright (c) 2011-2016 Philip Kendall
-   Copyright (c) 2015 Stuart Brady
-   Copyright (c) 2015 Gergely Szasz
+   Copyright (c) 2011 Philip Kendall
+
+   $Id: machines_periph.c 4926 2013-05-05 07:58:18Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 #include <config.h>
 
 #include "fuse.h"
-#include "infrastructure/startup_manager.h"
 #include "machines_periph.h"
 #include "pentagon.h"
 #include "periph.h"
@@ -151,8 +150,8 @@ static const periph_t pentagon1024_memory = {
   NULL
 };
 
-static int
-machines_periph_init( void *context )
+void
+machines_periph_init( void )
 {
   periph_register( PERIPH_TYPE_128_MEMORY, &spec128_memory );
   periph_register( PERIPH_TYPE_PLUS3_MEMORY, &plus3_memory );
@@ -162,17 +161,6 @@ machines_periph_init( void *context )
   periph_register( PERIPH_TYPE_BETA128_PENTAGON, &beta128_pentagon );
   periph_register( PERIPH_TYPE_BETA128_PENTAGON_LATE, &beta128_pentagon_late );
   periph_register( PERIPH_TYPE_PENTAGON1024_MEMORY, &pentagon1024_memory );
-
-  return 0;
-}
-
-void
-machines_periph_register_startup( void )
-{
-  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
-  startup_manager_register( STARTUP_MANAGER_MODULE_MACHINES_PERIPH,
-                            dependencies, ARRAY_SIZE( dependencies ),
-                            machines_periph_init, NULL, NULL );
 }
 
 /* Peripherals generally available on all machines; the Timex machines and
@@ -181,7 +169,6 @@ static void
 base_peripherals( void )
 {
   periph_set_present( PERIPH_TYPE_DIVIDE, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_DIVMMC, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_KEMPSTON, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_KEMPSTON_MOUSE, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_SIMPLEIDE, PERIPH_PRESENT_OPTIONAL );
@@ -200,11 +187,10 @@ base_peripherals_48_128( void )
   periph_set_present( PERIPH_TYPE_BETA128, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_INTERFACE1, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_INTERFACE2, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_MULTIFACE_128, PERIPH_PRESENT_OPTIONAL );
+  periph_set_present( PERIPH_TYPE_MELODIK, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_OPUS, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_PLUSD, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_SPECDRUM, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_USOURCE, PERIPH_PRESENT_OPTIONAL );
 }
 
 /* The set of peripherals available on the 48K and similar machines */
@@ -213,11 +199,7 @@ machines_periph_48( void )
 {
   base_peripherals_48_128();
   periph_set_present( PERIPH_TYPE_FULLER, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_MELODIK, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_MULTIFACE_1, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_TTX2000S, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_ZXPRINTER, PERIPH_PRESENT_OPTIONAL );
-  periph_set_present( PERIPH_TYPE_DIDAKTIK80, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_DISCIPLE, PERIPH_PRESENT_OPTIONAL );
 }
 
@@ -236,10 +218,8 @@ machines_periph_plus3( void )
 {
   base_peripherals();
   periph_set_present( PERIPH_TYPE_AY_PLUS3, PERIPH_PRESENT_ALWAYS );
-  periph_set_present( PERIPH_TYPE_MULTIFACE_3, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_PARALLEL_PRINTER, PERIPH_PRESENT_OPTIONAL );
   periph_set_present( PERIPH_TYPE_PLUS3_MEMORY, PERIPH_PRESENT_ALWAYS );
-  periph_set_present( PERIPH_TYPE_ZXMMC, PERIPH_PRESENT_OPTIONAL );
 }
 
 /* The set of peripherals available on the TC2068 and TS2068 */

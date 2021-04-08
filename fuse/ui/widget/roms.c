@@ -1,6 +1,7 @@
 /* roms.c: select ROMs widget
-   Copyright (c) 2003-2014 Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2003-2004 Philip Kendall
+
+   $Id: roms.c 4961 2013-05-19 05:17:30Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -37,7 +38,6 @@ static settings_info *widget_settings;
 static widget_roms_info *info;
 
 static size_t first_rom, rom_count;
-int is_peripheral;
 
 static void print_rom( int which );
 
@@ -54,12 +54,11 @@ widget_roms_draw( void *data )
   if( !info->initialised ) {
 
     widget_settings = malloc( sizeof( settings_info ) );
+    memset( widget_settings, 0, sizeof( settings_info ) );
     if( !widget_settings ) {
       ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
       return 1;
     }
-
-    memset( widget_settings, 0, sizeof( settings_info ) );
     settings_copy( widget_settings, &settings_current );
 
     info->initialised = 1;
@@ -67,7 +66,6 @@ widget_roms_draw( void *data )
 
   first_rom = info->start;
   rom_count = info->count;
-  is_peripheral = info->is_peripheral;
 
   /* Blank the main display area */
   widget_dialog_with_border( 1, 2, 30, rom_count + 2 );
@@ -94,7 +92,7 @@ print_rom( int which )
   const char *setting;
 
   setting = *( settings_get_rom_setting( widget_settings,
-					 which + first_rom, is_peripheral ) );
+					 which + first_rom ) );
   while( widget_stringwidth( setting ) >= 232 - 68 )
     ++setting;
 
@@ -143,11 +141,10 @@ widget_roms_keyhandler( input_key key )
 
     data.exit_all_widgets = 0;
     data.title = buf;
-    widget_do_fileselector( &data );
+    widget_do( WIDGET_TYPE_FILESELECTOR, &data );
     if( !widget_filesel_name ) return;
 
-    setting = settings_get_rom_setting( widget_settings, key + first_rom,
-					is_peripheral );
+    setting = settings_get_rom_setting( widget_settings, key + first_rom );
     settings_set_string( setting, widget_filesel_name );
 
     print_rom( key );

@@ -1,6 +1,7 @@
 /* sdldisplay.c: Routines for dealing with the SDL display
    Copyright (c) 2000-2006 Philip Kendall, Matan Ziv-Av, Fredrick Meunier
-   Copyright (c) 2015 Adrien Destugues
+
+   $Id: sdldisplay.c 4696 2012-05-07 02:05:13Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -86,9 +87,6 @@ static libspectrum_byte sdldisplay_force_full_refresh = 1;
 
 static int max_fullscreen_height;
 static int min_fullscreen_height;
-static int fullscreen_width = 0;
-static int fullscreen_x_off = 0;
-static int fullscreen_y_off = 0;
 
 /* The current size of the display (in units of DISPLAY_SCREEN_*) */
 static float sdldisplay_current_size = 1;
@@ -112,6 +110,8 @@ init_scalers( void )
   scaler_register_clear();
 
   scaler_register( SCALER_NORMAL );
+  scaler_register( SCALER_DOUBLESIZE );
+  scaler_register( SCALER_TRIPLESIZE );
   scaler_register( SCALER_2XSAI );
   scaler_register( SCALER_SUPER2XSAI );
   scaler_register( SCALER_SUPEREAGLE );
@@ -125,19 +125,12 @@ init_scalers( void )
     scaler_register( SCALER_HALFSKIP );
     scaler_register( SCALER_TIMEXTV );
     scaler_register( SCALER_TIMEX1_5X );
-    scaler_register( SCALER_TIMEX2X );
   } else {
-    scaler_register( SCALER_DOUBLESIZE );
-    scaler_register( SCALER_TRIPLESIZE );
-    scaler_register( SCALER_QUADSIZE );
     scaler_register( SCALER_TV2X );
     scaler_register( SCALER_TV3X );
-    scaler_register( SCALER_TV4X );
     scaler_register( SCALER_PALTV2X );
     scaler_register( SCALER_PALTV3X );
-    scaler_register( SCALER_PALTV4X );
     scaler_register( SCALER_HQ3X );
-    scaler_register( SCALER_HQ4X );
   }
   
   if( scaler_is_supported( current_scaler ) ) {
@@ -222,59 +215,13 @@ int
 uidisplay_init( int width, int height )
 {
   SDL_Rect **modes;
-  int no_modes;
-  int i = 0, mw = 0, mh = 0, mn = 0;
+  int i;
 
   /* Get available fullscreen/software modes */
   modes=SDL_ListModes(NULL, SDL_FULLSCREEN|SDL_SWSURFACE);
-
-  no_modes = ( modes == (SDL_Rect **) 0 || modes == (SDL_Rect **) -1 ) ? 1 : 0;
-
-  if( settings_current.sdl_fullscreen_mode &&
-      strcmp( settings_current.sdl_fullscreen_mode, "list" ) == 0 ) {
-
-    fprintf( stderr,
-    "=====================================================================\n"
-    " List of available SDL fullscreen modes:\n"
-    "---------------------------------------------------------------------\n"
-    "  No. width height\n"
-    "---------------------------------------------------------------------\n"
-    );
-    if( no_modes ) {
-      fprintf( stderr, "  ** The modes list is empty%s...\n",
-               modes == (SDL_Rect **) -1 ? ", all resolutions allowed" : "" );
-    } else {
-      for( i = 0; modes[i]; i++ ) {
-        fprintf( stderr, "% 3d  % 5d % 5d\n", i + 1, modes[i]->w, modes[i]->h );
-      }
-    }
-    fprintf( stderr,
-    "=====================================================================\n");
-    fuse_exiting = 1;
-    return 0;
-  }
-
-  if( !no_modes ) {
-    for( i=0; modes[i]; ++i ); /* count modes */
-  }
-
-  if( settings_current.sdl_fullscreen_mode ) {
-    if( sscanf( settings_current.sdl_fullscreen_mode, " %dx%d", &mw, &mh ) != 2 ) {
-      if( !no_modes &&
-          sscanf( settings_current.sdl_fullscreen_mode, " %d", &mn ) == 1 &&
-          mn <= i ) {
-        mw = modes[mn - 1]->w; mh = modes[mn - 1]->h;
-      }
-    }
-  }
-
   /* Check if there are any modes available, or if our resolution is restricted
      at all */
-  if( mh > 0 ) {
-    /* set from command line */
-    max_fullscreen_height = min_fullscreen_height = mh;
-    fullscreen_width = mw;
-  } else if( no_modes ){
+  if( modes == (SDL_Rect **) 0 || modes == (SDL_Rect **) -1 ){
     /* Just try whatever we have and see what happens */
     max_fullscreen_height = 480;
     min_fullscreen_height = 240;
@@ -345,10 +292,9 @@ sdldisplay_find_best_fullscreen_scaler( void )
      fullscreen to avoid the "postage stamp" on machines that don't support
      320x240 anymore e.g. Mac notebooks */
   if( settings_current.full_screen ) {
-    int i = 0;
-
     if( searching_fullscreen_scaler ) return;
     searching_fullscreen_scaler = 1;
+    int i = 0;
     while( i < SCALER_NUM &&
            ( image_height*sdldisplay_current_size <= min_fullscreen_height/2 ||
              image_height*sdldisplay_current_size > max_fullscreen_height ) ) {
@@ -396,10 +342,8 @@ sdldisplay_load_gfx_mode( void )
 
   /* Create the surface that contains the scaled graphics in 16 bit mode */
   sdldisplay_gc = SDL_SetVideoMode(
-    settings_current.full_screen && fullscreen_width ? fullscreen_width :
-      image_width * sdldisplay_current_size,
-    settings_current.full_screen && fullscreen_width ? max_fullscreen_height :
-      image_height * sdldisplay_current_size,
+    image_width * sdldisplay_current_size,
+    image_height * sdldisplay_current_size,
     16,
     settings_current.full_screen ? (SDL_FULLSCREEN|SDL_SWSURFACE)
                                  : SDL_SWSURFACE
@@ -409,9 +353,8 @@ sdldisplay_load_gfx_mode( void )
     fuse_abort();
   }
 
-  settings_current.full_screen =
-      !!( sdldisplay_gc->flags & ( SDL_FULLSCREEN | SDL_NOFRAME ) );
-  sdldisplay_is_full_screen = settings_current.full_screen;
+  sdldisplay_is_full_screen =
+      settings_current.full_screen = !!(sdldisplay_gc->flags & SDL_FULLSCREEN);
 
   /* Distinguish 555 and 565 mode */
   if( sdldisplay_gc->format->Gmask >> sdldisplay_gc->format->Gshift == 0x1f )
@@ -436,11 +379,6 @@ sdldisplay_load_gfx_mode( void )
     fprintf( stderr, "%s: couldn't create tmp_screen\n", fuse_progname );
     fuse_abort();
   }
-
-  fullscreen_x_off = ( sdldisplay_gc->w - image_width * sdldisplay_current_size ) *
-                     sdldisplay_is_full_screen  / 2;
-  fullscreen_y_off = ( sdldisplay_gc->h - image_height * sdldisplay_current_size ) *
-                     sdldisplay_is_full_screen / 2;
 
   sdldisplay_allocate_colours( 16, colour_values, bw_values );
 
@@ -509,7 +447,7 @@ sdl_blit_icon( SDL_Surface **icon,
                SDL_Rect *r, Uint32 tmp_screen_pitch,
                Uint32 dstPitch )
 {
-  int x, y, w, h, dst_x, dst_y, dst_h;
+  int x, y, w, h, dst_y, dst_h;
 
   if( timex ) {
     r->x<<=1;
@@ -532,9 +470,8 @@ sdl_blit_icon( SDL_Surface **icon,
   if( scaler_flags & SCALER_FLAGS_EXPAND )
     scaler_expander( &x, &y, &w, &h, image_width, image_height );
 
-  dst_y = y * sdldisplay_current_size + fullscreen_y_off;
+  dst_y = y * sdldisplay_current_size;
   dst_h = h;
-  dst_x = x * sdldisplay_current_size + fullscreen_x_off;
 
   scaler_proc16(
 	(libspectrum_byte*)tmp_screen->pixels +
@@ -542,7 +479,9 @@ sdl_blit_icon( SDL_Surface **icon,
 	                (y+1) * tmp_screen_pitch,
 	tmp_screen_pitch,
 	(libspectrum_byte*)sdldisplay_gc->pixels +
-			dst_x * sdldisplay_gc->format->BytesPerPixel +
+			x * (libspectrum_byte)
+				(sdldisplay_gc->format->BytesPerPixel *
+				sdldisplay_current_size) +
 			dst_y * dstPitch,
 	dstPitch, w, dst_h
   );
@@ -553,7 +492,7 @@ sdl_blit_icon( SDL_Surface **icon,
   }
 
   /* Adjust rects for the destination rect size */
-  updated_rects[num_rects].x = dst_x;
+  updated_rects[num_rects].x = x * sdldisplay_current_size;
   updated_rects[num_rects].y = dst_y;
   updated_rects[num_rects].w = w * sdldisplay_current_size;
   updated_rects[num_rects].h = dst_h * sdldisplay_current_size;
@@ -793,9 +732,8 @@ uidisplay_frame_end( void )
 
   for( r = updated_rects; r != last_rect; r++ ) {
 
-    int dst_y = r->y * sdldisplay_current_size + fullscreen_y_off;
+    int dst_y = r->y * sdldisplay_current_size;
     int dst_h = r->h;
-    int dst_x = r->x * sdldisplay_current_size + fullscreen_x_off;
 
     scaler_proc16(
       (libspectrum_byte*)tmp_screen->pixels +
@@ -803,13 +741,15 @@ uidisplay_frame_end( void )
 	                (r->y+1)*tmp_screen_pitch,
       tmp_screen_pitch,
       (libspectrum_byte*)sdldisplay_gc->pixels +
-	                 dst_x * sdldisplay_gc->format->BytesPerPixel +
+	                 r->x*(libspectrum_byte)
+                               (sdldisplay_gc->format->BytesPerPixel *
+                                sdldisplay_current_size) +
 			 dst_y*dstPitch,
       dstPitch, r->w, dst_h
     );
 
     /* Adjust rects for the destination rect size */
-    r->x = dst_x;
+    r->x *= sdldisplay_current_size;
     r->y = dst_y;
     r->w *= sdldisplay_current_size;
     r->h = dst_h * sdldisplay_current_size;

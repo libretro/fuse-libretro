@@ -1,5 +1,7 @@
 /* zxs.c: Routines for .zxs snapshots
-   Copyright (c) 1998,2003,2015 Philip Kendall
+   Copyright (c) 1998,2003 Philip Kendall
+
+   $Id: zxs.c 3698 2008-06-30 15:12:02Z pak21 $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,12 +23,11 @@
 
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <string.h>
 
 #ifdef HAVE_ZLIB_H
-#define ZLIB_CONST
 #include <zlib.h>
 #endif				/* #ifdef HAVE_ZLIB_H */
 
@@ -69,7 +70,8 @@ inflate_block( libspectrum_byte **uncompressed, size_t *uncompressed_length,
   *uncompressed_length = libspectrum_read_dword( compressed );
 
   /* Some space to put the zlib header for decompression */
-  zlib_buffer = libspectrum_new( libspectrum_byte, ( compressed_length + 6 ) );
+  zlib_buffer =
+    libspectrum_malloc( ( compressed_length + 6 ) * sizeof( *zlib_buffer ) );
 
   /* zlib's header */
   zlib_buffer[0] = 0x78; zlib_buffer[1] = 0xda;
@@ -77,7 +79,7 @@ inflate_block( libspectrum_byte **uncompressed, size_t *uncompressed_length,
   memcpy( &zlib_buffer[2], *compressed, compressed_length );
   *compressed += compressed_length;
 
-  *uncompressed = libspectrum_new( libspectrum_byte, *uncompressed_length );
+  *uncompressed = libspectrum_malloc( *uncompressed_length * sizeof( **uncompressed ) );
 
   actual_length = *uncompressed_length;
   error = uncompress( *uncompressed, &actual_length, zlib_buffer,
@@ -376,7 +378,7 @@ read_ram_chunk( libspectrum_snap *snap, int *compression,
       return LIBSPECTRUM_ERROR_UNKNOWN;
     }
 
-    buffer2 = libspectrum_new( libspectrum_byte, 0x4000 );
+    buffer2 = libspectrum_malloc( 0x4000 * sizeof( *buffer2 ) );
     memcpy( buffer2, buffer, 0x4000 ); *buffer += 0x4000;
   }
 
@@ -425,6 +427,9 @@ static struct read_chunk_t read_chunks[] = {
 
 };
 
+static size_t read_chunks_count =
+  sizeof( read_chunks ) / sizeof( struct read_chunk_t );
+
 static libspectrum_error
 read_chunk_header( char *id, libspectrum_dword *data_length, 
 		   const libspectrum_byte **buffer,
@@ -467,7 +472,7 @@ read_chunk( libspectrum_snap *snap, const libspectrum_byte **buffer,
 
   done = 0;
 
-  for( i = 0; !done && i < ARRAY_SIZE( read_chunks ); i++ ) {
+  for( i = 0; !done && i < read_chunks_count; i++ ) {
 
     if( !strcmp( id, read_chunks[i].id ) ) {
       error = read_chunks[i].function( snap, &compression, buffer, end,

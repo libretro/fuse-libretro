@@ -1,6 +1,8 @@
 /* display.h: Routines for printing the Spectrum's screen
    Copyright (c) 1999-2006 Philip Kendall
 
+   $Id: display.h 4664 2012-02-12 11:51:01Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -73,13 +75,7 @@ display_last_screen[ DISPLAY_SCREEN_WIDTH_COLS * DISPLAY_SCREEN_HEIGHT ];
 extern libspectrum_word display_line_start[ DISPLAY_HEIGHT ];
 extern libspectrum_word display_attr_start[ DISPLAY_HEIGHT ];
 
-typedef struct display_startup_context {
-  int *argc;
-  char ***argv;
-} display_startup_context;
-
-int display_init( int *argc, char ***argv );
-void display_register_startup( display_startup_context *context );
+int display_init(int *argc, char ***argv);
 void display_line(void);
 
 typedef void (*display_dirty_fn)( libspectrum_word offset );
@@ -116,11 +112,9 @@ int display_frame(void);
 void display_refresh_main_screen(void);
 void display_refresh_all(void);
 
-#define display_get_offset( x, y ) display_line_start[(y)]+(x)
-
 #define display_get_addr( x, y ) \
-  scld_last_dec.name.altdfile ? display_get_offset( (x), (y) )+ALTDFILE_OFFSET : \
-  display_get_offset( (x), (y) )
+  scld_last_dec.name.altdfile ? display_line_start[(y)]+(x)+ALTDFILE_OFFSET : \
+  display_line_start[(y)]+(x)
 int display_getpixel( int x, int y );
 
 void display_update_critical( int x, int y );

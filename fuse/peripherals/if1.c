@@ -1,6 +1,7 @@
 /* if1.c: Interface 1 handling routines
-   Copyright (c) 2004-2016 Gergely Szasz, Philip Kendall
-   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2004-2011 Gergely Szasz, Philip Kendall
+
+   $Id: if1.c 4927 2013-05-05 08:05:11Z sbaldovi $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -35,9 +36,8 @@
 #include "compat.h"
 #include "debugger/debugger.h"
 #include "if1.h"
-#include "infrastructure/startup_manager.h"
 #include "machine.h"
-#include "memory_pages.h"
+#include "memory.h"
 #include "module.h"
 #include "periph.h"
 #include "settings.h"
@@ -155,9 +155,6 @@ RS232:
     every other 0x00 + 0x## are discarded
 */
 
-/* 8KB ROM */
-#define ROM_SIZE 0x2000
-
 /* One 8KB memory chunk accessible by the Z80 when /ROMCS is low */
 static memory_page if1_memory_map_romcs[MEMORY_PAGES_IN_8K];
 
@@ -204,16 +201,13 @@ static void if1_enabled_snapshot( libspectrum_snap *snap );
 static void if1_from_snapshot( libspectrum_snap *snap );
 static void if1_to_snapshot( libspectrum_snap *snap );
 
-static void if1_port_out( libspectrum_word port, libspectrum_byte val );
-static libspectrum_byte if1_port_in( libspectrum_word port, libspectrum_byte *attached );
-
 static module_info_t if1_module_info = {
 
-  /* .reset = */ if1_reset,
-  /* .romcs = */ if1_memory_map,
-  /* .snapshot_enabled = */ if1_enabled_snapshot,
-  /* .snapshot_from = */ if1_from_snapshot,
-  /* .snapshot_to = */ if1_to_snapshot,
+  if1_reset,
+  if1_memory_map,
+  if1_enabled_snapshot,
+  if1_from_snapshot,
+  if1_to_snapshot,
 
 };
 
@@ -225,17 +219,17 @@ static const periph_port_t if1_ports[] = {
 };
 
 static const periph_t if1_periph = {
-  /* .option = */ &settings_current.interface1,
-  /* .ports = */ if1_ports,
-  /* .hard_reset = */ 1,
-  /* .activate = */ NULL,
+  &settings_current.interface1,
+  if1_ports,
+  1,
+  NULL
 };
 
 /* Memory source */
 static int if1_memory_source;
 
 /* Debugger events */
-static const char * const event_type_string = "if1";
+static const char *event_type_string = "if1";
 static int page_event, unpage_event;
 
 static void
@@ -301,8 +295,8 @@ update_menu( enum if1_menu_item what )
   }
 }
 
-static int
-if1_init( void *context )
+void
+if1_init( void )
 {
   int m, i;
 
@@ -325,19 +319,19 @@ if1_init( void *context )
   
   if( settings_current.rs232_rx ) {
     if1_plug( settings_current.rs232_rx, 1 );
-    libspectrum_free( settings_current.rs232_rx );
+    free( settings_current.rs232_rx );
     settings_current.rs232_rx = NULL;
   }
 
   if( settings_current.rs232_tx ) {
     if1_plug( settings_current.rs232_tx, 2 );
-    libspectrum_free( settings_current.rs232_tx );
+    free( settings_current.rs232_tx );
     settings_current.rs232_tx = NULL;
   }
 
   if( settings_current.snet ) {
     if1_plug( settings_current.snet, 3 );
-    libspectrum_free( settings_current.snet );
+    free( settings_current.snet );
     settings_current.snet = NULL;
   }
 
@@ -350,11 +344,9 @@ if1_init( void *context )
   periph_register( PERIPH_TYPE_INTERFACE1, &if1_periph );
   periph_register_paging_events( event_type_string, &page_event,
 				 &unpage_event );
-
-  return 0;
 }
 
-static void
+libspectrum_error
 if1_end( void )
 {
   int m;
@@ -362,21 +354,10 @@ if1_end( void )
   for( m = 0; m < 8; m++ ) {
     libspectrum_error error =
       libspectrum_microdrive_free( microdrive[m].cartridge );
-    if( error ) return;
+    if( error ) return error;
   }
-}
 
-void
-if1_register_startup( void )
-{
-  startup_manager_module dependencies[] = {
-    STARTUP_MANAGER_MODULE_DEBUGGER,
-    STARTUP_MANAGER_MODULE_MEMORY,
-    STARTUP_MANAGER_MODULE_SETUID,
-  };
-  startup_manager_register( STARTUP_MANAGER_MODULE_IF1, dependencies,
-                            ARRAY_SIZE( dependencies ), if1_init, NULL,
-                            if1_end );
+  return LIBSPECTRUM_ERROR_NONE;
 }
 
 void
@@ -400,9 +381,9 @@ if1_reset( int hard_reset GCC_UNUSED )
 
   /* Check for an Interface 1 ROM */
   if( machine_load_rom_bank( if1_memory_map_romcs, 0,
-			     settings_current.rom_interface_1,
-			     settings_default.rom_interface_1,
-			     ROM_SIZE ) ) {
+			     settings_current.rom_interface_i,
+			     settings_default.rom_interface_i,
+			     0x2000 ) ) {
     settings_current.interface1 = 0;
     periph_activate_type( PERIPH_TYPE_INTERFACE1, 0 );
 
@@ -463,7 +444,8 @@ if1_memory_map( void )
 static void
 if1_enabled_snapshot( libspectrum_snap *snap )
 {
-  settings_current.interface1 = libspectrum_snap_interface1_active( snap );
+  if( libspectrum_snap_interface1_active( snap ) )
+    settings_current.interface1 = 1;
 }
 
 static void
@@ -473,11 +455,11 @@ if1_from_snapshot( libspectrum_snap *snap )
 
   if( libspectrum_snap_interface1_custom_rom( snap ) &&
       libspectrum_snap_interface1_rom( snap, 0 ) &&
-      libspectrum_snap_interface1_rom_length( snap, 0 ) >= ROM_SIZE &&
       machine_load_rom_bank_from_buffer(
                              if1_memory_map_romcs, 0,
                              libspectrum_snap_interface1_rom( snap, 0 ),
-                             ROM_SIZE, 1 ) )
+                             libspectrum_snap_interface1_rom_length( snap, 0 ),
+                             1 ) )
     return;
 
   if( libspectrum_snap_interface1_paged( snap ) ) {
@@ -491,7 +473,6 @@ static void
 if1_to_snapshot( libspectrum_snap *snap )
 {
   libspectrum_byte *buffer;
-  int i;
 
   if( !periph_is_active( PERIPH_TYPE_INTERFACE1 ) ) return;
 
@@ -500,14 +481,27 @@ if1_to_snapshot( libspectrum_snap *snap )
   libspectrum_snap_set_interface1_drive_count( snap, 8 );
 
   if( if1_memory_map_romcs[0].save_to_snapshot ) {
+    size_t rom_length = MEMORY_PAGE_SIZE;
+
+    if( if1_memory_map_romcs[1].save_to_snapshot ) {
+      rom_length <<= 1;
+    }
+
     libspectrum_snap_set_interface1_custom_rom( snap, 1 );
-    libspectrum_snap_set_interface1_rom_length( snap, 0, ROM_SIZE );
+    libspectrum_snap_set_interface1_rom_length( snap, 0, rom_length );
 
-    buffer = libspectrum_new( libspectrum_byte, ROM_SIZE );
+    buffer = malloc( rom_length );
+    if( !buffer ) {
+      ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__, __LINE__ );
+      return;
+    }
 
-    for( i = 0; i < MEMORY_PAGES_IN_8K; i++ )
-      memcpy( buffer + i * MEMORY_PAGE_SIZE,
-              if1_memory_map_romcs[ i ].page, MEMORY_PAGE_SIZE );
+    memcpy( buffer, if1_memory_map_romcs[0].page, MEMORY_PAGE_SIZE );
+
+    if( rom_length == MEMORY_PAGE_SIZE*2 ) {
+      memcpy( buffer + MEMORY_PAGE_SIZE, if1_memory_map_romcs[1].page,
+              MEMORY_PAGE_SIZE );
+    }
 
     libspectrum_snap_set_interface1_rom( snap, 0, buffer );
   }
@@ -725,9 +719,7 @@ no_rs232_in:
 
   if( if1_ula.s_net_mode == 0 ) {		/* if we do raw */
     /* Here is the input routine */
-    ssize_t unused;
-    unused = read( if1_ula.fd_net, &if1_ula.net, 1 );	/* Ok, if no byte, we send last*/
-    (void) unused;
+    read( if1_ula.fd_net, &if1_ula.net, 1 );	/* Ok, if no byte, we send last*/
   } else {/* if( if1_ula.s_net_mode == 1 ) if we do interpreted */
 /* Here is the input routine. There are several stage in input
    and output. So first for output. if1 first do SEND-SC 
@@ -782,12 +774,12 @@ no_snet_in:
   return ret;
 }
 
-static libspectrum_byte
-if1_port_in( libspectrum_word port GCC_UNUSED, libspectrum_byte *attached )
+libspectrum_byte
+if1_port_in( libspectrum_word port GCC_UNUSED, int *attached )
 {
   libspectrum_byte ret = 0xff;
 
-  *attached = 0xff; /* TODO: check this */
+  *attached = 1;
 
   switch( decode_port( port ) )
   {
@@ -1017,7 +1009,7 @@ port_net_out( libspectrum_byte val )
   microdrives_restart();
 }
 
-static void
+void
 if1_port_out( libspectrum_word port GCC_UNUSED, libspectrum_byte val )
 {
 #ifdef IF1_DEBUG_NET_1
@@ -1210,7 +1202,7 @@ if1_mdr_eject( int which )
 
   mdr->inserted = 0;
   if( mdr->filename != NULL ) {
-    libspectrum_free( mdr->filename );
+    free( mdr->filename );
     mdr->filename = NULL;
   }
 
@@ -1251,7 +1243,7 @@ if1_mdr_write( int which, const char *filename )
     return 1;
 
   if( mdr->filename && strcmp( filename, mdr->filename ) ) {
-    libspectrum_free( mdr->filename );
+    free( mdr->filename );
     mdr->filename = utils_safe_strdup( filename );
   }
   return 0;
@@ -1264,8 +1256,8 @@ if1_mdr_write( int which, const char *filename )
 void
 if1_plug( const char *filename, int what )
 {
-#ifdef WIN32
-  ui_error( UI_ERROR_ERROR, "Not yet implemented on Win32" );
+#if defined(WIN32) || defined(__CELLOS_LV2__)
+  ui_error( UI_ERROR_ERROR, "Not yet implemented on this platform." );
   return; 
 #else
   int fd = -1;

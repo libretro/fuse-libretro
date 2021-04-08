@@ -1,6 +1,8 @@
 /* paths.c: Path-related compatibility routines
    Copyright (c) 1999-2012 Philip Kendall
 
+   $Id: paths.c 4738 2012-10-03 13:15:31Z fredm $
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -23,17 +25,17 @@
 
 #include <config.h>
 
+#include <errno.h>
 #ifdef HAVE_LIBGEN_H
 #include <libgen.h>
 #endif				/* #ifdef HAVE_LIBGEN_H */
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "compat.h"
 #include "fuse.h"
 #include "ui/ui.h"
-
-void get_relative_directory( char *buffer, size_t bufsize );
 
 const char*
 compat_get_temp_path( void )
@@ -46,7 +48,7 @@ compat_get_temp_path( void )
 }
 
 const char*
-compat_get_config_path( void )
+compat_get_home_path( void )
 {
   const char *dir;
   dir = getenv( "HOME" ); if( dir ) return dir;
@@ -89,7 +91,15 @@ compat_get_next_path( path_context *ctx )
       strncpy( buffer, fuse_progname, PATH_MAX );
       buffer[ PATH_MAX - 1 ] = '\0';
     } else {
-      get_relative_directory( buffer, PATH_MAX );
+      size_t len;
+      len = PATH_MAX - strlen( fuse_progname ) - strlen( FUSE_DIR_SEP_STR );
+      if( !getcwd( buffer, len ) ) {
+        ui_error( UI_ERROR_ERROR, "error getting current working directory: %s",
+	          strerror( errno ) );
+        return 0;
+      }
+      strcat( buffer, FUSE_DIR_SEP_STR );
+      strcat( buffer, fuse_progname );
     }
 
     path2 = dirname( buffer );

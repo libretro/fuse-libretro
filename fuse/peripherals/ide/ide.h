@@ -1,5 +1,7 @@
 /* ide.h: Generic routines shared between the various IDE devices
-   Copyright (c) 2005-2017 Philip Kendall
+   Copyright (c) 2005 Philip Kendall
+
+   $Id: ide.h 4972 2013-05-19 16:46:43Z zubzero $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,38 +28,15 @@
 
 #include "ui/ui.h"
 
-/* Insert the images into the master and slave units if appropriate */
-int
-ide_init( libspectrum_ide_channel *channel,
-	  char *master_setting, ui_menu_item master_menu_item,
-	  char *slave_setting, ui_menu_item slave_menu_item );
-
-int
-ide_master_slave_insert(
-  libspectrum_ide_channel *channel, libspectrum_ide_unit unit,
-  const char *filename,
-  char **master_setting, ui_menu_item master_menu_item,
-  char **slave_setting, ui_menu_item slave_menu_item );
-
 int
 ide_insert( const char *filename, libspectrum_ide_channel *chn,
-	    libspectrum_ide_unit unit, char **setting, ui_menu_item item );
-
-int
-ide_master_slave_eject(
-  libspectrum_ide_channel *channel, libspectrum_ide_unit unit,
-  char **master_setting, ui_menu_item master_menu_item,
-  char **slave_setting, ui_menu_item slave_menu_item );
+	    libspectrum_ide_unit unit,
+	    int (*commit_fn)( libspectrum_ide_unit unit ), char **setting,
+	    ui_menu_item item );
 
 int
 ide_eject( libspectrum_ide_channel *chn, libspectrum_ide_unit unit,
-	   char **setting, ui_menu_item item );
-
-int
-ide_eject_mass_storage(
-    int (*is_dirty_fn)( void *context ),
-    libspectrum_error (*commit_fn)( void *context ),
-    libspectrum_error (*eject_fn)( void *context ),
-    void *context, const char *message, char **setting, ui_menu_item item );
+	   int (*commit_fn)( libspectrum_ide_unit unit ), char **setting,
+	   ui_menu_item item );
 
 #endif			/* #ifndef FUSE_IDE_H */

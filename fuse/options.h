@@ -1,5 +1,5 @@
 /* options.h: options dialog boxes public declarations
-   Copyright (c) 2001-2002,2004 Philip Kendall
+   Copyright (c) 2001-2002 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,8 +27,6 @@
 #ifndef FUSE_OPTIONS_H
 #define FUSE_OPTIONS_H
 
-int option_enumerate_media_phantom_typist_mode( void );
-
 int option_enumerate_sound_stereo_ay( void );
 
 int option_enumerate_sound_speaker_type( void );
@@ -48,10 +46,6 @@ int option_enumerate_diskoptions_drive_beta128d_type( void );
 int option_enumerate_diskoptions_drive_plusd1_type( void );
 
 int option_enumerate_diskoptions_drive_plusd2_type( void );
-
-int option_enumerate_diskoptions_drive_didaktik80a_type( void );
-
-int option_enumerate_diskoptions_drive_didaktik80b_type( void );
 
 int option_enumerate_diskoptions_drive_disciple1_type( void );
 

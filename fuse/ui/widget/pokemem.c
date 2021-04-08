@@ -1,6 +1,7 @@
 /* pokemem.c: The poke memory widget
    Copyright (c) 2011 Philip Kendall, Sergio Baldoví
-   Copyright (c) 2015 Adrien Destugues
+
+   $Id: pokemem.c 4769 2012-11-22 12:42:08Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -182,8 +183,6 @@ widget_pokemem_print_trainer( unsigned int left_edge, unsigned int width,
   char buffer[128];
   size_t l, w;
   int colour = WIDGET_COLOUR_BACKGROUND;
-  int x;
-  int y;
 
   if( number == highlight_line ) colour = WIDGET_COLOUR_HIGHLIGHT;
   widget_rectangle( left_edge * 8 + 1, number * 8 + 24, width * 8 - 2, 1 * 8,
@@ -203,8 +202,8 @@ widget_pokemem_print_trainer( unsigned int left_edge, unsigned int width,
     widget_putpixel( w, number * 8 + 31, 0 );
 
   /* print check */
-  x = ( left_edge + width - 2 ) * 8 - 2;
-  y = number * 8 + 24;
+  int x = ( left_edge + width - 2 ) * 8 - 2;
+  int y = number * 8 + 24;
 
   widget_rectangle( x, y, 8, 8, colour );
   widget_print_checkbox( x, y,
@@ -421,9 +420,8 @@ widget_pokemem_ask_value( trainer_t *trainer )
 
   text_data.title = "Enter trainer value";
   text_data.allow = WIDGET_INPUT_DIGIT;
-  text_data.max_length = 3;
   snprintf( text_data.text, sizeof( text_data.text ), "%d", trainer->value );
-  widget_do_text( &text_data );
+  widget_do( WIDGET_TYPE_TEXT, &text_data );
 
   if( widget_text_text ) {
     value = atoi( widget_text_text );
@@ -444,8 +442,7 @@ widget_pokemem_add_custom_poke( void )
   memset( &text_data, 0, sizeof( widget_text_t ) );
   text_data.title = "Enter bank (optional)";
   text_data.allow = WIDGET_INPUT_DIGIT;
-  text_data.max_length = 1;
-  if( widget_do_text( &text_data ) ) return 1;
+  if( widget_do( WIDGET_TYPE_TEXT, &text_data ) ) return 1;
 
   if( !widget_text_text ) return 1;
 
@@ -461,8 +458,7 @@ widget_pokemem_add_custom_poke( void )
 
   /* Address */
   text_data.title = "Enter address / offset";
-  text_data.max_length = 5;
-  if( widget_do_text( &text_data ) ) return 1;
+  if( widget_do( WIDGET_TYPE_TEXT, &text_data ) ) return 1;
 
   if( !widget_text_text ) return 1;
 
@@ -483,8 +479,7 @@ widget_pokemem_add_custom_poke( void )
 
   /* Value */
   text_data.title = "Enter value";
-  text_data.max_length = 3;
-  if( widget_do_text( &text_data ) ) return 1;
+  if( widget_do( WIDGET_TYPE_TEXT, &text_data ) ) return 1;
 
   if( !widget_text_text ) return 1;
 
