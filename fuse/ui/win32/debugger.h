@@ -1,7 +1,6 @@
 /* debugger.h: the Win32 debugger
    Copyright (c) 2004 Marek Januszewski
-
-   $Id: debugger.h 4882 2013-02-15 23:47:37Z sbaldovi $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -90,16 +89,19 @@
 #define IDC_DBG_REG_IY			( IDC_DBG_REG_IX + 1 )
 #define IDC_DBG_REG_I			( IDC_DBG_REG_IY + 1 )
 #define IDC_DBG_REG_R			( IDC_DBG_REG_I + 1 )
-#define IDC_DBG_REG_T_STATES		( IDC_DBG_REG_R + 1 )
+#define IDC_DBG_REG_HALTED		( IDC_DBG_REG_R + 1 )
+#define IDC_DBG_REG_T_STATES		( IDC_DBG_REG_HALTED + 1 )
 #define IDC_DBG_REG_FLAGS		( IDC_DBG_REG_T_STATES + 1 )
 #define IDC_DBG_REG_ULA			( IDC_DBG_REG_FLAGS + 1 )
 #define IDC_DBG_REG_IM			( IDC_DBG_REG_ULA + 1 )
 
-#define IDM_DBG_MENU			( IDC_DBG_REG_IM + 1 )
-#define IDM_DBG_VIEW			( IDC_DBG_REG_IM + 2 )
-#define IDM_DBG_REG			( IDC_DBG_REG_IM + 3 )
-#define IDM_DBG_MEMMAP			( IDC_DBG_REG_IM + 4 )
-#define IDM_DBG_BPS			( IDC_DBG_REG_IM + 5 )
-#define IDM_DBG_DIS			( IDC_DBG_REG_IM + 6 )
-#define IDM_DBG_STACK			( IDC_DBG_REG_IM + 7 )
-#define IDM_DBG_EVENTS			( IDC_DBG_REG_IM + 8 )
+#define NUM_DBG_REGS			( IDC_DBG_REG_IM - IDC_DBG_REG_PC + 1 )
+
+#define IDM_DBG_MENU			( IDC_DBG_REG_PC + NUM_DBG_REGS )
+#define IDM_DBG_VIEW			( IDM_DBG_MENU + 1 )
+#define IDM_DBG_REG			( IDM_DBG_VIEW + 1 )
+#define IDM_DBG_MEMMAP			( IDM_DBG_REG + 1 )
+#define IDM_DBG_BPS			( IDM_DBG_MEMMAP + 1 )
+#define IDM_DBG_DIS			( IDM_DBG_BPS + 1 )
+#define IDM_DBG_STACK			( IDM_DBG_DIS + 1 )
+#define IDM_DBG_EVENTS			( IDM_DBG_STACK + 1 )

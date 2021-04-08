@@ -1,5 +1,4 @@
 # opcodes_cb: Z80 CBxx opcodes
-# $Id: opcodes_cb.dat 1328 2003-05-25 09:47:16Z pak21 $
 
 0x00 RLC B
 0x01 RLC C

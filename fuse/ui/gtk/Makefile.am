@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2001-2004 Philip Kendall
-
-## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,74 +20,82 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+if UI_GTK
 
-AM_CPPFLAGS = -I$(srcdir)/../..
+fuse_SOURCES += $(ui_gtk_files)
 
-noinst_LTLIBRARIES = libuigtk.la
+BUILT_SOURCES += $(ui_gtk_built)
 
-AM_CPPFLAGS += @GTK_CFLAGS@ @LIBSPEC_CFLAGS@
+pkgdata_DATA += ui/gtk/menu_data.ui
 
-libuigtk_la_SOURCES = binary.c \
-		     browse.c \
-		     confirm.c \
-	             debugger.c \
-		     fileselector.c \
-		     gtkdisplay.c \
-		     gtkjoystick.c \
-		     gtkkeyboard.c \
-		     gtkmouse.c \
-                     gtkui.c \
-		     keysyms.c \
-		     memory.c \
-		     menu_data.c \
-	             options.c \
-		     picture.c \
-		     pixmaps.c \
-		     pokefinder.c \
-		     pokemem.c \
-		     rollback.c \
-		     roms.c \
-		     statusbar.c \
-		     stock.c
-
-if HAVE_GTK2
-libuigtk_la_SOURCES += gtkcompat.c
 endif
 
-libuigtk_la_LIBADD = @GTK_LIBS@ -lX11 
 
-BUILT_SOURCES = keysyms.c \
-		menu_data.c \
-		menu_data.ui \
-		options.c \
-		options_internals.h
+CLEANFILES += $(ui_gtk_built)
 
-pkgdata_DATA = menu_data.ui
+ui_gtk_files = \
+               ui/gtk/binary.c \
+               ui/gtk/browse.c \
+               ui/gtk/confirm.c \
+               ui/gtk/debugger.c \
+               ui/gtk/fileselector.c \
+               ui/gtk/gtkcompat.h \
+               ui/gtk/gtkdisplay.c \
+               ui/gtk/gtkinternals.h \
+               ui/gtk/gtkjoystick.c \
+               ui/gtk/gtkkeyboard.c \
+               ui/gtk/gtkmouse.c \
+               ui/gtk/gtkui.c \
+               ui/gtk/keysyms.c \
+               ui/gtk/menu_data.c \
+               ui/gtk/options.c \
+               ui/gtk/picture.c \
+               ui/gtk/pixmaps.c \
+               ui/gtk/pokefinder.c \
+               ui/gtk/pokemem.c \
+               ui/gtk/rollback.c \
+               ui/gtk/roms.c \
+               ui/gtk/statusbar.c \
+               ui/gtk/stock.c
 
-keysyms.c: $(srcdir)/../../keysyms.pl $(srcdir)/../../keysyms.dat
-	@PERL@ -I$(srcdir)/../../perl $(srcdir)/../../keysyms.pl gtk $(srcdir)/../../keysyms.dat > $@.tmp && mv $@.tmp $@
+if HAVE_GTK2
 
-menu_data.c: $(srcdir)/../../perl/cpp-perl.pl $(srcdir)/../../menu_data.pl $(srcdir)/../../menu_data.dat ../../config.h
-	@PERL@ $(srcdir)/../../perl/cpp-perl.pl ../../config.h $(srcdir)/../../menu_data.dat | @PERL@ -I$(srcdir)/../../perl $(srcdir)/../../menu_data.pl gtk c > $@.tmp && mv $@.tmp $@
+ui_gtk_files += ui/gtk/gtkcompat.c \
+                ui/gtk/memory_gtk2.c
 
-menu_data.ui: $(srcdir)/../../perl/cpp-perl.pl $(srcdir)/../../menu_data.pl $(srcdir)/../../menu_data.dat ../../config.h
-	@PERL@ $(srcdir)/../../perl/cpp-perl.pl ../../config.h $(srcdir)/../../menu_data.dat | @PERL@ -I$(srcdir)/../../perl $(srcdir)/../../menu_data.pl gtk ui > $@.tmp && mv $@.tmp $@
+else
 
-options.c: $(srcdir)/../../perl/cpp-perl.pl ../../config.h $(srcdir)/options.pl $(srcdir)/../../ui/options.dat $(srcdir)/../../perl/Fuse.pm $(srcdir)/../../perl/Fuse/Dialog.pm
-	@PERL@ $(srcdir)/../../perl/cpp-perl.pl ../../config.h $(srcdir)/../../ui/options.dat | @PERL@ -I$(srcdir)/../../perl $(srcdir)/options.pl - > $@.tmp && mv $@.tmp $@
+ui_gtk_files += ui/gtk/memory.c
 
-options_internals.h: $(srcdir)/../../perl/cpp-perl.pl ../../config.h $(srcdir)/options-header.pl $(srcdir)/../../ui/options.dat $(srcdir)/../../perl/Fuse.pm $(srcdir)/../../perl/Fuse/Dialog.pm
-	@PERL@ $(srcdir)/../../perl/cpp-perl.pl ../../config.h $(srcdir)/../../ui/options.dat | @PERL@ -I$(srcdir)/../../perl $(srcdir)/options-header.pl - > $@.tmp && mv $@.tmp $@
+endif
 
-noinst_HEADERS = gtkcompat.h \
-		 gtkinternals.h \
-		 options_internals.h \
-		 options.pl \
-		 options-header.pl
+ui_gtk_built = \
+               ui/gtk/keysyms.c \
+               ui/gtk/menu_data.c \
+               ui/gtk/menu_data.ui \
+               ui/gtk/options.c \
+               ui/gtk/options_internals.h
 
-CLEANFILES = keysyms.c \
-	     menu_data.c \
-	     menu_data.ui \
-	     options.c \
-	     options_internals.h
+EXTRA_DIST += \
+              ui/gtk/options.pl \
+              ui/gtk/options-header.pl
+
+ui/gtk/keysyms.c: $(srcdir)/keysyms.pl $(srcdir)/keysyms.dat
+	@$(MKDIR_P) ui/gtk
+	$(AM_V_GEN)$(PERL) -I$(srcdir)/perl $(srcdir)/keysyms.pl gtk $(srcdir)/keysyms.dat > $@.tmp && mv $@.tmp $@
+
+ui/gtk/menu_data.c: $(srcdir)/perl/cpp-perl.pl $(srcdir)/menu_data.pl $(srcdir)/menu_data.dat config.h
+	@$(MKDIR_P) ui/gtk
+	$(AM_V_GEN)$(PERL) $(srcdir)/perl/cpp-perl.pl config.h $(srcdir)/menu_data.dat | $(PERL) -I$(srcdir)/perl $(srcdir)/menu_data.pl gtk c > $@.tmp && mv $@.tmp $@
+
+ui/gtk/menu_data.ui: $(srcdir)/perl/cpp-perl.pl $(srcdir)/menu_data.pl $(srcdir)/menu_data.dat config.h
+	@$(MKDIR_P) ui/gtk
+	$(AM_V_GEN)$(PERL) $(srcdir)/perl/cpp-perl.pl config.h $(srcdir)/menu_data.dat | $(PERL) -I$(srcdir)/perl $(srcdir)/menu_data.pl gtk ui > $@.tmp && mv $@.tmp $@
+
+ui/gtk/options.c: $(srcdir)/perl/cpp-perl.pl config.h $(srcdir)/ui/gtk/options.pl $(srcdir)/ui/options.dat $(srcdir)/perl/Fuse.pm $(srcdir)/perl/Fuse/Dialog.pm
+	@$(MKDIR_P) ui/gtk
+	$(AM_V_GEN)$(PERL) $(srcdir)/perl/cpp-perl.pl config.h $(srcdir)/ui/options.dat | $(PERL) -I$(srcdir)/perl $(srcdir)/ui/gtk/options.pl - > $@.tmp && mv $@.tmp $@
+
+ui/gtk/options_internals.h: $(srcdir)/perl/cpp-perl.pl config.h $(srcdir)/ui/gtk/options-header.pl $(srcdir)/ui/options.dat $(srcdir)/perl/Fuse.pm $(srcdir)/perl/Fuse/Dialog.pm
+	@$(MKDIR_P) ui/gtk
+	$(AM_V_GEN)$(PERL) $(srcdir)/perl/cpp-perl.pl config.h $(srcdir)/ui/options.dat | $(PERL) -I$(srcdir)/perl $(srcdir)/ui/gtk/options-header.pl - > $@.tmp && mv $@.tmp $@

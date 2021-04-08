@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 1999-2011 Philip Kendall
-
-## $Id: Makefile.am 4850 2013-01-05 12:10:23Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,20 +20,31 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+ROMS = \
+       roms/128-0.rom \
+       roms/128-1.rom \
+       roms/48.rom \
+       roms/disciple.rom \
+       roms/plus2-0.rom \
+       roms/plus2-1.rom \
+       roms/plus3-0.rom \
+       roms/plus3-1.rom \
+       roms/plus3-2.rom \
+       roms/plus3-3.rom \
+       roms/plus3e-0.rom \
+       roms/plus3e-1.rom \
+       roms/plus3e-2.rom \
+       roms/plus3e-3.rom \
+       roms/plusd.rom \
+       roms/tc2048.rom \
+       roms/tc2068-0.rom \
+       roms/tc2068-1.rom \
+       roms/se-0.rom \
+       roms/se-1.rom \
+       roms/speccyboot-1.4.rom
 
-ROMS =  128-0.rom 128-1.rom \
-	48.rom \
-	disciple.rom \
-	plus2-0.rom plus2-1.rom \
-	plus3-0.rom plus3-1.rom plus3-2.rom plus3-3.rom \
-	plus3e-0.rom plus3e-1.rom plus3e-2.rom plus3e-3.rom \
-	plusd.rom \
-	tc2048.rom \
-	tc2068-0.rom tc2068-1.rom \
-	se-0.rom se-1.rom \
-        speccyboot-1.4.rom
+pkgdata_DATA += $(ROMS)
 
-pkgdata_DATA = $(ROMS)
-
-EXTRA_DIST = $(ROMS) README.copyright
+EXTRA_DIST += \
+              $(ROMS) \
+              roms/README.copyright

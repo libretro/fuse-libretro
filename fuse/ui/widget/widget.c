@@ -1,7 +1,7 @@
 /* widget.c: Simple dialog boxes for all user interfaces.
    Copyright (c) 2001-2005 Matan Ziv-Av, Philip Kendall, Russell Marks
-
-   $Id: widget.c 4968 2013-05-19 16:11:17Z zubzero $
+   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,9 +28,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
-#if !defined(__CELLOS_LV2__)
 #include <signal.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -45,14 +43,14 @@
 #include "ui/uidisplay.h"
 #include "keyboard.h"
 #include "menu.h"
-#include "options_internals.h"
 #include "periph.h"
 #include "peripherals/joystick.h"
 #include "pokefinder/pokefinder.h"
 #include "screenshot.h"
 #include "timer/timer.h"
+#include "ui/widget/options_internals.h"
+#include "ui/widget/widget_internals.h"
 #include "utils.h"
-#include "widget_internals.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -91,9 +89,6 @@ typedef struct widget_recurse_t {
 } widget_recurse_t;
 
 static widget_recurse_t widget_return[10]; /* The stack to recurse on */
-
-/* The settings used whilst playing with an options dialog box */
-extern settings_info widget_options_settings;
 
 static int widget_read_font( const char *filename )
 {
@@ -169,14 +164,6 @@ widget_char( int pp )
   return &widget_font[ pp >> 8 ][ pp & 255 ];
 }
 
-size_t
-widget_left_one_char( const char *s, size_t index )
-{
-  if( index == -1 ) index = strlen( s );
-  if( !index ) return 0;
-  return index - 1;
-}
-
 static int
 printchar( int x, int y, int col, int ch )
 {
@@ -193,12 +180,13 @@ printchar( int x, int y, int col, int ch )
 }
 
 int
-widget_printstring( int x, int y, int col, const char *s )
+widget_printstring1( int x, int y, int col, const char *s, int ms )
 {
-  int c;
+  int ms_x, c;
   int shadow = 0;
   if( !s ) return x;
 
+  ms_x = x;
   while( x < 256 + DISPLAY_BORDER_ASPECT_WIDTH
 	 && ( c = *(libspectrum_byte *)s++ ) != 0 ) {
     if( col == WIDGET_COLOUR_DISABLED && c < 26 ) continue;
@@ -216,6 +204,9 @@ widget_printstring( int x, int y, int col, const char *s )
       x = printchar( x, y, (col & 7) ^ 8, c );
     } else
       x = printchar( x, y, col, c );
+
+    if( ms )
+      ms_x = x = ms_x + 8;
   }
   return x;
 }
@@ -230,7 +221,7 @@ widget_printstring_fixed( int x, int y, int col, const char *s )
   while( x < 256 + DISPLAY_BORDER_ASPECT_WIDTH
 	 && ( c = *(libspectrum_byte *)s++ ) != 0 ) {
     widget_printchar_fixed(x, y, col, c);
-    ++x;
+    x += 8;
   }
   return x;
 }
@@ -241,8 +232,6 @@ widget_printchar_fixed( int x, int y, int col, int c )
   int mx, my;
   int inverse = 0;
   const widget_font_character *bitmap;
-
-  x *= 8; y *= 8;
 
   if( c < 128 )
     bitmap = widget_char( c );
@@ -272,12 +261,13 @@ void widget_print_title( int y, int col, const char *s )
 {
   char buffer[128];
   snprintf( buffer, sizeof( buffer ), "\x0A%s", s );
-  widget_printstring( 128 - widget_stringwidth( buffer ) / 2, y, col, buffer );
+  widget_printstring1( 128 - widget_stringwidth( buffer ) / 2, y, col, buffer,
+                       0 );
 }
 
 void widget_printstring_right( int x, int y, int col, const char *s )
 {
-  widget_printstring( x - widget_stringwidth( s ), y, col, s );
+  widget_printstring1( x - widget_stringwidth( s ), y, col, s, 0 );
 }
 
 size_t widget_stringwidth( const char *s )
@@ -289,8 +279,10 @@ size_t widget_substringwidth( const char *s, size_t count )
 {
   size_t width = 0;
   int c;
-  if( !s )
+
+  if( !s || !count )
     return 0;
+
   while( count-- && (c = *(libspectrum_byte *)s++) != 0 ) {
     if( c < 18 )
       continue;
@@ -473,7 +465,9 @@ int widget_init( void )
   ui_menu_activate( UI_MENU_ITEM_RECORDING, 0 );
   ui_menu_activate( UI_MENU_ITEM_RECORDING_ROLLBACK, 0 );
   ui_menu_activate( UI_MENU_ITEM_TAPE_RECORDING, 0 );
-
+#ifdef HAVE_LIB_XML2
+  ui_menu_activate( UI_MENU_ITEM_FILE_SVG_CAPTURE, 0 );
+#endif
   return 0;
 }
 
@@ -598,7 +592,7 @@ int widget_dialog( int x, int y, int width, int height )
   return 0;
 }
 
-void
+static void
 widget_draw_speccy_rainbow_bar(int x, int y)
 {
   int i = 0;
@@ -679,8 +673,10 @@ widget_t widget_data[] = {
   { widget_filesel_save_draw, widget_filesel_finish, widget_filesel_keyhandler  },
   { widget_general_draw,  widget_options_finish, widget_general_keyhandler  },
   { widget_picture_draw,  NULL,                  widget_picture_keyhandler  },
+  { widget_about_draw,    NULL,                  widget_about_keyhandler    },
   { widget_menu_draw,	  NULL,			 widget_menu_keyhandler     },
   { widget_select_draw,   widget_select_finish,  widget_select_keyhandler   },
+  { widget_media_draw,	  widget_options_finish, widget_media_keyhandler    },
   { widget_sound_draw,	  widget_options_finish, widget_sound_keyhandler    },
   { widget_error_draw,	  NULL,			 widget_error_keyhandler    },
   { widget_rzx_draw,      widget_options_finish, widget_rzx_keyhandler      },
@@ -697,6 +693,7 @@ widget_t widget_data[] = {
   { widget_query_draw,    widget_query_finish,	 widget_query_keyhandler    },
   { widget_query_save_draw,widget_query_finish,	 widget_query_save_keyhandler },
   { widget_diskoptions_draw, widget_options_finish, widget_diskoptions_keyhandler  },
+  { widget_binary_draw, widget_binary_finish, widget_binary_keyhandler  },
 };
 
 #ifndef UI_SDL
@@ -731,7 +728,7 @@ ui_confirm_save_specific( const char *message )
 {
   if( !settings_current.confirm_actions ) return UI_CONFIRM_SAVE_DONTSAVE;
 
-  if( widget_do( WIDGET_TYPE_QUERY_SAVE, (void *) message ) )
+  if( widget_do_query_save( message ) )
     return UI_CONFIRM_SAVE_CANCEL;
   return widget_query.confirm;
 }
@@ -739,7 +736,7 @@ ui_confirm_save_specific( const char *message )
 int
 ui_query( const char *message )
 {
-  widget_do( WIDGET_TYPE_QUERY, (void *) message );
+  widget_do_query( message );
   return widget_query.save;
 }
 
@@ -768,7 +765,7 @@ ui_confirm_joystick( libspectrum_joystick libspectrum_type, int inputs )
   info.current = UI_CONFIRM_JOYSTICK_NONE;
   info.finish_all = 1;
 
-  error = widget_do( WIDGET_TYPE_SELECT, &info );
+  error = widget_do_select( &info );
   if( error ) return UI_CONFIRM_JOYSTICK_NONE;
 
   return (ui_confirm_joystick_t)info.result;
@@ -787,7 +784,7 @@ ui_popup_menu( int native_key )
   switch( native_key ) {
   case INPUT_KEY_F1:
     fuse_emulation_pause();
-    widget_do( WIDGET_TYPE_MENU, &widget_menu );
+    widget_do_menu( widget_menu );
     fuse_emulation_unpause();
     break;
   case INPUT_KEY_F2:

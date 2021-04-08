@@ -1,8 +1,6 @@
 /* snapshot.h: snapshot handling routines
    Copyright (c) 1999,2001-2002 Philip Kendall
 
-   $Id: snapshot.h 2889 2007-05-26 17:45:08Z zubzero $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

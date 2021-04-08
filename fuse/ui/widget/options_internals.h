@@ -40,6 +40,9 @@ extern settings_info widget_options_settings;
 int widget_general_draw( void *data );
 void widget_general_keyhandler( input_key key );
 
+int widget_media_draw( void *data );
+void widget_media_keyhandler( input_key key );
+
 int widget_peripherals_general_draw( void *data );
 void widget_peripherals_general_keyhandler( input_key key );
 

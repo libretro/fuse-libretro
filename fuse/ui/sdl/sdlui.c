@@ -1,7 +1,6 @@
 /* sdlui.c: Routines for dealing with the SDL user interface
    Copyright (c) 2000-2002 Philip Kendall, Matan Ziv-Av, Fredrick Meunier
-
-   $Id: sdlui.c 4543 2011-09-19 01:46:48Z fredm $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -39,7 +38,7 @@
 #include "ui/scaler/scaler.h"
 #include "menu.h"
 
-void
+static void
 atexit_proc( void )
 { 
   SDL_ShowCursor( SDL_ENABLE );
@@ -110,6 +109,9 @@ ui_event( void )
       break;
     case SDL_JOYAXISMOTION:
       sdljoystick_axismove( &(event.jaxis) );
+      break;
+    case SDL_JOYHATMOTION:
+      sdljoystick_hatmove( &(event.jhat) );
       break;
 
 #endif			/* if defined USE_JOYSTICK && !defined HAVE_JSW_H */

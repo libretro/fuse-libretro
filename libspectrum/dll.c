@@ -1,8 +1,6 @@
 /* dll.c: Visual C++ DLL entry point
    Copyright (c) 2004 Philip Kendall
 
-   $Id: dll.c 4117 2010-02-21 04:32:23Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include "internals.h"
 

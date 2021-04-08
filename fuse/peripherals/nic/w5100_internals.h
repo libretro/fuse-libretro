@@ -2,9 +2,7 @@
    
    Emulates a minimal subset of the Wiznet W5100 TCP/IP controller.
 
-   Copyright (c) 2011 Philip Kendall
-   
-   $Id: w5100_internals.h 4912 2013-03-24 19:34:06Z sbaldovi $
+   Copyright (c) 2011-2015 Philip Kendall
    
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +28,10 @@
 #define FUSE_W5100_INTERNALS_H
 
 #include <signal.h>
+
+#ifndef WIN32
+#include <sys/select.h>
+#endif
 
 typedef enum w5100_socket_mode {
   W5100_SOCKET_MODE_CLOSED = 0x00,
@@ -164,8 +166,11 @@ void nic_w5100_socket_process_io( nic_w5100_socket_t *socket, fd_set readfds,
 /* Define this to spew debugging info to stdout */
 #define W5100_DEBUG 0
 
-void nic_w5100_debug( const char *format, ... );
-void nic_w5100_vdebug( const char *format, va_list ap );
-void nic_w5100_error( int severity, const char *format, ... );
+void nic_w5100_debug( const char *format, ... )
+     GCC_PRINTF( 1, 2 );
+void nic_w5100_vdebug( const char *format, va_list ap )
+     GCC_PRINTF( 1, 0 );
+void nic_w5100_error( int severity, const char *format, ... )
+     GCC_PRINTF( 2, 3 );
 
 #endif                          /* #ifndef FUSE_W5100_H */

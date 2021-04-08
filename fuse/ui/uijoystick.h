@@ -1,8 +1,8 @@
 /* uijoystick.h: Joystick emulation support
    Copyright (c) 2001-2003 Russell Marks, Philip Kendall, Darren Salt,
 			   Fredrick Meunier
-
-   $Id: uijoystick.h 2889 2007-05-26 17:45:08Z zubzero $
+   Copyright (c) 2015 UB880D
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@
 #ifndef FUSE_UI_UIJOYSTICK_H
 #define FUSE_UI_UIJOYSTICK_H
 
-#include <libspectrum.h>
+#define NUM_JOY_BUTTONS 15
 
 int ui_joystick_init( void ); /* returns no. of joysticks initialised */
 void ui_joystick_end( void );

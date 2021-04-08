@@ -1,7 +1,6 @@
 /* unittests.c: unit testing framework for Fuse
-   Copyright (c) 2008-2011 Philip Kendall
-
-   $Id: unittests.c 4925 2013-05-05 07:54:35Z sbaldovi $
+   Copyright (c) 2008-2016 Philip Kendall
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,21 +26,27 @@
 
 #include <libspectrum.h>
 
+#include "debugger/debugger.h"
 #include "fuse.h"
 #include "machine.h"
 #include "mempool.h"
 #include "periph.h"
 #include "peripherals/disk/beta.h"
+#include "peripherals/disk/didaktik.h"
 #include "peripherals/disk/disciple.h"
 #include "peripherals/disk/opus.h"
 #include "peripherals/disk/plusd.h"
 #include "peripherals/ide/divide.h"
+#include "peripherals/ide/divmmc.h"
 #include "peripherals/ide/zxatasp.h"
 #include "peripherals/ide/zxcf.h"
 #include "peripherals/if1.h"
 #include "peripherals/if2.h"
+#include "peripherals/multiface.h"
 #include "peripherals/speccyboot.h"
+#include "peripherals/ttx2000s.h"
 #include "peripherals/ula.h"
+#include "peripherals/usource.h"
 #include "settings.h"
 #include "unittests.h"
 
@@ -224,6 +229,26 @@ floating_bus_test( void )
 #define TEST_ASSERT(x) do { if( !(x) ) { printf("Test assertion failed at %s:%d: %s\n", __FILE__, __LINE__, #x ); return 1; } } while( 0 )
 
 static int
+floating_bus_merge_test( void )
+{
+  /* If peripherals asserted all lines, should see no change */
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0xff, 0x00 ) == 0xaa ); 
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0xff, 0xff ) == 0xaa ); 
+
+  /* If peripherals asserted nothing, should pull all lines down */
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0x00, 0x00 ) == 0x00 ); 
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0x00, 0xff ) == 0xaa ); 
+
+  /* Tests when peripherals asserted some lines */
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0xf0, 0x00 ) == 0xa0 );
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0xf0, 0xff ) == 0xaa );
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0x0f, 0x00 ) == 0x0a );
+  TEST_ASSERT( periph_merge_floating_bus( 0xaa, 0x0f, 0xff ) == 0xaa );
+
+  return 0;
+}
+
+static int
 mempool_test( void )
 {
   int pool1, pool2;
@@ -234,13 +259,17 @@ mempool_test( void )
   TEST_ASSERT( mempool_get_pools() == initial_pools + 1 );
   TEST_ASSERT( mempool_get_pool_size( pool1 ) == 0 );
 
-  mempool_alloc( pool1, 23 );
+  mempool_malloc( pool1, 23 );
 
   TEST_ASSERT( mempool_get_pool_size( pool1 ) == 1 );
 
-  mempool_alloc( pool1, 42 );
+  mempool_malloc_n( pool1, 42, 4 );
 
   TEST_ASSERT( mempool_get_pool_size( pool1 ) == 2 );
+
+  mempool_new( pool1, libspectrum_word, 5 );
+
+  TEST_ASSERT( mempool_get_pool_size( pool1 ) == 3 );
 
   mempool_free( pool1 );
 
@@ -251,17 +280,25 @@ mempool_test( void )
   TEST_ASSERT( mempool_get_pools() == initial_pools + 2 );
   TEST_ASSERT( mempool_get_pool_size( pool2 ) == 0 );
 
-  mempool_alloc( pool1, 23 );
+  mempool_malloc( pool1, 23 );
 
   TEST_ASSERT( mempool_get_pool_size( pool2 ) == 0 );
 
-  mempool_alloc( pool2, 42 );
+  mempool_malloc_n( pool1, 6, 7 );
+
+  TEST_ASSERT( mempool_get_pool_size( pool2 ) == 0 );
+
+  mempool_new( pool1, libspectrum_byte, 5 );
+
+  TEST_ASSERT( mempool_get_pool_size( pool2 ) == 0 );
+
+  mempool_malloc( pool2, 42 );
   
   TEST_ASSERT( mempool_get_pool_size( pool2 ) == 1 );
 
   mempool_free( pool2 );
 
-  TEST_ASSERT( mempool_get_pool_size( pool1 ) == 1 );
+  TEST_ASSERT( mempool_get_pool_size( pool1 ) == 3 );
   TEST_ASSERT( mempool_get_pool_size( pool2 ) == 0 );
   
   mempool_free( pool1 );
@@ -286,6 +323,12 @@ assert_page( libspectrum_word base, libspectrum_word length, int source, int pag
   }
 
   return 0;
+}
+
+int
+unittests_assert_2k_page( libspectrum_word base, int source, int page )
+{
+  return assert_page( base, 0x0800, source, page );
 }
 
 int
@@ -345,7 +388,7 @@ assert_all_ram( int ram0000, int ram4000, int ram8000, int ramc000 )
 }
 
 static int
-paging_test_16()
+paging_test_16( void )
 {
   int r = 0;
 
@@ -714,14 +757,19 @@ paging_test( void )
   {
     r += if1_unittest();
     r += if2_unittest();
+    r += multiface_unittest();
     r += speccyboot_unittest();
+    r += ttx2000s_unittest();
+    r += usource_unittest();
 
     r += beta_unittest();
+    r += didaktik80_unittest();
     r += disciple_unittest();
     r += opus_unittest();
     r += plusd_unittest();
 
     r += divide_unittest();
+    r += divmmc_unittest();
     r += zxatasp_unittest();
     r += zxcf_unittest();
   }
@@ -736,8 +784,12 @@ unittests_run( void )
 
   r += contention_test();
   r += floating_bus_test();
+  r += floating_bus_merge_test();
   r += mempool_test();
   r += paging_test();
+  r += debugger_disassemble_unittest();
+
+  printf("Final return value: %d (should be 0)\n", r);
 
   return r;
 }

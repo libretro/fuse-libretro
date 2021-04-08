@@ -1,7 +1,5 @@
 /* creator.c: simple type for storing creator information
-   Copyright (c) 2003-2005 Philip Kendall
-
-   $Id: creator.c 3701 2008-06-30 20:32:56Z pak21 $
+   Copyright (c) 2003-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -45,7 +43,7 @@ struct libspectrum_creator {
 libspectrum_creator*
 libspectrum_creator_alloc( void )
 {
-  libspectrum_creator *creator = libspectrum_malloc( sizeof( *creator ) );
+  libspectrum_creator *creator = libspectrum_new( libspectrum_creator, 1 );
   creator->custom = NULL;
   creator->custom_length = 0;
   return creator;
@@ -77,7 +75,7 @@ libspectrum_creator_program( libspectrum_creator *creator )
 }
 
 libspectrum_error libspectrum_creator_set_major( libspectrum_creator *creator,
-						 libspectrum_word major )
+                                                 libspectrum_word major )
 {
   creator->major = major;
   return LIBSPECTRUM_ERROR_NONE;
@@ -90,7 +88,7 @@ libspectrum_creator_major( libspectrum_creator *creator )
 }
 
 libspectrum_error libspectrum_creator_set_minor( libspectrum_creator *creator,
-						 libspectrum_word minor )
+                                                 libspectrum_word minor )
 {
   creator->minor = minor;
   return LIBSPECTRUM_ERROR_NONE;

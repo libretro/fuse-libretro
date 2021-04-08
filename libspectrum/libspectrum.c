@@ -1,7 +1,5 @@
 /* libspectrum.c: Some general routines
-   Copyright (c) 2001-2009 Philip Kendall, Darren Salt, Fredrick Meunier
-
-   $Id: libspectrum.c 4830 2012-12-30 21:37:36Z fredm $
+   Copyright (c) 2001-2015 Philip Kendall, Darren Salt, Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,11 +21,11 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <stdio.h>
 #include <string.h>
-#if defined(HAVE_STRINGS_H) && !defined(__CELLOS_LV2__)
+#ifdef HAVE_STRINGS_H
 #include <strings.h>		/* Needed for strcasecmp() on QNX6 */
 #endif				/* #ifdef HAVE_STRINGS_H */
 
@@ -36,7 +34,7 @@
 #include <gcrypt.h>
 
 /* The version of libgcrypt that we need */
-static const char *MIN_GCRYPT_VERSION = "1.1.42";
+static const char * const MIN_GCRYPT_VERSION = "1.1.42";
 
 #endif				/* #ifdef HAVE_GCRYPT_H */
 
@@ -52,8 +50,6 @@ static const char *gcrypt_version;
 struct Library *xfdMasterBase;
 
 struct xfdMasterIFace *IxfdMaster;
-#else 				/* #ifndef __MORPHOS__ */
-struct xfdMasterBase *xfdMasterBase;
 #endif				/* #ifndef __MORPHOS__ */
 
 #endif /* #if defined AMIGA || defined __MORPHOS__ */
@@ -546,6 +542,7 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
 
       { LIBSPECTRUM_ID_COMPRESSED_BZ2,"bz2", 3, "BZh",		    0, 3, 4 },
       { LIBSPECTRUM_ID_COMPRESSED_GZ, "gz",  3, "\x1f\x8b",	    0, 2, 4 },
+      { LIBSPECTRUM_ID_COMPRESSED_ZIP,"zip", 3, "PK\x03\x04",	    0, 4, 4 },
 
       { LIBSPECTRUM_ID_TAPE_Z80EM,    "raw", 1, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0Raw tape sample",  0, 64, 0 },
       { LIBSPECTRUM_ID_TAPE_CSW,      "csw", 2, "Compressed Square Wave\x1a",  0, 23, 4 },
@@ -566,7 +563,13 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
       { LIBSPECTRUM_ID_DISK_OPD,      "opd", 3, NULL,		    0, 0, 0 },
       { LIBSPECTRUM_ID_DISK_OPD,      "opu", 3, NULL,		    0, 0, 0 },
 
+      { LIBSPECTRUM_ID_DISK_D80,      "d80", 3, NULL,		    0, 0, 0 },
+      { LIBSPECTRUM_ID_DISK_D80,      "d40", 3, NULL,		    0, 0, 0 },
+
       { LIBSPECTRUM_ID_AUX_POK,       "pok", 3, NULL,		    0, 0, 0 },
+
+      { LIBSPECTRUM_ID_SCREEN_SCR,    "scr", 3, NULL,		    0, 0, 0 },
+      { LIBSPECTRUM_ID_SCREEN_MLT,    "mlt", 3, NULL,		    0, 0, 0 },
 
       { -1, NULL, 0, NULL, 0, 0, 0 }, /* End marker */
 
@@ -621,9 +624,9 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
         if( xfdobj = (struct xfdBufferInfo *)IxfdMaster->xfdAllocObject(XFDOBJ_BUFFERINFO) ) {
 #else				/* #ifndef __MORPHOS__ */
     if( xfdMasterBase = OpenLibrary("xfdmaster.library",38 ) ) {
-        if( xfdobj = (struct xfdBufferInfo *)xfdAllocObject(XFDOBJ_BUFFERINFO) ) {
+        if( (xfdobj = (struct xfdBufferInfo *)xfdAllocObject(XFDOBJ_BUFFERINFO)) ) {
 #endif				/* #ifndef __MORPHOS__ */
-          xfdobj->xfdbi_SourceBuffer = buffer;
+          xfdobj->xfdbi_SourceBuffer = (APTR) buffer;
           xfdobj->xfdbi_SourceBufLen = length;
           xfdobj->xfdbi_Flags = XFDFB_RECOGTARGETLEN | XFDFB_RECOGEXTERN;
 
@@ -679,6 +682,7 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
   case LIBSPECTRUM_ID_COMPRESSED_BZ2:
   case LIBSPECTRUM_ID_COMPRESSED_GZ:
   case LIBSPECTRUM_ID_COMPRESSED_XFD:
+  case LIBSPECTRUM_ID_COMPRESSED_ZIP:
     *libspectrum_class = LIBSPECTRUM_CLASS_COMPRESSED; return 0;
 
   case LIBSPECTRUM_ID_DISK_DSK:
@@ -692,6 +696,9 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
 
   case LIBSPECTRUM_ID_DISK_OPD:
     *libspectrum_class = LIBSPECTRUM_CLASS_DISK_OPUS; return 0;
+
+  case LIBSPECTRUM_ID_DISK_D80:
+    *libspectrum_class = LIBSPECTRUM_CLASS_DISK_DIDAKTIK; return 0;
 
   case LIBSPECTRUM_ID_DISK_SCL:
   case LIBSPECTRUM_ID_DISK_TRD:
@@ -738,6 +745,11 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
 
   case LIBSPECTRUM_ID_AUX_POK:
     *libspectrum_class = LIBSPECTRUM_CLASS_AUXILIARY; return 0;
+
+  case LIBSPECTRUM_ID_SCREEN_MLT:
+  case LIBSPECTRUM_ID_SCREEN_SCR:
+    *libspectrum_class = LIBSPECTRUM_CLASS_SCREENSHOT; return 0;
+
   }
 
   libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
@@ -764,7 +776,7 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
   }
 
   if( new_filename && old_filename ) {
-    *new_filename = strdup( old_filename );
+    *new_filename = libspectrum_safe_strdup( old_filename );
     if( !*new_filename ) {
       libspectrum_print_error( LIBSPECTRUM_ERROR_MEMORY,
 			       "out of memory at %s:%d", __FILE__, __LINE__ );
@@ -837,6 +849,34 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
 
     break;
 
+  case LIBSPECTRUM_ID_COMPRESSED_ZIP:
+
+#ifdef HAVE_ZLIB_H
+    if( new_filename && *new_filename ) {
+      if( strlen( *new_filename ) >= 4 &&
+          !strcasecmp( &(*new_filename)[ strlen( *new_filename ) - 4 ],
+                       ".zip" ) )
+      (*new_filename)[ strlen( *new_filename ) - 4 ] = '\0';
+    }
+
+    error = libspectrum_zip_blind_read( old_buffer, old_length,
+                                        new_buffer, new_length );
+    if( error ) {
+      if( new_filename ) libspectrum_free( *new_filename );
+      return error;
+    }
+
+#else				/* #ifdef HAVE_ZLIB_H */
+
+    libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
+                             "zlib not available to decompress zipped file" );
+    if( new_filename ) libspectrum_free( *new_filename );
+    return LIBSPECTRUM_ERROR_UNKNOWN;
+
+#endif				/* #ifdef HAVE_ZLIB_H */
+
+    break;
+
 #if defined AMIGA || defined __MORPHOS__
   case LIBSPECTRUM_ID_COMPRESSED_XFD:
     {
@@ -854,10 +894,10 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
               (struct xfdBufferInfo *)IxfdMaster->xfdAllocObject(XFDOBJ_BUFFERINFO) ) {
 #else				/* #ifndef __MORPHOS__ */
       if( xfdMasterBase = OpenLibrary( "xfdmaster.library", 38 ) ) {
-          if( xfdobj = (struct xfdBufferInfo *)xfdAllocObject(XFDOBJ_BUFFERINFO) ) {
+          if( (xfdobj = (struct xfdBufferInfo *)xfdAllocObject(XFDOBJ_BUFFERINFO)) ) {
 #endif				/* #ifndef __MORPHOS__ */
             xfdobj->xfdbi_SourceBufLen = old_length;
-            xfdobj->xfdbi_SourceBuffer = old_buffer;
+            xfdobj->xfdbi_SourceBuffer = (APTR) old_buffer;
             xfdobj->xfdbi_Flags = XFDFB_RECOGEXTERN | XFDFB_RECOGTARGETLEN;
             xfdobj->xfdbi_PackerFlags = XFDPFB_RECOGLEN;
 #ifndef __MORPHOS__
@@ -871,7 +911,7 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
 #else				/* #ifndef __MORPHOS__ */
               if( xfdDecrunchBuffer( xfdobj ) ) {
 #endif				/* #ifndef __MORPHOS__ */
-                *new_buffer = libspectrum_malloc( xfdobj->xfdbi_TargetBufSaveLen );
+                *new_buffer = libspectrum_new( unsigned char, xfdobj->xfdbi_TargetBufSaveLen );
                 *new_length = xfdobj->xfdbi_TargetBufSaveLen;
                 memcpy( *new_buffer, xfdobj->xfdbi_TargetBuffer, *new_length );
 #ifndef __MORPHOS__
@@ -921,7 +961,7 @@ libspectrum_uncompress_file( unsigned char **new_buffer, size_t *new_length,
 }
 
 /* Ensure there is room for `requested' characters after the current
-   position `ptr' in `buffer'. If not, realloc() and update the
+   position `ptr' in `buffer'. If not, renew() and update the
    pointers as necessary */
 void
 libspectrum_make_room( libspectrum_byte **dest, size_t requested,
@@ -932,7 +972,7 @@ libspectrum_make_room( libspectrum_byte **dest, size_t requested,
   if( *allocated == 0 ) {
 
     (*allocated) = requested;
-    *dest = libspectrum_malloc( requested * sizeof( **dest ) );
+    *dest = libspectrum_new( libspectrum_byte, requested );
 
   } else {
     current_length = *ptr - *dest;
@@ -947,7 +987,7 @@ libspectrum_make_room( libspectrum_byte **dest, size_t requested,
       current_length + requested :
       2 * (*allocated);
 
-    *dest = libspectrum_realloc( *dest, *allocated * sizeof( **dest ) );
+    *dest = libspectrum_renew( libspectrum_byte, *dest, *allocated );
   }
 
   /* Update the secondary pointer to the block */

@@ -1,8 +1,6 @@
 /* sound.c: Sound support
-   Copyright (c) 2000-2012 Russell Marks, Matan Ziv-Av, Philip Kendall,
+   Copyright (c) 2000-2016 Russell Marks, Matan Ziv-Av, Philip Kendall,
                            Fredrick Meunier, Patrik Rak
-
-   $Id: sound.c 4921 2013-05-01 12:37:07Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,12 +29,14 @@
 #include <config.h>
 
 #include "fuse.h"
+#include "infrastructure/startup_manager.h"
 #include "machine.h"
 #include "movie.h"
 #include "options.h"
 #include "settings.h"
 #include "sound.h"
 #include "tape.h"
+#include "timer/timer.h"
 #include "ui/ui.h"
 #include "sound/blipbuffer.h"
 
@@ -96,6 +96,8 @@ Blip_Synth *ay_a_synth = NULL, *ay_b_synth = NULL, *ay_c_synth = NULL;
 Blip_Synth *ay_a_synth_r = NULL, *ay_b_synth_r = NULL, *ay_c_synth_r = NULL;
 
 Blip_Synth *left_specdrum_synth = NULL, *right_specdrum_synth = NULL;
+
+Blip_Synth *left_covox_synth = NULL, *right_covox_synth = NULL;
 
 struct speaker_type_tag
 {
@@ -177,6 +179,23 @@ sound_ay_init( void )
   ay_change_count = 0;
 }
 
+#ifndef UI_WIN32
+#define MIN_SPEED_PERCENTAGE 2
+#define MAX_SPEED_PERCENTAGE 500
+#else                        /* #ifndef UI_WIN32 */
+/* We are limiting speed until bugs in the DirectSound driver are resolved, see
+   [bugs:#364] for more details */
+#define MIN_SPEED_PERCENTAGE 50
+#define MAX_SPEED_PERCENTAGE 300
+#endif                       /* #ifndef UI_WIN32 */
+
+static int
+is_in_sound_enabled_range( void )
+{
+  return settings_current.emulation_speed >= MIN_SPEED_PERCENTAGE &&
+    settings_current.emulation_speed <= MAX_SPEED_PERCENTAGE;
+}
+
 void
 sound_init( const char *device )
 {
@@ -192,7 +211,7 @@ sound_init( const char *device )
      than a seconds worth of sound which is bigger than the
      maximum Blip_Buffer of 1 second) */
   if( !( !sound_enabled && settings_current.sound &&
-         settings_current.emulation_speed > 1 ) )
+         is_in_sound_enabled_range() ) )
     return;
 
   /* only try for stereo if we need it */
@@ -211,21 +230,31 @@ sound_init( const char *device )
   treble = speaker_type[ option_enumerate_sound_speaker_type() ].treble;
 
   ay_a_synth = new_Blip_Synth();
-  blip_synth_set_volume( ay_a_synth, sound_get_volume( settings_current.volume_ay) );
+  blip_synth_set_volume( ay_a_synth,
+                         sound_get_volume( settings_current.volume_ay) );
   blip_synth_set_treble_eq( ay_a_synth, treble );
 
   ay_b_synth = new_Blip_Synth();
-  blip_synth_set_volume( ay_b_synth, sound_get_volume( settings_current.volume_ay) );
+  blip_synth_set_volume( ay_b_synth,
+                         sound_get_volume( settings_current.volume_ay) );
   blip_synth_set_treble_eq( ay_b_synth, treble );
 
   ay_c_synth = new_Blip_Synth();
-  blip_synth_set_volume( ay_c_synth, sound_get_volume( settings_current.volume_ay) );
+  blip_synth_set_volume( ay_c_synth,
+                         sound_get_volume( settings_current.volume_ay) );
   blip_synth_set_treble_eq( ay_c_synth, treble );
 
   left_specdrum_synth = new_Blip_Synth();
-  blip_synth_set_volume( left_specdrum_synth, sound_get_volume( settings_current.volume_specdrum ) );
+  blip_synth_set_volume( left_specdrum_synth,
+                         sound_get_volume( settings_current.volume_specdrum ) );
   blip_synth_set_output( left_specdrum_synth, left_buf );
   blip_synth_set_treble_eq( left_specdrum_synth, treble );
+
+  left_covox_synth = new_Blip_Synth();
+  blip_synth_set_volume( left_covox_synth,
+                         sound_get_volume( settings_current.volume_covox ) );
+  blip_synth_set_output( left_covox_synth, left_buf );
+  blip_synth_set_treble_eq( left_covox_synth, treble );
   
   /* important to override these settings if not using stereo
    * (it would probably be confusing to mess with the stereo
@@ -266,9 +295,16 @@ sound_init( const char *device )
     blip_synth_set_treble_eq( *ay_mid_synth_r, treble );
 
     right_specdrum_synth = new_Blip_Synth();
-    blip_synth_set_volume( right_specdrum_synth, sound_get_volume( settings_current.volume_specdrum ) );
+    blip_synth_set_volume( right_specdrum_synth,
+                           sound_get_volume( settings_current.volume_specdrum ) );
     blip_synth_set_output( right_specdrum_synth, right_buf );
     blip_synth_set_treble_eq( right_specdrum_synth, treble );
+
+    right_covox_synth = new_Blip_Synth();
+    blip_synth_set_volume( right_covox_synth,
+                           sound_get_volume( settings_current.volume_covox ) );
+    blip_synth_set_output( right_covox_synth, right_buf );
+    blip_synth_set_treble_eq( right_covox_synth, treble );
   } else {
     blip_synth_set_output( ay_a_synth, left_buf );
     blip_synth_set_output( ay_b_synth, left_buf );
@@ -289,9 +325,7 @@ sound_init( const char *device )
   sound_framesiz = ( float )settings_current.sound_freq / hz;
   sound_framesiz++;
 
-  samples =
-    (blip_sample_t *)libspectrum_calloc( sound_framesiz * sound_channels,
-                                         sizeof(blip_sample_t) );
+  samples = libspectrum_new0( blip_sample_t, sound_framesiz * sound_channels );
   /* initialize movie settings... */
   movie_init_sound( settings_current.sound_freq, sound_stereo_ay );
 
@@ -308,7 +342,7 @@ void
 sound_unpause( void )
 {
   /* No sound if fastloading in progress */
-  if( settings_current.fastload && tape_is_playing() )
+  if( settings_current.fastload && timer_fastloading_active() )
     return;
 
   sound_init( settings_current.sound_device );
@@ -331,6 +365,9 @@ sound_end( void )
     delete_Blip_Synth( &left_specdrum_synth );
     delete_Blip_Synth( &right_specdrum_synth );
 
+    delete_Blip_Synth( &left_covox_synth );
+    delete_Blip_Synth( &right_covox_synth );
+
     delete_Blip_Buffer( &left_buf );
     delete_Blip_Buffer( &right_buf );
 
@@ -339,6 +376,14 @@ sound_end( void )
     libspectrum_free( samples );
     sound_enabled = 0;
   }
+}
+
+void
+sound_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_SOUND, dependencies,
+                            ARRAY_SIZE( dependencies ), NULL, NULL, sound_end );
 }
 
 static inline void
@@ -357,22 +402,8 @@ ay_do_tone( int level, unsigned int tone_count, int *var, int chan )
     if( ay_tone_high[ chan ] )
       *var = level;
     else {
-      *var = -level;
+      *var = 0;
     }
-  }
-
-  /* The AY output goes from 0 to the maximum volume, so there
-   * is a DC component that is half the maxmum volume.
-   * Robocop uses a high frequency square wave with a tone
-   * period of one to average out to being like a DC offset at
-   * around half the maximum volume. This is used as a base for
-   * the sample playback.
-   * This seems to intefere with our attempt to remove the
-   * returned DC offset, so for now we just ignore the high
-   * frequency wave and hope it's a sample
-   */
-  if( ay_tone_period[ chan ] == 1 ) {
-      *var = -level;
   }
 }
 
@@ -640,6 +671,23 @@ sound_specdrum_write( libspectrum_word port GCC_UNUSED, libspectrum_byte val )
   }
 }
 
+/*
+ * sound_covox_write - very simple routine
+ * as the output is already a digitized waveform
+ */
+void
+sound_covox_write( libspectrum_word port GCC_UNUSED, libspectrum_byte val )
+{
+  if( periph_is_active( PERIPH_TYPE_COVOX_FB ) ||
+      periph_is_active( PERIPH_TYPE_COVOX_DD ) ) {
+    blip_synth_update( left_covox_synth, tstates, val * 128);
+    if( right_covox_synth ) {
+      blip_synth_update( right_covox_synth, tstates, val * 128);
+    }
+    machine_current->covox.covox_dac = val;
+  }
+}
+
 void
 sound_frame( void )
 {
@@ -674,7 +722,7 @@ sound_frame( void )
 }
 
 void
-sound_beeper( int on )
+sound_beeper( libspectrum_dword at_tstates, int on )
 {
   static int beeper_ampl[] = { 0, AMPL_TAPE, AMPL_BEEPER,
                                AMPL_BEEPER+AMPL_TAPE };
@@ -691,9 +739,9 @@ sound_beeper( int on )
     if( on == 1 ) on = 0;
   }
 
-  val = -beeper_ampl[3] + beeper_ampl[on]*2;
+  val = beeper_ampl[on];
 
-  blip_synth_update( left_beeper_synth, tstates, val );
+  blip_synth_update( left_beeper_synth, at_tstates, val );
   if( sound_stereo_ay != SOUND_STEREO_AY_NONE )
-    blip_synth_update( right_beeper_synth, tstates, val );
+    blip_synth_update( right_beeper_synth, at_tstates, val );
 }

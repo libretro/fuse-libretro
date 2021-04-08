@@ -9,11 +9,9 @@
      http://www.microchip.com/wwwproducts/Devices.aspx?dDocName=en022889
 
    SpeccyBoot:
-     http://speccyboot.sourceforge.net/
+     http://patrikpersson.github.io/speccyboot/
   
-   Copyright (c) 2009-2011 Patrik Persson, Philip Kendall
-
-   $Id: speccyboot.h 4775 2012-11-26 23:03:36Z sbaldovi $
+   Copyright (c) 2009-2016 Patrik Persson, Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -38,9 +36,7 @@
 #ifndef FUSE_SPECCYBOOT_H
 #define FUSE_SPECCYBOOT_H
 
-void speccyboot_init( void );
-
-void speccyboot_end( void );
+void speccyboot_register_startup( void );
 
 int speccyboot_unittest( void );
 

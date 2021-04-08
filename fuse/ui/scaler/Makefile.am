@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2001 Philip Kendall
-
-## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,23 +20,32 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+fuse_SOURCES += ui/scaler/scaler.c
 
-AM_CPPFLAGS = -I$(srcdir)/../..
+fuse_LDADD += \
+              ui/scaler/scalers16.o \
+              ui/scaler/scalers32.o
 
-noinst_LIBRARIES = libscaler.a
+fuse_DEPENDENCIES += \
+                     ui/scaler/scalers16.o \
+                     ui/scaler/scalers32.o
 
-AM_CPPFLAGS += @GTK_CFLAGS@ @GLIB_CFLAGS@ @LIBSPEC_CFLAGS@
+ui/scaler/scalers16.o: $(srcdir)/ui/scaler/scalers.c
+	$(AM_V_CC)$(COMPILE) -DSCALER_DATA_SIZE=2 -c $(srcdir)/ui/scaler/scalers.c -o $@
 
-libscaler_a_SOURCES = scaler.c
-libscaler_a_LIBADD = scalers16.o scalers32.o
+ui/scaler/scalers32.o: $(srcdir)/ui/scaler/scalers.c
+	$(AM_V_CC)$(COMPILE) -DSCALER_DATA_SIZE=4 -c $(srcdir)/ui/scaler/scalers.c -o $@
 
-scalers16.o: $(srcdir)/scalers.c
-	$(COMPILE) -DSCALER_DATA_SIZE=2 -c $(srcdir)/scalers.c -o scalers16.o
+noinst_HEADERS += \
+                  ui/scaler/scaler.h \
+                  ui/scaler/scaler_internals.h
 
-scalers32.o: scalers.c
-	$(COMPILE) -DSCALER_DATA_SIZE=4 -c $(srcdir)/scalers.c -o scalers32.o
+EXTRA_DIST += \
+              ui/scaler/scalers.c \
+              ui/scaler/scaler_hq2x.c \
+              ui/scaler/scaler_hq3x.c \
+              ui/scaler/scaler_hq4x.c
 
-noinst_HEADERS = scaler.h scaler_internals.h
-
-EXTRA_DIST = scalers.c scaler_hq2x.c scaler_hq3x.c
+CLEANFILES += \
+              ui/scaler/scalers16.o \
+              ui/scaler/scalers32.o

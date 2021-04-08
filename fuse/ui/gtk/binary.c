@@ -1,7 +1,6 @@
-/* binary.c: GTK+ routines to load/save chunks of binary data
-   Copyright (c) 2003-2005 Philip Kendall
-
-   $Id: binary.c 4962 2013-05-19 05:25:15Z sbaldovi $
+/* binary.c: GTK routines to load/save chunks of binary data
+   Copyright (c) 2003-2013 Philip Kendall
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,7 +32,7 @@
 
 #include "fuse.h"
 #include "gtkinternals.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "menu.h"
 #include "ui/ui.h"
 #include "utils.h"
@@ -43,22 +42,44 @@ struct binary_info {
   char *filename;
   utils_file file;
 
-  int load;
   GCallback activate_data;
   GCallback change_filename;
 
   GtkWidget *dialog;
   GtkWidget *filename_widget, *start_widget, *length_widget;
+
+  long start;
+  long length;
 };
 
+static struct binary_info save_info = { 0 };
+static struct binary_info load_info = { 0 };
+
 static void change_load_filename( GtkButton *button, gpointer user_data );
-static void load_data( GtkButton *button, gpointer user_data );
+static void load_data( GtkEntry *entry, gpointer user_data );
 
 static void change_save_filename( GtkButton *button, gpointer user_data );
-static void save_data( GtkButton *button, gpointer user_data );
+static void save_data( GtkEntry *entry, gpointer user_data );
 
-void
-create_binary_dialog( struct binary_info *info, const char *title )
+
+/*
+ * This is the main dialog for the load/save binary data interface. It's
+ * shared between the 2 functions.
+ *
+ * It's passed the binary_info structure, which contains the start address
+ * and length values of the block to either load or save. These are populated
+ * into the GUI.
+ */
+
+typedef enum
+{
+  BINARY_DIALOG_MODE_LOAD,
+  BINARY_DIALOG_MODE_SAVE
+} BINARY_DIALOG_MODE;
+
+static void
+create_shared_binary_dialog( struct binary_info *info, const char *title,
+                             BINARY_DIALOG_MODE mode )
 {
   GtkWidget *table, *button, *content_area;
   GtkWidget *label_filename, *label_start, *label_length;
@@ -72,6 +93,11 @@ create_binary_dialog( struct binary_info *info, const char *title )
   label_filename = gtk_label_new( "Filename" );
 
   info->filename_widget = gtk_label_new( info->filename );
+#if GTK_CHECK_VERSION( 3, 16, 0 )
+  gtk_label_set_xalign( GTK_LABEL(info->filename_widget), 0.0);
+#else
+  gtk_misc_set_alignment( GTK_MISC(info->filename_widget), 0.0, 0.5 );
+#endif
 
   button = gtk_button_new_with_label( "Browse..." );
   g_signal_connect( G_OBJECT( button ), "clicked", info->change_filename,
@@ -80,16 +106,20 @@ create_binary_dialog( struct binary_info *info, const char *title )
   label_start = gtk_label_new( "Start" );
 
   info->start_widget = gtk_entry_new();
+  snprintf( buffer, 80, "%lu", info->start );
+  gtk_entry_set_text( GTK_ENTRY( info->start_widget ), buffer );
   g_signal_connect( G_OBJECT( info->start_widget ), "activate",
                     info->activate_data, info );
 
   label_length = gtk_label_new( "Length" );
 
   info->length_widget = gtk_entry_new();
-  if( info->load ) {
+  if( mode == BINARY_DIALOG_MODE_LOAD ) {
     snprintf( buffer, 80, "%lu", (unsigned long)info->file.length );
-    gtk_entry_set_text( GTK_ENTRY( info->length_widget ), buffer );
+  } else {
+    snprintf( buffer, 80, "%lu", info->length );
   }
+  gtk_entry_set_text( GTK_ENTRY( info->length_widget ), buffer );
 
   g_signal_connect( G_OBJECT( info->length_widget ), "activate",
                     info->activate_data, info );
@@ -147,41 +177,68 @@ create_binary_dialog( struct binary_info *info, const char *title )
   /* Command buttons */
   gtkstock_create_ok_cancel( info->dialog, NULL, info->activate_data, info,
                              DEFAULT_DESTROY, DEFAULT_DESTROY );
+
+  gtk_widget_grab_focus( info->start_widget );
 }
 
+
+/*
+ * This is the entry point for the load binary data command. It's called from
+ * the GUI menu. It pops the file name selector dialog if the user hasn't
+ * already specified a filename, then pops the dialog requesting start address
+ * and length.
+ */
 void
 menu_file_loadbinarydata( GtkAction *gtk_action GCC_UNUSED,
                           gpointer data GCC_UNUSED )
 {
-  struct binary_info info;
-
   int error;
 
   fuse_emulation_pause();
 
-  info.filename = ui_get_open_filename( "Fuse - Load Binary Data" );
-  if( !info.filename ) { fuse_emulation_unpause(); return; }
+  /*
+   * If the filename is blank it's not been selected previously.
+   * Pop up the file selector.
+   */
+  if( !load_info.filename )
+  {
+    load_info.filename = ui_get_open_filename( "Fuse - Load Binary Data" );
+    if( !load_info.filename )
+    {
+      fuse_emulation_unpause();
+      return;
+    }
+  }
 
-  error = utils_read_file( info.filename, &info.file );
-  if( error ) { free( info.filename ); fuse_emulation_unpause(); return; }
+  error = utils_read_file( load_info.filename, &load_info.file );
+  if( error )
+  {
+    fuse_emulation_unpause();
+    return;
+  }
 
   /* Information display */
-  info.load = 1;
-  info.activate_data = G_CALLBACK( load_data );
-  info.change_filename = G_CALLBACK( change_load_filename );
+  load_info.activate_data = G_CALLBACK( load_data );
+  load_info.change_filename = G_CALLBACK( change_load_filename );
 
-  create_binary_dialog( &info, "Fuse - Load Binary Data" );
+  create_shared_binary_dialog( &load_info, "Fuse - Load Binary Data",
+                               BINARY_DIALOG_MODE_LOAD );
 
   /* Process the dialog */
-  gtk_widget_show_all( info.dialog );
+  gtk_widget_show_all( load_info.dialog );
   gtk_main();
 
-  free( info.filename );
-  utils_close_file( &info.file );
+  utils_close_file( &load_info.file );
 
   fuse_emulation_unpause();
 }
 
+
+/*
+ * Change the name of the file the user is going to load into the Spectrum's
+ * memory. This pops a file selector dialog and stores the name of the file
+ * chosen (releasing the memory of the previously chosen name).
+ */
 static void
 change_load_filename( GtkButton *button GCC_UNUSED, gpointer user_data )
 {
@@ -214,17 +271,34 @@ change_load_filename( GtkButton *button GCC_UNUSED, gpointer user_data )
   gtk_entry_set_text( GTK_ENTRY( info->length_widget ), buffer );
 }
 
+
+/*
+ * Load a chunk of binary data into the Spectrum's memory. It's called as a
+ * callback from the GUI when the user hits the OK button.
+ *
+ * The given user_data is a binary_info structure which contains the user's
+ * selected filename, plus the start/length widgets the user will have filled
+ * in.
+ *
+ * This is called in a separate GTK loop, so it returns to code which tidies
+ * up and unpauses the Spectrum.
+ */
 static void
-load_data( GtkButton *button GCC_UNUSED, gpointer user_data )
+load_data( GtkEntry *entry GCC_UNUSED, gpointer user_data )
 {
   struct binary_info *info = user_data;
 
   long start, length; size_t i;
+  const gchar *nptr;
+  char *endptr;
+  int base;
 
   errno = 0;
-  length = strtol( gtk_entry_get_text( GTK_ENTRY( info->length_widget ) ),
-		   NULL, 10 );
-  if( errno || length < 1 || length > 0x10000 ) {
+  nptr = gtk_entry_get_text( GTK_ENTRY( info->length_widget ) );
+  base = ( g_str_has_prefix( nptr, "0x" ) )? 16 : 10;
+  length = strtol( nptr, &endptr, base );
+
+  if( errno || length < 1 || length > 0x10000 || endptr == nptr ) {
     ui_error( UI_ERROR_ERROR, "Length must be between 1 and 65536" );
     return;
   }
@@ -237,9 +311,11 @@ load_data( GtkButton *button GCC_UNUSED, gpointer user_data )
   }
 
   errno = 0;
-  start = strtol( gtk_entry_get_text( GTK_ENTRY( info->start_widget ) ),
-		  NULL, 10 );
-  if( errno || start < 0 || start > 0xffff ) {
+  nptr = gtk_entry_get_text( GTK_ENTRY( info->start_widget ) );
+  base = ( g_str_has_prefix( nptr, "0x" ) )? 16 : 10;
+  start = strtol( nptr, &endptr, base );
+
+  if( errno || start < 0 || start > 0xffff || endptr == nptr ) {
     ui_error( UI_ERROR_ERROR, "Start must be between 0 and 65535" );
     return;
   }
@@ -250,37 +326,60 @@ load_data( GtkButton *button GCC_UNUSED, gpointer user_data )
   }
 
   for( i = 0; i < length; i++ )
-    writebyte( start + i, info->file.buffer[ i ] );
+    writebyte_internal( start + i, info->file.buffer[ i ] );
 
   gtkui_destroy_widget_and_quit( info->dialog, NULL );
 }
   
+
+/*
+ * This is the start point for the save binary data GUI command. It pops up
+ * the file selector if a selected file isn't already in the static structure,
+ * then pops up the filename/start/length dialog.
+ */
 void
 menu_file_savebinarydata( GtkAction *gtk_action GCC_UNUSED,
                           gpointer data GCC_UNUSED )
 {
-  struct binary_info info;
-
   fuse_emulation_pause();
 
-  info.filename = ui_get_save_filename( "Fuse - Save Binary Data" );
-  if( !info.filename ) { fuse_emulation_unpause(); return; }
+  /*
+   * If the filename is blank it's not been selected previously.
+   * Pop up the file selector.
+   */
+  if( !save_info.filename )
+  {
+    save_info.filename = ui_get_save_filename( "Fuse - Save Binary Data" );
+    if( !save_info.filename )
+    {
+      fuse_emulation_unpause();
+      return;
+    }
+  }
 
-  info.activate_data = G_CALLBACK( save_data );
-  info.change_filename = G_CALLBACK( change_save_filename );
-  info.load = 0;
+  save_info.activate_data = G_CALLBACK( save_data );
+  save_info.change_filename = G_CALLBACK( change_save_filename );
 
-  create_binary_dialog( &info, "Fuse - Save Binary Data" );
+  create_shared_binary_dialog( &save_info, "Fuse - Save Binary Data",
+                               BINARY_DIALOG_MODE_SAVE );
 
   /* Process the dialog */
-  gtk_widget_show_all( info.dialog );
+  gtk_widget_show_all( save_info.dialog );
   gtk_main();
-
-  free( info.filename );
 
   fuse_emulation_unpause();
 }
 
+
+/*
+ * Change the name of the file the save binary command will write
+ * out to. The previously specified filename is removed (and the memory
+ * for it reclaimed) and a new filename is stored in its place. The
+ * GUI entry field is updated.
+ *
+ * This is only called after the user has already specified a filename,
+ * so it's safe to free the old name.
+ */
 static void
 change_save_filename( GtkButton *button GCC_UNUSED, gpointer user_data )
 {
@@ -297,52 +396,52 @@ change_save_filename( GtkButton *button GCC_UNUSED, gpointer user_data )
   gtk_label_set_text( GTK_LABEL( info->filename_widget ), new_filename );
 }
 
+
+/*
+ * Write out a chunk of binary data, as described by the given binary_info
+ * structure passed in.
+ *
+ * This writes the given number of data bytes from the given start point in
+ * the Spectrum's memory out to the given file.
+ */
 static void
-save_data( GtkButton *button GCC_UNUSED, gpointer user_data )
+save_data( GtkEntry *entry GCC_UNUSED, gpointer user_data )
 {
   struct binary_info *info = user_data;
 
-  long start, length; size_t i;
-  libspectrum_byte *buffer;
+  const gchar *nptr;
+  char *endptr;
+  int base;
 
   int error;
 
   errno = 0;
-  length = strtol( gtk_entry_get_text( GTK_ENTRY( info->length_widget ) ),
-		   NULL, 10 );
-  if( errno || length < 1 || length > 0x10000 ) {
+  nptr = gtk_entry_get_text( GTK_ENTRY( info->length_widget ) );
+  base = ( g_str_has_prefix( nptr, "0x" ) )? 16 : 10;
+  info->length = strtol( nptr, &endptr, base );
+
+  if( errno || info->length < 1 || info->length > 0x10000 || endptr == nptr ) {
     ui_error( UI_ERROR_ERROR, "Length must be between 1 and 65536" );
     return;
   }
 
-  buffer = malloc( length * sizeof( libspectrum_byte ) );
-  if( !buffer ) {
-    ui_error( UI_ERROR_ERROR, "out of memory at %s:%d", __FILE__, __LINE__ );
-    return;
-  }
-
   errno = 0;
-  start = strtol( gtk_entry_get_text( GTK_ENTRY( info->start_widget ) ),
-		  NULL, 10 );
-  if( errno || start < 0 || start > 0xffff ) {
+  nptr = gtk_entry_get_text( GTK_ENTRY( info->start_widget ) );
+  base = ( g_str_has_prefix( nptr, "0x" ) )? 16 : 10;
+  info->start = strtol( nptr, &endptr, base );
+
+  if( errno || info->start < 0 || info->start > 0xffff || endptr == nptr ) {
     ui_error( UI_ERROR_ERROR, "Start must be between 0 and 65535" );
-    free( buffer );
     return;
   }
 
-  if( start + length > 0x10000 ) {
+  if( info->start + info->length > 0x10000 ) {
     ui_error( UI_ERROR_ERROR, "Block ends after address 65535" );
-    free( buffer );
     return;
   }
 
-  for( i = 0; i < length; i++ )
-    buffer[ i ] = readbyte( start + i );
-
-  error = utils_write_file( info->filename, buffer, length );
-  if( error ) { free( buffer ); return; }
-
-  free( buffer );
+  error = utils_save_binary( info->start, info->length, info->filename );
+  if( error ) return;
 
   gtkui_destroy_widget_and_quit( info->dialog, NULL );
 }

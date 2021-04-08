@@ -1,7 +1,6 @@
 /* select.c: generic selection widget
    Copyright (c) 2001-2004 Philip Kendall, Witold Filipczyk
-
-   $Id: select.c 4103 2009-11-21 10:16:36Z fredm $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,7 +32,7 @@
 static size_t highlight_line;
 
 const char *title;
-const char **options;
+const char * const *options;
 static int finish_all;
 static size_t count;
 static int *result;
@@ -43,7 +42,7 @@ static void print_item (int left_edge, int width, int index, int colour)
   char key[] = "\x0A ";
   key[1] = 'A' + index;
   left_edge = ( left_edge + 1 ) * 8 + 1;
-  left_edge = widget_printstring( left_edge, index * 8 + 24, colour, key );
+  left_edge = widget_printstring_ms( left_edge, index * 8 + 24, colour, key );
   left_edge = widget_printstring( left_edge + 1, index * 8 + 24, colour, ": " );
   widget_printstring( left_edge + 1, index * 8 + 24, colour, options[index] );
 }

@@ -1,7 +1,5 @@
 /* event.c: Routines needed for dealing with the event list
-   Copyright (c) 2000-2008 Philip Kendall
-
-   $Id: event.c 4717 2012-06-07 03:54:45Z fredm $
+   Copyright (c) 2000-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +28,7 @@
 #include <libspectrum.h>
 
 #include "event.h"
+#include "infrastructure/startup_manager.h"
 #include "fuse.h"
 #include "ui/ui.h"
 #include "utils.h"
@@ -56,14 +55,16 @@ typedef struct event_descriptor_t {
 
 static GArray *registered_events;
 
-void
-event_init( void )
+static int
+event_init( void *context )
 {
   registered_events = g_array_new( FALSE, FALSE, sizeof( event_descriptor_t ) );
 
   event_type_null = event_register( NULL, "[Deleted event]" );
 
   event_next_event = event_no_events;
+
+  return 0;
 }
 
 int
@@ -98,7 +99,7 @@ event_add_with_data( libspectrum_dword event_time, int type, void *user_data )
     ptr = event_free;
     event_free = NULL;
   } else {
-    ptr = libspectrum_malloc( sizeof( *ptr ) );
+    ptr = libspectrum_new( event_t, 1 );
   }
 
   ptr->tstates = event_time;
@@ -120,8 +121,9 @@ event_do_events( void )
   event_t *ptr;
 
   while(event_next_event <= tstates) {
+    event_descriptor_t descriptor;
     ptr = event_list->data;
-    event_descriptor_t descriptor =
+    descriptor =
       g_array_index( registered_events, event_descriptor_t, ptr->type );
 
     /* Remove the event from the list *before* processing */
@@ -253,7 +255,7 @@ event_name( int type )
   return g_array_index( registered_events, event_descriptor_t, type ).description;
 }
 
-void
+static void
 registered_events_free( void )
 {
   int i;
@@ -271,9 +273,18 @@ registered_events_free( void )
 }
 
 /* Tidy-up function called at end of emulation */
-void
+static void
 event_end( void )
 {
   event_reset();
   registered_events_free();
+}
+
+void
+event_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_EVENT, dependencies,
+                            ARRAY_SIZE( dependencies ), event_init, NULL,
+                            event_end );
 }

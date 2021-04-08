@@ -1,8 +1,6 @@
 /* tape_block.h: individual tape block types
    Copyright (c) 2003-2008 Philip Kendall
 
-   $Id: tape_block.h 4433 2011-05-14 05:44:47Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -503,6 +501,9 @@ libspectrum_tape_pure_data_next_bit( libspectrum_tape_pure_data_block *block,
 void
 libspectrum_tape_raw_data_next_bit( libspectrum_tape_raw_data_block *block,
                              libspectrum_tape_raw_data_block_state *state );
+libspectrum_byte
+get_generalised_data_symbol( libspectrum_tape_generalised_data_block *block,
+                        libspectrum_tape_generalised_data_block_state *state );
 libspectrum_error
 generalised_data_edge( libspectrum_tape_generalised_data_block *block,
                        libspectrum_tape_generalised_data_block_state *state,

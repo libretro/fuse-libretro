@@ -1,3 +1,250 @@
+2021-??-??  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * Various minor bug fixes/improvements:
+          * Fix PZX handling on big endian systems (Alberto Garcia).
+          * Hide all symbols except the ones in the public API (Alberto
+            Garcia).
+          * Run tests on 'make check' invocation (Alberto Garcia).
+          * Don't generate an edge for the STOP48 TZX block (Fredrick Meunier).
+          * Use local include directives for config.h and libspectrum.h
+            (Fredrick Meunier).
+
+2021-02-27  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.5.0 released.
+
+        * Various minor bug fixes/improvements:
+          * Autogenerate code for initialising/freeing snap structure (Sergio
+            Baldoví).
+          * Fix loading of raw data blocks (Alberto Garcia).
+          * Ensure trailing TZX pause blocks result in an edge (Alberto
+            Garcia).
+          * Fix bits_through_byte calculation in TZX RAW block (Alberto
+            Garcia).
+          * Remove spurious first pulse in a raw data block (Alberto Garcia).
+          * Minimal snapshot support for TTX2000S interface (Sergio Baldoví).
+          * Fix prototypes and warnings for MorphOS (Stefan Haubenthal).
+          * Change type of len field in GArray to guint (Sergio Baldoví).
+
+2018-07-01  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.4.4 released.
+
+        * Various minor bug fixes/improvements:
+          * Fix memory allocation in g_array_set_size() (Sergio Baldoví).
+          * Cast whole expressions in printf() statements (Sergio Baldoví).
+          * Fix up printf() related warnings (Sergio Baldoví).
+          * Fix detection of small files in SZX unit tests (Sergio Baldoví).
+
+2018-06-03  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.4.3 released.
+
+        * Fix TC2048 and TC2068 timings regression (Sergio Baldoví).
+
+        * Add peek block function for tape iterators (Fredrick Meunier).
+
+2018-04-29  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.4.2 released.
+
+        * RZX files containing a snapshot which cannot be compressed are
+          now written correctly (fixes bug #418) (Philip Kendall, thanks
+          Chris Flynn).
+
+2017-10-10  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.4.1 released.
+
+        * Fix generation of malformed RZXs (thanks, Nicholas Naime) (ub880d)
+
+        * Various minor bug fixes/improvements:
+          * Build test program on "make check" rule (Sergio Baldoví).
+          * Additional unit tests for SZX reading/writing (Philip Kendall).
+          * Free DivIDE/DivMMC memory from snapshots (Sergio Baldoví).
+          * Remove C99 typedef redefinition of libspectrum_mmc_card (Fredrick
+            Meunier).
+          * Correct version for MLT class addition (Fredrick Meunier).
+
+2017-09-03  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.4.0 released.
+
+        * Add support for MMC / SD card emulation in SPI mode (Philip Kendall
+          and Sergio Baldoví).
+
+        * Add class recognition for MLT files (Fredrick Meunier).
+
+        * Various minor bug fixes/improvements:
+          * Fix typo in libspectrum.txt (Martin M. S. Pedersen).
+          * Additional unit tests for SZX reading/writing (Philip Kendall).
+
+2017-07-31  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.6 released.
+
+        * Fix Z80 snapshot writing when +D is enabled (thanks, Fredrick Meunier)
+          (Sergio Baldoví).
+
+        * Export pkgconfig file to publish library version (fixes bug #382)
+          (Sergio Baldoví and Fredrick Meunier).
+
+        * Fix offset of keyboard mappings in Z80 v3 snaphots (fixes bug #340)
+          (Sergio Baldoví).
+
+        * Various minor bug fixes/improvements:
+          * Replace '*' in boolean context with '&&' in libspectrum_malloc0_n()
+            (Sergio Baldoví).
+          * Fix warning about missing atomic_lock()/atomic_unlock() declarations
+            in gslock.c (Fredrick Meunier).
+
+2017-07-02  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.5 released.
+
+        * Add Multiface One/128/3 support (Sergio Baldoví).
+
+        * Add self-inflating buffer for writing binary files (thanks, Patrik
+          Rak) (Fredrick Meunier).
+
+        * Add class recognition for SCR files (Fredrick Meunier).
+
+        * Fix crash when saving CSW tapes (thanks, Nicholas Naime and Fredrick
+          Meunier) (Sergio Baldoví).
+
+        * Various minor bug fixes/improvements:
+          * Add unit test for CSW writing (Fredrick Meunier).
+          * Swich to using autoreconf (Fredrick Meunier).
+          * Use silent builds by default (Fredrick Meunier).
+          * Remove more const qualifiers from libspectrum_buffer API (Sergio
+            Baldoví).
+          * Fix GCC warnings about unexpected values in switch statements
+            (Sergio Baldoví).
+          * Remove unsused variables from libspectrum_buffer refactoring (Sergio
+            Baldoví).
+          * Fix error messages when reading Opus/+D chunks from SZX files
+            (Sergio Baldoví).
+          * Distribute standard-tap.tap (Sergio Baldoví).
+          * Set logical '1' when reading SZX flags (Sergio Baldoví).
+          * Document Multiface snap accessors (Sergio Baldoví).
+
+2017-06-01  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.4 released.
+
+        * Work around invalid "used bits in last byte" field in TZX tapes
+          (thanks, Philip Kendall and Sergio Baldoví) (Fredrick Meunier).
+
+        * Save SpecDrum level as unsigned in SZX snapshots (Sergio Baldoví).
+
+        * Add support for storing Covox interface state (Fredrick Meunier).
+
+        * Replace old ticket numbers from Trac to Allura (Sergio Baldoví).
+
+2017-04-28  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.3 released.
+
+        * Silently skip PLTT blocks in SZX snapshots (thanks, windale) (Fredrick
+          Meunier and Sergio Baldoví).
+
+        * Document missing disk identifiers (Sergio Baldoví).
+
+        * Validate "used bits in last byte" field in TZX tapes (thanks, Nicholas
+          Naime and Fredrick Meunier) (Sergio Baldoví).
+
+        * Fix the load of PZX tapes with malformed strings (thanks, Nicholas
+          Naime) (Sergio Baldoví).
+
+2016-12-05  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.2 released.
+
+        * Make glib replacement protect global data structures against
+          modification from multiple threads (BogDan Vatra).
+
+2016-11-05  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.1 released.
+
+        * Change --without-gcrypt option to --without-libgcrypt (Sergio
+          Baldoví).
+
+2016-10-02  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.3.0 released.
+
+        * Fix some compilation warnings (Philip Kendall).
+
+2016-08-21  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.2.2 released.
+
+        * Support for reading zip files (Patrik Rak and Sergio Baldoví).
+
+        * Support for converting PZX data blocks with asymmetric pulses to TZX
+          GDB blocks (Fredrick Meunier).
+
+        * Various minor bug fixes/improvements:
+          * Print summary of enabled features when building libspectrum (Alberto
+            Garcia).
+          * Fix playback of TZX GDB blocks with no pilot tones (Fredrick
+            Meunier).
+          * Fix writing GDB blocks with no pilot tones (Fredrick Meunier).
+          * Fix handling of 0 length tail pulses after PZX data blocks (Fredrick
+            Meunier).
+          * TZX spec says that 0 duration pauses should have no effect on the
+            current level (Fredrick Meunier).
+          * Ensure the first PZX pulse block pulse is marked as high or low
+            level as required (Fredrick Meunier).
+
+2016-07-17  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.2.1 released.
+
+        * Add implementations of g_array_sized_new() and
+          g_array_remove_index_fast() for glib replacement (thanks, Sergio
+          Baldoví) (Philip Kendall).
+
+2016-06-06  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+        * libspectrum 1.2.0 released.
+
+        * Allow finalising RZX recordings (Sergio Baldoví).
+
+        * Support for Didaktik D80 disk class (Gergely Szasz).
+
+        * Use SZX format for interspersed snapshots in RZX recordings (Sergio
+          Baldoví).
+
+        * Add libspectrum_{new,new0,renew}(), libspectrum_{m,re}alloc_n()
+          memory macros (Stuart Brady).
+
+        * Rename libspectrum_calloc() to libspectrum_malloc0_n() (Stuart Brady).
+
+        * Various minor bug fixes/improvements:
+          * Modernise autoconf support (Sergio Baldoví).
+          * Fix snapshot insertion in RZX recordings (Sergio Baldoví).
+          * Ensure we have an edge at the end of a tape - fixes loading of Moon
+            Cresta (Fredrick Meunier).
+          * Avoid reliance on undefined pointer overflow in buffer length checks
+            (Stuart Brady).
+          * Add ARRAY_SIZE macro (Stuart Brady).
+          * Fix overallocation for uncompressed Z80 v2 data blocks (Stuart
+            Brady).
+          * Check for overflow in libspectrum_calloc() (Stuart Brady).
+          * Replace automatic fallback to GLib replacement with --with-fake-glib
+            flag (Stuart Brady).
+          * const and static cleanups (Stuart Brady).
+          * Fix compilation on systems without stdint.h (Stuart Brady).
+          * C89 compilation fixes (Adrien Destugues)
+          * Refactor frame timings (Stuart Brady).
+          * Add pkg.m4 for PKG_CHECK_MODULES in case the platform doesn't have
+            pkg-config installed (Sergio Baldoví).
+          * Enable silent rules for perl and windres commands (Sergio Baldoví).
+          * Allow for the initial_level of PZX data blocks to have the default
+            value (Fredrick Meunier).
+
 2013-05-24  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
 
         * libspectrum 1.1.1 released.
@@ -65,7 +312,15 @@
           * Remove various unused variables, initialisations etc (Fredrick
             Meunier).
 
-2008-11-30  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+2009-01-14  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
+
+	* libspectrum 0.5.0.1 released
+
+	* Loosen signature checks for .dsk files to allow files not strictly
+	  compliant with the specification to work (Gergely Szasz; thanks,
+	  zx81 and Simon Owen).
+
+2008-12-03  Philip Kendall  <philip-fuse@shadowmagic.org.uk>
 
         * libspectrum 0.5.0 released.
 
@@ -339,6 +594,4 @@
 
 	* libspectrum separated from Fuse just before the 0.5.0 release of
 	  Fuse; see Fuse's ChangeLog for changes up to this point
-
-$Id: ChangeLog 4994 2013-05-24 19:52:37Z zubzero $
 

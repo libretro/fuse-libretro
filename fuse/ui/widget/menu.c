@@ -1,7 +1,6 @@
 /* menu.c: general menu widget
-   Copyright (c) 2001-2006 Philip Kendall
-
-   $Id: menu.c 4968 2013-05-19 16:11:17Z zubzero $
+   Copyright (c) 2001-2015 Philip Kendall
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -57,14 +56,14 @@ static int *current_settings[ 16 ];
 
 #define GET_SET_KEY_FUNCTIONS( which ) \
 \
-void \
+static void \
 set_key_for_button_ ## which ( int action ) \
 { \
   *current_settings[ which ] = action; \
   widget_end_all( WIDGET_FINISHED_OK ); \
 } \
 \
-const char* \
+static const char* \
 get_key_name_for_button_ ## which ( void ) \
 { \
   return keyboard_key_text( *current_settings[ which ] ); \
@@ -75,9 +74,11 @@ GET_SET_KEY_FUNCTIONS( 2 )
 GET_SET_KEY_FUNCTIONS( 3 )
 GET_SET_KEY_FUNCTIONS( 4 )
 GET_SET_KEY_FUNCTIONS( 5 )
+#ifdef USE_JOYSTICK
 GET_SET_KEY_FUNCTIONS( 6 )
 GET_SET_KEY_FUNCTIONS( 7 )
 GET_SET_KEY_FUNCTIONS( 8 )
+#ifndef GEKKO
 GET_SET_KEY_FUNCTIONS( 9 )
 GET_SET_KEY_FUNCTIONS( 10 )
 GET_SET_KEY_FUNCTIONS( 11 )
@@ -85,6 +86,8 @@ GET_SET_KEY_FUNCTIONS( 12 )
 GET_SET_KEY_FUNCTIONS( 13 )
 GET_SET_KEY_FUNCTIONS( 14 )
 GET_SET_KEY_FUNCTIONS( 15 )
+#endif  /* #ifndef GEKKO */
+#endif  /* #ifdef USE_JOYSTICK */
 
 #define SUBMENU_KEY_SELECTIONS( which ) \
 \
@@ -236,7 +239,7 @@ SUBMENU_DEVICE_SELECTIONS( joystick )
 #endif  /* #ifdef USE_JOYSTICK */
 SUBMENU_DEVICE_SELECTIONS( keyboard )
 
-void
+static void
 print_items( void )
 {
   int i;
@@ -333,7 +336,7 @@ widget_menu_keyhandler( input_key key )
     ptr=&menu[1 + highlight_line];
     if(!ptr->inactive) {
       if( ptr->submenu ) {
-        widget_do( WIDGET_TYPE_MENU, ptr->submenu );
+        widget_do_menu( ptr->submenu );
       } else {
         ptr->callback( ptr->action );
       }
@@ -358,6 +361,26 @@ widget_menu_keyhandler( input_key key )
     }
     break;
 
+  case INPUT_KEY_Home:
+    new_highlight_line = 0;
+    ptr = &menu[1 + new_highlight_line];
+    while( new_highlight_line < (ptrdiff_t)count - 1 && ptr->inactive ) {
+      new_highlight_line += 1;
+      ptr = &menu[1 + new_highlight_line];
+    }
+    cursor_pressed = 1;
+    break;
+
+  case INPUT_KEY_End:
+    new_highlight_line = (ptrdiff_t)count - 1;
+    ptr = &menu[1 + new_highlight_line];
+    while( new_highlight_line > 0 && ptr->inactive ) {
+      new_highlight_line -= 1;
+      ptr = &menu[1 + new_highlight_line];
+    }
+    cursor_pressed = 1;
+    break;
+
   default:	/* Keep gcc happy */
     break;
 
@@ -373,7 +396,7 @@ widget_menu_keyhandler( input_key key )
     if( !ptr->inactive && key == ptr->key ) {
 
       if( ptr->submenu ) {
-        widget_do( WIDGET_TYPE_MENU, ptr->submenu );
+        widget_do_menu( ptr->submenu );
       } else {
         ptr->callback( ptr->action );
       }
@@ -406,7 +429,7 @@ menu_get_scaler( scaler_available_fn selector )
   info.count = count;
   info.finish_all = 1;
 
-  error = widget_do( WIDGET_TYPE_SELECT, &info );
+  error = widget_do_select( &info );
   if( error ) return SCALER_NUM;
 
   if( info.result == -1 ) return SCALER_NUM;
@@ -421,12 +444,23 @@ menu_get_scaler( scaler_available_fn selector )
 void
 menu_file_exit( int action )
 {
-  if( widget_do( WIDGET_TYPE_QUERY, "Exit Fuse?" ) || !widget_query.confirm )
-    return;
+  static int menu_exit_open = 0;
 
-  if( menu_check_media_changed() ) return;
+  if( menu_exit_open ) return;
+
+  menu_exit_open = 1;
+  if( widget_do_query( "Exit Fuse?" ) || !widget_query.confirm ) {
+    menu_exit_open = 0;
+    return;
+  }
+
+  if( menu_check_media_changed() ) {
+    menu_exit_open = 0;
+    return;
+  }
 
   fuse_exiting = 1;
+  menu_exit_open = 0;
 
   widget_end_all( WIDGET_FINISHED_OK );
 }
@@ -434,43 +468,49 @@ menu_file_exit( int action )
 void
 menu_options_general( int action )
 {
-  widget_do( WIDGET_TYPE_GENERAL, NULL );
+  widget_do_general();
+}
+
+void
+menu_options_media( int action )
+{
+  widget_do_media();
 }
 
 void
 menu_options_peripherals_general( int action )
 {
-  widget_do( WIDGET_TYPE_PERIPHERALS_GENERAL, NULL );
+  widget_do_peripherals_general();
 }
 
 void
 menu_options_peripherals_disk( int action )
 {
-  widget_do( WIDGET_TYPE_PERIPHERALS_DISK, NULL );
+  widget_do_peripherals_disk();
 }
 
 void
 menu_options_sound( int action )
 {
-  widget_do( WIDGET_TYPE_SOUND, NULL );
+  widget_do_sound();
 }
 
 void
 menu_options_rzx( int action )
 {
-  widget_do( WIDGET_TYPE_RZX, NULL );
+  widget_do_rzx();
 }
 
 void
 menu_options_movie( int action )
 {
-  widget_do( WIDGET_TYPE_MOVIE, NULL );
+  widget_do_movie();
 }
 
 void
 menu_options_diskoptions( int action )
 {
-  widget_do( WIDGET_TYPE_DISKOPTIONS, NULL );
+  widget_do_diskoptions();
 }
 
 void
@@ -550,11 +590,11 @@ menu_options_joysticks_select( int action )
   submenu_types[ i + 1 ].text = NULL;
 
   if( action - 1 == JOYSTICK_KEYBOARD ) 
-    error = widget_do( WIDGET_TYPE_MENU, submenu_type_and_mapping_for_keyboard );
+    error = widget_do_menu( submenu_type_and_mapping_for_keyboard );
 
 #ifdef USE_JOYSTICK
   else
-    error = widget_do( WIDGET_TYPE_MENU, submenu_type_and_mapping_for_joystick );
+    error = widget_do_menu( submenu_type_and_mapping_for_joystick );
 #endif  /* #ifdef USE_JOYSTICK */
 
   if( error ) return;
@@ -569,16 +609,18 @@ set_joystick_type( int action )
 
 /* Options/Select ROMs/<type> */
 int
-menu_select_roms_with_title( const char *title, size_t start, size_t count )
+menu_select_roms_with_title( const char *title, size_t start, size_t count,
+			     int is_peripheral )
 {
   widget_roms_info info;
 
   info.title = title;
   info.start = start;
   info.count = count;
+  info.is_peripheral = is_peripheral;
   info.initialised = 0;
 
-  return widget_do( WIDGET_TYPE_ROM, &info );
+  return widget_do_rom( &info );
 }
 
 void
@@ -590,11 +632,16 @@ menu_machine_reset( int action )
   if( hard_reset )
     message = "Hard reset?";
 
-  if( widget_do( WIDGET_TYPE_QUERY, message ) ||
+  if( widget_do_query( message ) ||
       !widget_query.confirm )
     return;
 
   widget_end_all( WIDGET_FINISHED_OK );
+
+  /* Stop any ongoing RZX */
+  rzx_stop_recording();
+  rzx_stop_playback( 1 );
+
   machine_reset( hard_reset );
 }
 
@@ -633,7 +680,7 @@ menu_machine_select( int action )
   info.count = machine_count;
   info.finish_all = 1;
 
-  error = widget_do( WIDGET_TYPE_SELECT, &info );
+  error = widget_do_select( &info );
   free( buffer ); free( options );
   if( error ) return;
 
@@ -648,31 +695,31 @@ void
 menu_machine_debugger( int action )
 {
   debugger_mode = DEBUGGER_MODE_HALTED;
-  widget_do( WIDGET_TYPE_DEBUGGER, NULL );
+  widget_do_debugger();
 }
 
 void
 menu_machine_pokememory( int action )
 {
-  widget_do( WIDGET_TYPE_POKEMEM, NULL );
+  widget_do_pokemem();
 }
 
 void
 menu_machine_pokefinder( int action )
 {
-  widget_do( WIDGET_TYPE_POKEFINDER, NULL );
+  widget_do_pokefinder();
 }
 
 void
 menu_machine_memorybrowser( int action )
 {
-  widget_do( WIDGET_TYPE_MEMORYBROWSER, NULL );
+  widget_do_memorybrowser();
 }
 
 void
 menu_media_tape_browse( int action )
 {
-  widget_do( WIDGET_TYPE_BROWSE, NULL );
+  widget_do_browse();
 }
 
 void
@@ -681,7 +728,7 @@ menu_help_keyboard( int action )
   utils_file screen;
   widget_picture_data info;
 
-  static const char *filename = "keyboard.scr";
+  static const char * const filename = "keyboard.scr";
 
   if( utils_read_screen( filename, &screen ) ) {
     return;
@@ -691,7 +738,7 @@ menu_help_keyboard( int action )
   info.screen = screen.buffer;
   info.border = 0;
 
-  widget_do( WIDGET_TYPE_PICTURE, &info );
+  widget_do_picture( &info );
 
   utils_close_file( &screen );
 }
@@ -699,10 +746,7 @@ menu_help_keyboard( int action )
 void
 menu_help_about( int action )
 {
-  widget_end_all( WIDGET_FINISHED_OK );
-  ui_error( UI_ERROR_INFO,
-           "Free Unix Spectrum Emulator (Fuse) %s %s. See %s for details.",
-            VERSION, FUSE_COPYRIGHT, PACKAGE_URL );
+  widget_do_about();
 }
 
 static int

@@ -1,8 +1,6 @@
 /* crc.h: Routines for CRC16/CRC32
    Copyright (c) 2007 Gergely Szasz
 
-   $Id: crc.h 3183 2007-09-28 18:06:54Z zubzero $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

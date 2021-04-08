@@ -1,8 +1,7 @@
 /* svgadisplay.c: Routines for dealing with the svgalib display
    Copyright (c) 2000-2003 Philip Kendall, Matan Ziv-Av, Witold Filipczyk,
 			   Russell Marks
-
-   $Id: svgadisplay.c 4109 2009-12-27 06:15:10Z fredm $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -133,7 +132,7 @@ static void register_scalers( void );
 
 typedef struct svga_mode_t {
   int n;
-//  vga_modeinfo *inf;
+  /* vga_modeinfo *inf; */
   int width, height, bytesperpixel, colors;
   int depth;
 } svga_mode_t;

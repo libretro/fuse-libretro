@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2001-2004 Philip Kendall
-
-## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,27 +20,29 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+if UI_SDL
 
-AM_CPPFLAGS = -I$(srcdir)/../..
+fuse_SOURCES += $(ui_sdl_files)
 
-noinst_LIBRARIES = libuisdl.a
+BUILT_SOURCES += $(ui_sdl_built)
 
-AM_CPPFLAGS += @GLIB_CFLAGS@ @LIBSPEC_CFLAGS@ @SDL_CFLAGS@
+endif
 
-libuisdl_a_SOURCES = sdldisplay.c \
-		     sdljoystick.c \
-		     sdlkeyboard.c \
-		     sdlui.c \
-		     keysyms.c
 
-BUILT_SOURCES = keysyms.c
+CLEANFILES += $(ui_sdl_built)
 
-keysyms.c: $(srcdir)/../../keysyms.pl $(srcdir)/../../keysyms.dat
-	@PERL@ -I$(srcdir)/../../perl $(srcdir)/../../keysyms.pl sdl $(srcdir)/../../keysyms.dat > $@.tmp && mv $@.tmp $@
+ui_sdl_files = \
+               ui/sdl/sdldisplay.c \
+               ui/sdl/sdldisplay.h \
+               ui/sdl/sdljoystick.c \
+               ui/sdl/sdljoystick.h \
+               ui/sdl/sdlkeyboard.c \
+               ui/sdl/sdlkeyboard.h \
+               ui/sdl/sdlui.c \
+               ui/sdl/keysyms.c
 
-noinst_HEADERS = sdldisplay.h \
-		 sdljoystick.h \
-		 sdlkeyboard.h
+ui_sdl_built = ui/sdl/keysyms.c
 
-CLEANFILES = keysyms.c
+ui/sdl/keysyms.c: $(srcdir)/keysyms.pl $(srcdir)/keysyms.dat
+	@$(MKDIR_P) ui/sdl
+	$(AM_V_GEN)$(PERL) -I$(srcdir)/perl $(srcdir)/keysyms.pl sdl $(srcdir)/keysyms.dat > $@.tmp && mv $@.tmp $@

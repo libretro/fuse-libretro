@@ -1,8 +1,7 @@
 /* filesel.c: File selection dialog box
-   Copyright (c) 2001-2005 Matan Ziv-Av, Philip Kendall, Russell Marks,
+   Copyright (c) 2001-2015 Matan Ziv-Av, Philip Kendall, Russell Marks,
 			   Marek Januszewski
-
-   $Id: filesel.c 4892 2013-02-23 15:41:04Z sbaldovi $
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,6 +30,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef HAVE_STRINGS_STRCASECMP
+#include <strings.h>
+#endif      /* #ifdef HAVE_STRINGS_STRCASECMP */
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -44,11 +46,6 @@
 #include "ui/ui.h"
 #include "utils.h"
 #include "widget_internals.h"
-
-#ifdef __CELLOS_LV2__
-#define getcwd(x, y) NULL
-#define chdir(x) 0
-#endif
 
 #if defined AMIGA || defined __MORPHOS__
 #include <proto/asl.h>
@@ -87,7 +84,7 @@ static int is_drivesel = 0;
 static int is_rootdir;
 #endif				/* #ifdef WIN32 */
 
-#define PAGESIZE (is_saving ? 32 : 36)
+#define ENTRIES_PER_SCREEN (is_saving ? 32 : 36)
 
 /* The number of the filename in the top-left corner of the current
    display, that of the filename which the `cursor' is on, and that
@@ -97,7 +94,8 @@ static size_t top_left_file, current_file, new_current_file;
 static char *widget_get_filename( const char *title, int saving );
 
 static int widget_add_filename( int *allocated, int *number,
-				struct widget_dirent ***namelist, char *name );
+                                struct widget_dirent ***namelist,
+                                const char *name );
 static void widget_scan( char *dir );
 static int widget_select_file( const char *name );
 static int widget_scan_compare( const widget_dirent **a,
@@ -127,7 +125,6 @@ static char *
 widget_get_filename( const char *title, int saving )
 {
   char *filename = NULL;
-  widget_type wtype;
 
   widget_filesel_data data;
 
@@ -135,11 +132,10 @@ widget_get_filename( const char *title, int saving )
   data.title = title;
 
   if( saving ) {
-    wtype = WIDGET_TYPE_FILESELECTOR_SAVE;
+    widget_do_fileselector_save( &data );
   } else {
-    wtype = WIDGET_TYPE_FILESELECTOR;
+    widget_do_fileselector( &data );
   }
-  widget_do( wtype, &data );
   if( widget_filesel_name )
     filename = utils_safe_strdup( widget_filesel_name );
 
@@ -168,8 +164,8 @@ ui_get_save_filename( const char *title )
 }
 
 static int widget_add_filename( int *allocated, int *number,
-				struct widget_dirent ***namelist,
-				char *name ) {
+                                struct widget_dirent ***namelist,
+                                const char *name ) {
   int i; size_t length;
 
   if( ++*number > *allocated ) {
@@ -219,16 +215,6 @@ static int widget_add_filename( int *allocated, int *number,
   return 0;
 }
 
-#ifndef NAME_MAX
-#define NAME_MAX 4096
-#endif
-
-#ifdef __CELLOS_LV2__
-#ifndef S_ISDIR
-#define S_ISDIR(x) (x & 0040000)
-#endif
-#endif
-
 #if defined AMIGA || defined __MORPHOS__
 char *
 amiga_asl( char *title, BOOL is_saving ) {
@@ -242,7 +228,7 @@ amiga_asl( char *title, BOOL is_saving ) {
                                            ASLFR_RejectIcons,TRUE,
                                            ASLFR_TitleText,title,
                                            ASLFR_DoSaveMode,is_saving,
-                                           ASLFR_InitialPattern,"#?.(sna|z80|szx|sp|snp|zxs|tap|tzx|csw|rzx|dsk|trd|scl|mdr|dck|hdf|rom|psg|scr|png|gz|bz2)",
+                                           ASLFR_InitialPattern,"#?.(sna|z80|szx|sp|snp|zxs|tap|tzx|csw|rzx|dsk|trd|scl|mdr|dck|hdf|rom|psg|scr|mlt|png|gz|bz2)",
                                            ASLFR_DoPatterns,TRUE,
                                            TAG_DONE );
       if( err = IAsl->AslRequest( filereq, NULL ) ) {
@@ -253,7 +239,7 @@ amiga_asl( char *title, BOOL is_saving ) {
                                      ASLFR_RejectIcons,TRUE,
                                      ASLFR_TitleText,title,
                                      ASLFR_DoSaveMode,is_saving,
-                                     ASLFR_InitialPattern,"#?.(sna|z80|szx|sp|snp|zxs|tap|tzx|csw|rzx|dsk|trd|scl|mdr|dck|hdf|rom|psg|scr|png|gz|bz2)",
+                                     ASLFR_InitialPattern,"#?.(sna|z80|szx|sp|snp|zxs|tap|tzx|csw|rzx|dsk|trd|scl|mdr|dck|hdf|rom|psg|scr|mlt|png|gz|bz2)",
                                      ASLFR_DoPatterns,TRUE,
                                      TAG_DONE );
       if( err = AslRequest( filereq, NULL ) ) {
@@ -315,15 +301,10 @@ static int widget_scandir( const char *dir, struct widget_dirent ***namelist,
 #endif				/* #ifdef WIN32 */
 
   while( !done ) {
-    
-#ifndef WIN32
-    char name[ NAME_MAX + 1 ];
-#else				/* #ifndef WIN32 */
-     /* mingw's dirent implementation doesn't have NAME_MAX */
-     char name[ FILENAME_MAX ];
-#endif				/* #ifndef WIN32 */
+    char name[ PATH_MAX ];
 
-    compat_dir_result_t result = compat_readdir( directory, name, sizeof( name ) );
+    compat_dir_result_t result =
+      compat_readdir( directory, name, sizeof( name ) );
 
     switch( result )
     {
@@ -387,7 +368,7 @@ static int widget_scandrives( struct widget_dirent ***namelist )
   unsigned long drivemask;
   int i;
   char drive[3];
-  char *driveletters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const char *driveletters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   drive[1] = ':';
   drive[2] = '\0';
@@ -457,7 +438,17 @@ static void widget_scan( char *dir )
 static int
 widget_select_file( const char *name )
 {
-  return( name && strcmp( name, "." ) );
+  if( !name ) return 0;
+
+  /* Skip current directory */
+  if( !strcmp( name, "." ) ) return 0;
+
+#ifndef WIN32
+  /* Skip hidden files/directories */
+  if( strlen( name ) > 1 && name[0] == '.' && name[1] != '.' ) return 0;
+#endif				/* #ifdef WIN32 */
+
+  return 1;
 }
 
 static int widget_scan_compare( const struct widget_dirent **a,
@@ -620,7 +611,7 @@ static int widget_print_all_filenames( struct widget_dirent **filenames, int n,
 
   /* Print the filenames, mostly normally, but with the currently
      selected file inverted */
-  for( i = top_left; i < n && i < top_left + PAGESIZE; i++ ) {
+  for( i = top_left; i < n && i < top_left + ENTRIES_PER_SCREEN; i++ ) {
     if( i == current ) {
       widget_print_filename( filenames[i], i-top_left, 1 );
     } else {
@@ -801,7 +792,7 @@ http://thread.gmane.org/gmane.comp.gnu.mingw.user/9197
 #else   /* #ifndef WIN32 */
     if( GetFileAttributes( fn ) != FILE_ATTRIBUTE_DIRECTORY ) {
 #endif  /* #ifndef WIN32 */
-      widget_filesel_name = fn;
+      widget_filesel_name = fn; fn = NULL;
       if( exit_all_widgets ) {
 	widget_end_all( WIDGET_FINISHED_OK );
       } else {
@@ -809,11 +800,13 @@ http://thread.gmane.org/gmane.comp.gnu.mingw.user/9197
       }
     }
   } else {
-    widget_scan( fn ); free( fn );
+    widget_scan( fn );
     new_current_file = 0;
     /* Force a redisplay of all filenames */
     current_file = 1; top_left_file = 1;
   }
+
+  free( fn );
 
   return 0;
 }
@@ -821,6 +814,11 @@ http://thread.gmane.org/gmane.comp.gnu.mingw.user/9197
 void
 widget_filesel_keyhandler( input_key key )
 {
+#if !defined AMIGA && !defined __MORPHOS__
+  char *fn, *ptr;
+  char *dirtitle;
+#endif
+
   /* If there are no files (possible on the Wii), can't really do anything */
   if( widget_numfiles == 0 ) {
     if( key == INPUT_KEY_Escape ) widget_end_widget( WIDGET_FINISHED_CANCEL );
@@ -834,8 +832,6 @@ widget_filesel_keyhandler( input_key key )
     widget_end_widget( err );
   }
 #else  /* ifndef AMIGA */
-  char *fn;
-  char *dirtitle;
 
   new_current_file = current_file;
 
@@ -883,13 +879,13 @@ widget_filesel_keyhandler( input_key key )
     break;
 
   case INPUT_KEY_Page_Up:
-    new_current_file = ( current_file > PAGESIZE ) ?
-                       current_file - PAGESIZE     :
+    new_current_file = ( current_file > ENTRIES_PER_SCREEN ) ?
+                       current_file - ENTRIES_PER_SCREEN     :
                        0;
     break;
 
   case INPUT_KEY_Page_Down:
-    new_current_file = current_file + PAGESIZE;
+    new_current_file = current_file + ENTRIES_PER_SCREEN;
     if( new_current_file >= widget_numfiles )
       new_current_file = widget_numfiles - 1;
     break;
@@ -907,17 +903,20 @@ widget_filesel_keyhandler( input_key key )
       widget_text_t text_data;
       text_data.title = title;
       text_data.allow = WIDGET_INPUT_ASCII;
+      text_data.max_length = 30;
       text_data.text[0] = 0;
-      if( widget_do( WIDGET_TYPE_TEXT, &text_data ) ||
+      if( widget_do_text( &text_data ) ||
 	  !widget_text_text || !*widget_text_text      )
 	break;
       if( !compat_is_absolute_path( widget_text_text ) ) {
 							/* relative name */
         /* Get current dir name and allocate space for the leafname */
         fn = widget_getcwd();
+        ptr = fn;
         if( fn )
     	  fn = realloc( fn, strlen( fn ) + strlen( widget_text_text ) + 2 );
         if( !fn ) {
+          free( ptr );
 	  widget_end_widget( WIDGET_FINISHED_CANCEL );
 	  return;
         }
@@ -980,9 +979,10 @@ widget_filesel_keyhandler( input_key key )
       widget_print_all_filenames( widget_filenames, widget_numfiles,
 				  top_left_file, new_current_file, dirtitle );
 
-    } else if( new_current_file >= top_left_file+PAGESIZE ) {
+    } else if( new_current_file >= top_left_file+ENTRIES_PER_SCREEN ) {
 
-      top_left_file = new_current_file & ~1; top_left_file -= PAGESIZE - 2;
+      top_left_file = new_current_file & ~1;
+      top_left_file -= ENTRIES_PER_SCREEN - 2;
       widget_print_all_filenames( widget_filenames, widget_numfiles,
 				  top_left_file, new_current_file, dirtitle );
 

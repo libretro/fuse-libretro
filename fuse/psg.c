@@ -1,7 +1,5 @@
 /* psg.c: recording AY chip output to .psg files
-   Copyright (c) 2003 Matthew Westcott, Philip Kendall
-
-   $Id: psg.c 4635 2012-01-19 23:39:04Z pak21 $
+   Copyright (c) 2003-2016 Matthew Westcott, Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,6 +25,7 @@
 
 #include <stdio.h>
 
+#include "infrastructure/startup_manager.h"
 #include "psg.h"
 #include "ui/ui.h"
 
@@ -45,10 +44,12 @@ static FILE *psg_file;
 
 static int write_frame_separator( void );
 
-void
-psg_init( void )
+static int
+psg_init( void *context )
 {
   psg_recording = 0;
+
+  return 0;
 }
 
 int
@@ -163,9 +164,17 @@ psg_write_register( libspectrum_byte reg, libspectrum_byte value )
   return 0;
 }
 
-int
+static void
 psg_end( void )
 {
-  if( psg_recording ) return psg_stop_recording();
-  return 0;
+  if( psg_recording ) psg_stop_recording();
+}
+
+void
+psg_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_PSG, dependencies,
+                            ARRAY_SIZE( dependencies ), psg_init, NULL,
+                            psg_end );
 }
