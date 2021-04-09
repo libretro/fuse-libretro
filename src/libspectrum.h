@@ -51,6 +51,8 @@ extern "C" {
 
 #endif				/* #ifndef WIN32_LEAN_AND_MEAN */
 
+#define LIBSPECTRUM_EXPORTS 1
+
 #ifdef LIBSPECTRUM_EXPORTS
 #define LIBSPECTRUM_API __declspec( dllexport )
 #else				/* #ifdef LIBSPECTRUM_EXPORTS */
