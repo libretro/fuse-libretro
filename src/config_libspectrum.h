@@ -107,7 +107,7 @@
 #define VERSION "1.5.0"
 
 /* Exclude rarely used stuff from Windows headers <windows.h> */
-/* #undef WIN32_LEAN_AND_MEAN */
+#define WIN32_LEAN_AND_MEAN /**/
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
