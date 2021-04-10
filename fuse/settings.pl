@@ -1,9 +1,7 @@
 #!/usr/bin/perl -w
 
 # settings.pl: generate settings.c from settings.dat
-# Copyright (c) 2002-2005 Philip Kendall
-
-# $Id: settings.pl 4961 2013-05-19 05:17:30Z sbaldovi $
+# Copyright (c) 2002-2018 Philip Kendall, BogDan Vatra, Alistair Cree
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,12 +39,12 @@ while(<>) {
     my( $name, $type, $default, $short, $commandline, $configfile ) =
 	split /\s*,\s*/;
 
-    if( not defined $commandline ) {
+    if( ( not defined $commandline ) || ( $commandline eq '' ) ) {
 	$commandline = $name;
 	$commandline =~ s/_/-/g;
     }
 
-    if( not defined $configfile ) {
+    if( ( not defined $configfile ) || ( $configfile eq '' ) ) {
 	$configfile = $commandline;
 	$configfile =~ s/-//g;
     }
@@ -89,6 +87,7 @@ print hashline( __LINE__ ), << 'CODE';
 #endif				/* #ifdef HAVE_LIB_XML2 */
 
 #include "fuse.h"
+#include "infrastructure/startup_manager.h"
 #include "machine.h"
 #include "settings.h"
 #include "spectrum.h"
@@ -111,7 +110,11 @@ CODE
 
     foreach my $name ( sort keys %options ) {
 	next if $options{$name}->{type} eq 'null';
-	print "  /* $name */ $options{$name}->{default},\n";
+        if( $options{$name}->{type} eq 'string' ) {
+	  print "  /* $name */ (char *)$options{$name}->{default},\n";
+	} else {
+	  print "  /* $name */ $options{$name}->{default},\n";
+	}
     }
 
 print hashline( __LINE__ ), << 'CODE';
@@ -162,27 +165,20 @@ void settings_defaults( settings_info *settings )
 static int
 read_config_file( settings_info *settings )
 {
-  const char *home; char path[ PATH_MAX ];
-  struct stat stat_info;
+  const char *cfgdir; char path[ PATH_MAX ];
 
   xmlDocPtr doc;
 
-  home = compat_get_home_path(); if( !home ) return 1;
+  cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
 
-  snprintf( path, PATH_MAX, "%s/%s", home, CONFIG_FILE_NAME );
+  snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
   /* See if the file exists; if doesn't, it's not a problem */
-  if( stat( path, &stat_info ) ) {
-    if( errno == ENOENT ) {
+  if( !compat_file_exists( path ) ) {
       return 0;
-    } else {
-      ui_error( UI_ERROR_ERROR, "couldn't stat '%s': %s", path,
-		strerror( errno ) );
-      return 1;
-    }
   }
 
-  doc = xmlParseFile( path );
+  doc = xmlReadFile( path, NULL, 0 );
   if( !doc ) {
     ui_error( UI_ERROR_ERROR, "error reading config file" );
     return 1;
@@ -274,13 +270,13 @@ print hashline( __LINE__ ), << 'CODE';
 int
 settings_write_config( settings_info *settings )
 {
-  const char *home; char path[ PATH_MAX ], buffer[80]; 
+  const char *cfgdir; char path[ PATH_MAX ], buffer[80];
 
   xmlDocPtr doc; xmlNodePtr root;
 
-  home = compat_get_home_path(); if( !home ) return 1;
+  cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
 
-  snprintf( path, PATH_MAX, "%s/%s", home, CONFIG_FILE_NAME );
+  snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
   /* Create the XML document */
   doc = xmlNewDoc( (const xmlChar*)"1.0" );
@@ -330,15 +326,15 @@ CODE
 static int
 read_config_file( settings_info *settings )
 {
-  const char *home; char path[ PATH_MAX ];
+  const char *cfgdir; char path[ PATH_MAX ];
   struct stat stat_info;
   int error;
 
   utils_file file;
 
-  home = compat_get_home_path(); if( !home ) return 1;
+  cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
 
-  snprintf( path, PATH_MAX, "%s/%s", home, CONFIG_FILE_NAME );
+  snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
   /* See if the file exists; if doesn't, it's not a problem */
   if( stat( path, &stat_info ) ) {
@@ -449,7 +445,7 @@ parse_ini( utils_file *file, settings_info *settings )
 	    libspectrum_free( *val_char );
 	    *val_char = NULL;
 	  }
-	  *val_char = libspectrum_malloc( n + 1 );
+	  *val_char = libspectrum_new( char, n + 1 );
 	  (*val_char)[n] = '\\0';
 	  memcpy( *val_char, value, n );
 	}
@@ -478,7 +474,7 @@ settings_string_write( compat_fd doc, const char* name, const char* config )
       ( settings_file_write( doc, name, strlen( name ) ) ||
         settings_file_write( doc, "=", 1 ) ||
         settings_file_write( doc, config, strlen( config ) ) ||
-        settings_file_write( doc, "\n", 1 ) ) )
+        settings_file_write( doc, FUSE_EOL, strlen( FUSE_EOL ) ) ) )
     return 1;
   return 0;
 }
@@ -500,13 +496,13 @@ settings_numeric_write( compat_fd doc, const char* name, int config )
 int
 settings_write_config( settings_info *settings )
 {
-  const char *home; char path[ PATH_MAX ];
+  const char *cfgdir; char path[ PATH_MAX ];
 
   compat_fd doc;
 
-  home = compat_get_home_path(); if( !home ) return 1;
+  cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
 
-  snprintf( path, PATH_MAX, "%s/%s", home, CONFIG_FILE_NAME );
+  snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
   doc = compat_file_open( path, 1 );
   if( doc == COMPAT_FILE_OPEN_FAILED ) {
@@ -714,56 +710,69 @@ void settings_copy( settings_info *dest, settings_info *src )
 }
 
 char **
-settings_get_rom_setting( settings_info *settings, size_t which )
+settings_get_rom_setting( settings_info *settings, size_t which,
+			  int is_peripheral )
 {
-  switch( which ) {
-  case  0: return &( settings->rom_16       );
-  case  1: return &( settings->rom_48       );
-  case  2: return &( settings->rom_128_0    );
-  case  3: return &( settings->rom_128_1    );
-  case  4: return &( settings->rom_plus2_0  );
-  case  5: return &( settings->rom_plus2_1  );
-  case  6: return &( settings->rom_plus2a_0 );
-  case  7: return &( settings->rom_plus2a_1 );
-  case  8: return &( settings->rom_plus2a_2 );
-  case  9: return &( settings->rom_plus2a_3 );
-  case 10: return &( settings->rom_plus3_0  );
-  case 11: return &( settings->rom_plus3_1  );
-  case 12: return &( settings->rom_plus3_2  );
-  case 13: return &( settings->rom_plus3_3  );
-  case 14: return &( settings->rom_plus3e_0 );
-  case 15: return &( settings->rom_plus3e_1 );
-  case 16: return &( settings->rom_plus3e_2 );
-  case 17: return &( settings->rom_plus3e_3 );
-  case 18: return &( settings->rom_tc2048   );
-  case 19: return &( settings->rom_tc2068_0 );
-  case 20: return &( settings->rom_tc2068_1 );
-  case 21: return &( settings->rom_ts2068_0 );
-  case 22: return &( settings->rom_ts2068_1 );
-  case 23: return &( settings->rom_pentagon_0 );
-  case 24: return &( settings->rom_pentagon_1 );
-  case 25: return &( settings->rom_pentagon_2 );
-  case 26: return &( settings->rom_pentagon512_0 );
-  case 27: return &( settings->rom_pentagon512_1 );
-  case 28: return &( settings->rom_pentagon512_2 );
-  case 29: return &( settings->rom_pentagon512_3 );
-  case 30: return &( settings->rom_pentagon1024_0 );
-  case 31: return &( settings->rom_pentagon1024_1 );
-  case 32: return &( settings->rom_pentagon1024_2 );
-  case 33: return &( settings->rom_pentagon1024_3 );
-  case 34: return &( settings->rom_scorpion_0 );
-  case 35: return &( settings->rom_scorpion_1 );
-  case 36: return &( settings->rom_scorpion_2 );
-  case 37: return &( settings->rom_scorpion_3 );
-  case 38: return &( settings->rom_spec_se_0 );
-  case 39: return &( settings->rom_spec_se_1 );
-  case 40: return &( settings->rom_interface_i );
-  case 41: return &( settings->rom_beta128 );
-  case 42: return &( settings->rom_plusd );
-  case 43: return &( settings->rom_disciple );
-  case 44: return &( settings->rom_opus );
-  case 45: return &( settings->rom_speccyboot );
-  default: return NULL;
+  if( !is_peripheral ) {
+    switch( which ) {
+    case  0: return &( settings->rom_16       );
+    case  1: return &( settings->rom_48       );
+    case  2: return &( settings->rom_128_0    );
+    case  3: return &( settings->rom_128_1    );
+    case  4: return &( settings->rom_plus2_0  );
+    case  5: return &( settings->rom_plus2_1  );
+    case  6: return &( settings->rom_plus2a_0 );
+    case  7: return &( settings->rom_plus2a_1 );
+    case  8: return &( settings->rom_plus2a_2 );
+    case  9: return &( settings->rom_plus2a_3 );
+    case 10: return &( settings->rom_plus3_0  );
+    case 11: return &( settings->rom_plus3_1  );
+    case 12: return &( settings->rom_plus3_2  );
+    case 13: return &( settings->rom_plus3_3  );
+    case 14: return &( settings->rom_plus3e_0 );
+    case 15: return &( settings->rom_plus3e_1 );
+    case 16: return &( settings->rom_plus3e_2 );
+    case 17: return &( settings->rom_plus3e_3 );
+    case 18: return &( settings->rom_tc2048   );
+    case 19: return &( settings->rom_tc2068_0 );
+    case 20: return &( settings->rom_tc2068_1 );
+    case 21: return &( settings->rom_ts2068_0 );
+    case 22: return &( settings->rom_ts2068_1 );
+    case 23: return &( settings->rom_pentagon_0 );
+    case 24: return &( settings->rom_pentagon_1 );
+    case 25: return &( settings->rom_pentagon_2 );
+    case 26: return &( settings->rom_pentagon512_0 );
+    case 27: return &( settings->rom_pentagon512_1 );
+    case 28: return &( settings->rom_pentagon512_2 );
+    case 29: return &( settings->rom_pentagon512_3 );
+    case 30: return &( settings->rom_pentagon1024_0 );
+    case 31: return &( settings->rom_pentagon1024_1 );
+    case 32: return &( settings->rom_pentagon1024_2 );
+    case 33: return &( settings->rom_pentagon1024_3 );
+    case 34: return &( settings->rom_scorpion_0 );
+    case 35: return &( settings->rom_scorpion_1 );
+    case 36: return &( settings->rom_scorpion_2 );
+    case 37: return &( settings->rom_scorpion_3 );
+    case 38: return &( settings->rom_spec_se_0 );
+    case 39: return &( settings->rom_spec_se_1 );
+    default: return NULL;
+    }
+  } else {
+    switch( which ) {
+    case  0: return &( settings->rom_interface_1 );
+    case  1: return &( settings->rom_beta128 );
+    case  2: return &( settings->rom_plusd );
+    case  3: return &( settings->rom_didaktik80 );
+    case  4: return &( settings->rom_disciple );
+    case  5: return &( settings->rom_multiface1 );
+    case  6: return &( settings->rom_multiface128 );
+    case  7: return &( settings->rom_multiface3 );
+    case  8: return &( settings->rom_opus );
+    case  9: return &( settings->rom_speccyboot );
+    case 10: return &( settings->rom_ttx2000s );
+    case 11: return &( settings->rom_usource );
+    default: return NULL;
+    }
   }
 }
 
@@ -794,7 +803,7 @@ print hashline( __LINE__ ), << 'CODE';
   return 0;
 }
 
-int
+static void
 settings_end( void )
 {
   if( settings_current.autosave_settings )
@@ -805,7 +814,22 @@ settings_end( void )
 #ifdef HAVE_LIB_XML2
   xmlCleanupParser();
 #endif				/* #ifdef HAVE_LIB_XML2 */
-
-  return 0;
 }
+
+void
+settings_register_startup( void )
+{
+  /* settings_init not yet managed by the startup manager */
+
+  startup_manager_module dependencies[] = {
+  /* Fuse for OS X requires that settings_end is called before memory is
+     deallocated as settings need to look up machine names etc */
+    /* STARTUP_MANAGER_MODULE_MEMORY, */
+    STARTUP_MANAGER_MODULE_SETUID,
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_SETTINGS_END, dependencies,
+                            ARRAY_SIZE( dependencies ), NULL, NULL,
+                            settings_end );
+}
+
 CODE

@@ -79,10 +79,10 @@ static ui_statusbar_state $xstates;
 static int status_updated;
 static int icon_size = 0;
 
-void
+static void
 xstatusbar_add_pixmap(int x, int pw, int h, libspectrum_word *colors)
 {
-  int y = 3 * DISPLAY_SCREEN_HEIGHT;
+  int y = 4 * DISPLAY_SCREEN_HEIGHT;
   x *= icon_size;
   for( ; h > 0; h-- ) {
     int w = pw;
@@ -94,6 +94,8 @@ xstatusbar_add_pixmap(int x, int pw, int h, libspectrum_word *colors)
           xdisplay_putpixel( x, y + 1, colors);
         if( icon_size > 2 )
           xdisplay_putpixel( x, y + 2, colors);
+        if( icon_size > 3 )
+          xdisplay_putpixel( x, y + 3, colors);
         x++;
       }
       colors++;
@@ -111,7 +113,7 @@ xstatusbar_init( int size )
 
 $add_pixmap}
 
-void
+static void
 xstatusbar_put_icon( int x, int w, int h )
 {
   static int dx = 0;
@@ -126,16 +128,18 @@ xstatusbar_put_icon( int x, int w, int h )
   if( shm_used ) {
 #ifdef X_USE_SHM
     /* FIXME: should wait for an ShmCompletion event here */
-    XShmPutImage( display, xui_mainWindow, gc, image, x, 3 * DISPLAY_SCREEN_HEIGHT, dx, dy, w, h, True );
+    XShmPutImage( display, xui_mainWindow, gc, image, x,
+                  4 * DISPLAY_SCREEN_HEIGHT, dx, dy, w, h, True );
 #endif				/* #ifdef X_USE_SHM */
   } else {
-    XPutImage( display, xui_mainWindow, gc, image, x, 3 * DISPLAY_SCREEN_HEIGHT, dx, dy, w, h );
+    XPutImage( display, xui_mainWindow, gc, image, x,
+               4 * DISPLAY_SCREEN_HEIGHT, dx, dy, w, h );
   }
   dx -= 4; /* 4px space */
 }
 
 void
-xstatusbar_overlay()
+xstatusbar_overlay( void )
 {
   int x = 0, w = 0, h;
   xstatusbar_put_icon( -1, 0, 0 );

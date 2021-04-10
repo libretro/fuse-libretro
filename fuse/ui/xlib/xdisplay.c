@@ -1,7 +1,7 @@
 /* xdisplay.c: Routines for dealing with drawing the Speccy's screen via Xlib
    Copyright (c) 2000-2005 Philip Kendall, Darren Salt, Gergely Szász
-
-   $Id: xdisplay.c 4707 2012-05-25 11:35:23Z fredm $
+   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -93,14 +93,13 @@ static const int rgb_pitch = 2 * ( DISPLAY_SCREEN_WIDTH + 3 );
 
 /* A scaled copy of the image displayed on the Spectrum's screen */
 static libspectrum_word
-  scaled_image[3 * DISPLAY_SCREEN_HEIGHT][3 * DISPLAY_SCREEN_WIDTH];
+  scaled_image[4 * DISPLAY_SCREEN_HEIGHT][4 * DISPLAY_SCREEN_WIDTH];
 static const ptrdiff_t scaled_pitch =
-  3 * DISPLAY_SCREEN_WIDTH * 2;
+  4 * DISPLAY_SCREEN_WIDTH * 2;
 
 /* A scaled copy of the image displayed on the Spectrum's screen */
 static libspectrum_word
   rgb_image_backup[2 * ( DISPLAY_SCREEN_HEIGHT + 4 )][2 * ( DISPLAY_SCREEN_WIDTH  + 3 )];
-static const int rgb_backup_pitch = 2 * ( DISPLAY_SCREEN_WIDTH + 3 );
 
 static unsigned long colours[128];
 static int colours_allocated = 0;
@@ -159,8 +158,8 @@ static xdisplay_putpixel_t xdisplay_putpixel_15;
 static xdisplay_putpixel_t xdisplay_putpixel_16;
 static xdisplay_putpixel_t xdisplay_putpixel_24;
 
-#include "xpixmaps.c"
-void xstatusbar_overlay();
+#include "ui/xlib/xpixmaps.c"
+void xstatusbar_overlay( void );
 
 static libspectrum_word pal_colour[16] = {
   0x0000, 0x0017, 0xb800, 0xb817, 0x05e0, 0x05f7, 0xbde0, 0xbdf7,
@@ -415,11 +414,11 @@ xdisplay_allocate_image( void )
   if( !shm_used ) {
     image = XCreateImage( display, xdisplay_visual,
 		       xdisplay_depth, ZPixmap, 0, NULL,
-		       3 * DISPLAY_ASPECT_WIDTH,
-		       3 * DISPLAY_SCREEN_HEIGHT + 3 * PIXMAPS_H, 8, 0 );
+		       4 * DISPLAY_ASPECT_WIDTH,
+		       4 * DISPLAY_SCREEN_HEIGHT + 4 * PIXMAPS_H, 8, 0 );
 /*
    we allocate extra space after the screen for status bar icons
-   status bar icons total width always smaller than 3xDISPLAY_ASPECT_WIDTH
+   status bar icons total width always smaller than 4xDISPLAY_ASPECT_WIDTH
 */
     if(!image) {
       fprintf(stderr,"%s: couldn't create image\n",fuse_progname);
@@ -472,8 +471,8 @@ try_shm( void )
   image = XShmCreateImage( display, xdisplay_visual,
 			   xdisplay_depth, ZPixmap,
 			   NULL, &shm_info,
-			   3 * DISPLAY_ASPECT_WIDTH,
-			   3 * DISPLAY_SCREEN_HEIGHT + 3 * PIXMAPS_H);
+			   4 * DISPLAY_ASPECT_WIDTH,
+			   4 * DISPLAY_SCREEN_HEIGHT + 4 * PIXMAPS_H);
 /*
    we allocate extra space after the screen for status bar icons
    status bar icons total width always smaller than 3xDISPLAY_ASPECT_WIDTH
@@ -604,6 +603,8 @@ register_scalers( void )
       if( machine_current->timex ) {
         scaler_register( SCALER_HALFSKIP );
         scaler_register( SCALER_TIMEX1_5X );
+        scaler_register( SCALER_TIMEX2X );
+        scaler_register( SCALER_ADVMAME2X );
       } else {
         scaler_register( SCALER_DOUBLESIZE );
         scaler_register( SCALER_ADVMAME2X );
@@ -619,6 +620,15 @@ register_scalers( void )
         scaler_register( SCALER_HALFSKIP );
         scaler_register( SCALER_TIMEXTV );
         scaler_register( SCALER_TIMEX1_5X );
+        scaler_register( SCALER_TIMEX2X );
+        scaler_register( SCALER_2XSAI );
+        scaler_register( SCALER_SUPER2XSAI );
+        scaler_register( SCALER_SUPEREAGLE );
+        scaler_register( SCALER_ADVMAME2X );
+        scaler_register( SCALER_TV2X );
+        scaler_register( SCALER_DOTMATRIX );
+        scaler_register( SCALER_PALTV2X );
+        scaler_register( SCALER_HQ2X );
       } else {
         scaler_register( SCALER_DOUBLESIZE );
         scaler_register( SCALER_2XSAI );
@@ -635,6 +645,11 @@ register_scalers( void )
         scaler_register( SCALER_TV3X );
         scaler_register( SCALER_PALTV3X );
         scaler_register( SCALER_HQ3X );
+
+        scaler_register( SCALER_QUADSIZE );
+        scaler_register( SCALER_TV4X );
+        scaler_register( SCALER_PALTV4X );
+        scaler_register( SCALER_HQ4X );
       }
     }
   if( current_scaler != SCALER_NUM )
@@ -644,17 +659,156 @@ register_scalers( void )
 	( xdisplay_current_size * 4 == f ) ) {
     uidisplay_hotswap_gfx_mode();
   } else {
+    int new_scaler, new_timex_scaler;
     switch( xdisplay_current_size ) {
     case 1:
-      scaler_select_scaler( machine_current->timex ? SCALER_HALF : SCALER_NORMAL );
+      if( xdisplay_depth == 4 ) {
+          new_scaler = SCALER_NORMAL;
+          new_timex_scaler = SCALER_HALFSKIP;
+      } else {
+        switch( current_scaler ) {
+        case SCALER_PALTV:
+        case SCALER_PALTV2X:
+        case SCALER_PALTV3X:
+        case SCALER_PALTV4X:
+          new_scaler = SCALER_PALTV;
+          new_timex_scaler = SCALER_HALF;
+          break;
+        case SCALER_TV2X:
+        case SCALER_TV3X:
+        case SCALER_TV4X:
+          new_scaler = SCALER_PALTV;
+          new_timex_scaler = SCALER_HALF;
+          break;
+        default:
+          new_scaler = SCALER_NORMAL;
+          new_timex_scaler = SCALER_HALF;
+          break;
+        }
+      }
       break;
     case 2:
-      scaler_select_scaler( machine_current->timex ? SCALER_NORMAL : SCALER_DOUBLESIZE );
+      if( xdisplay_depth == 4 ) {
+          new_scaler = SCALER_DOUBLESIZE;
+          new_timex_scaler = SCALER_NORMAL;
+      } else {
+        switch( current_scaler ) {
+        case SCALER_PALTV:
+        case SCALER_PALTV2X:
+        case SCALER_PALTV3X:
+        case SCALER_PALTV4X:
+          new_scaler = SCALER_PALTV2X;
+          new_timex_scaler = SCALER_PALTV;
+          break;
+        case SCALER_TV2X:
+        case SCALER_TV3X:
+        case SCALER_TV4X:
+          new_scaler = SCALER_TV2X;
+          new_timex_scaler = SCALER_PALTV;
+          break;
+        case SCALER_2XSAI:
+        case SCALER_SUPER2XSAI:
+        case SCALER_SUPEREAGLE:
+        case SCALER_ADVMAME2X:
+        case SCALER_ADVMAME3X:
+          new_scaler = SCALER_ADVMAME2X;
+          new_timex_scaler = SCALER_NORMAL;
+          break;
+        case SCALER_HQ2X:
+        case SCALER_HQ3X:
+        case SCALER_HQ4X:
+          new_scaler = SCALER_HQ2X;
+          new_timex_scaler = SCALER_NORMAL;
+          break;
+        default:
+          new_scaler = SCALER_DOUBLESIZE;
+          new_timex_scaler = SCALER_NORMAL;
+          break;
+        }
+      }
       break;
     case 3:
-      scaler_select_scaler( machine_current->timex ? SCALER_TIMEX1_5X : SCALER_TRIPLESIZE );
+      if( xdisplay_depth == 4 ) {
+          new_scaler = SCALER_TRIPLESIZE;
+          new_timex_scaler = SCALER_TIMEX1_5X;
+      } else {
+        switch( current_scaler ) {
+        case SCALER_PALTV:
+        case SCALER_PALTV2X:
+        case SCALER_PALTV3X:
+        case SCALER_PALTV4X:
+          new_scaler = SCALER_PALTV3X;
+          new_timex_scaler = SCALER_TIMEX1_5X;
+          break;
+        case SCALER_TV2X:
+        case SCALER_TV3X:
+        case SCALER_TV4X:
+          new_scaler = SCALER_TV3X;
+          new_timex_scaler = SCALER_TIMEX1_5X;
+          break;
+        case SCALER_2XSAI:
+        case SCALER_SUPER2XSAI:
+        case SCALER_SUPEREAGLE:
+        case SCALER_ADVMAME2X:
+        case SCALER_ADVMAME3X:
+          new_scaler = SCALER_ADVMAME3X;
+          new_timex_scaler = SCALER_TIMEX1_5X;
+          break;
+        case SCALER_HQ2X:
+        case SCALER_HQ3X:
+        case SCALER_HQ4X:
+          new_scaler = SCALER_HQ3X;
+          new_timex_scaler = SCALER_TIMEX1_5X;
+          break;
+        default:
+          new_scaler = SCALER_TRIPLESIZE;
+          new_timex_scaler = SCALER_TIMEX1_5X;
+          break;
+        }
+      }
+      break;
+    case 4:
+      if( xdisplay_depth == 4 ) {
+          new_scaler = SCALER_QUADSIZE;
+          new_timex_scaler = SCALER_TIMEX2X;
+      } else {
+        switch( current_scaler ) {
+        case SCALER_PALTV:
+        case SCALER_PALTV2X:
+        case SCALER_PALTV3X:
+        case SCALER_PALTV4X:
+          new_scaler = SCALER_PALTV4X;
+          new_timex_scaler = SCALER_PALTV2X;
+          break;
+        case SCALER_TV2X:
+        case SCALER_TV3X:
+        case SCALER_TV4X:
+          new_scaler = SCALER_TV4X;
+          new_timex_scaler = SCALER_TV2X;
+          break;
+        case SCALER_2XSAI:
+        case SCALER_SUPER2XSAI:
+        case SCALER_SUPEREAGLE:
+        case SCALER_ADVMAME2X:
+        case SCALER_ADVMAME3X:
+          new_scaler = SCALER_QUADSIZE;
+          new_timex_scaler = SCALER_ADVMAME2X;
+          break;
+        case SCALER_HQ2X:
+        case SCALER_HQ3X:
+        case SCALER_HQ4X:
+          new_scaler = SCALER_HQ4X;
+          new_timex_scaler = SCALER_HQ2X;
+          break;
+        default:
+          new_scaler = SCALER_QUADSIZE;
+          new_timex_scaler = SCALER_TIMEX2X;
+          break;
+        }
+      }
       break;
     }
+    scaler_select_scaler( machine_current->timex ? new_timex_scaler : new_scaler );
   }
 }
 
@@ -793,11 +947,11 @@ void
 xdisplay_area( int x, int y, int w, int h )
 {
 /* e.g. dwm first expose with too big w and h */
-  if( x + w > 3 * DISPLAY_ASPECT_WIDTH )
-    w = 3 * DISPLAY_ASPECT_WIDTH - x;
+  if( x + w > 4 * DISPLAY_ASPECT_WIDTH )
+    w = 4 * DISPLAY_ASPECT_WIDTH - x;
 
-  if( y + h > 3 * DISPLAY_SCREEN_HEIGHT )
-    h = 3 * DISPLAY_SCREEN_HEIGHT - y;
+  if( y + h > 4 * DISPLAY_SCREEN_HEIGHT )
+    h = 4 * DISPLAY_SCREEN_HEIGHT - y;
 
   if( shm_used ) {
 #ifdef X_USE_SHM
@@ -895,7 +1049,10 @@ xdisplay_end( void )
 {
   xdisplay_destroy_image();
   /* Free the allocated GC */
-  if( gc ) XFreeGC( display, gc ); gc = 0;
+  if( gc ) {
+    XFreeGC( display, gc );
+    gc = 0;
+  }
 
   return 0;
 }

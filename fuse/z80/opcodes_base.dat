@@ -1,5 +1,4 @@
 # opcodes.base: unshifted Z80 opcodes
-# $Id: opcodes_base.dat 1322 2003-05-24 12:41:10Z pak21 $
 
 0x00 NOP
 0x01 LD BC,nnnn

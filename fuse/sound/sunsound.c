@@ -1,8 +1,6 @@
 /* sunsound.c: OpenBSD sound I/O
    Copyright (c) 2002-2004 Alexander Yurchenko, Russell Marks, Philip Kendall
 
-   $Id: sunsound.c 3115 2007-08-19 02:49:14Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -20,8 +18,6 @@
 */
 
 #include <config.h>
-
-#if defined AUDIO_SETINFO || defined HAVE_SYS_AUDIOIO_H
 
 #if defined(__SVR4) && defined(__sun)
 #define solaris
@@ -205,6 +201,3 @@ sound_lowlevel_frame( libspectrum_signed_word *data, int len )
 		}
 	}
 }
-
-#endif		/* #if defined AUDIO_SETINFO || defined HAVE_SYS_AUDIOIO_H */
-

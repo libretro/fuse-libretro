@@ -119,5 +119,3 @@ well as various smoothing options and the like (for example,
 scanlines). See `scalers.txt' for more information on these.
 
 (FIXME: write scalers.txt)
-
-$Id: implementation_notes.txt 3032 2007-06-28 22:48:54Z zubzero $

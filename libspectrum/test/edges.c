@@ -38,13 +38,13 @@ check_edges( const char *filename, test_edge_sequence_t *edges,
     flags &= flags_mask;
 
     if( tstates != ptr->length || flags != ptr->flags ) {
-      fprintf( stderr, "%s: expected %d tstates and flags %d, got %d tstates and flags %d\n",
+      fprintf( stderr, "%s: expected %u tstates and flags %d, got %u tstates and flags %d\n",
 	       progname, ptr->length, ptr->flags, tstates, flags );
       break;
     }
 
     if( tstates != ptr->length ) {
-      fprintf( stderr, "%s: expected %d tstates, got %d tstates\n", progname,
+      fprintf( stderr, "%s: expected %u tstates, got %u tstates\n", progname,
 	       ptr->length, tstates );
       break;
     }

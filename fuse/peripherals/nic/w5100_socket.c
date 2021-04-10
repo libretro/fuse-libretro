@@ -2,9 +2,7 @@
    
    Emulates a minimal subset of the Wiznet W5100 TCP/IP controller.
 
-   Copyright (c) 2011-2013 Philip Kendall
-   
-   $Id: w5100_socket.c 4912 2013-03-24 19:34:06Z sbaldovi $
+   Copyright (c) 2011-2015 Philip Kendall
    
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +24,7 @@
  
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <pthread.h>
 #include <string.h>
@@ -141,10 +139,10 @@ nic_w5100_socket_reset( nic_w5100_socket_t *socket )
 static void
 w5100_write_socket_mr( nic_w5100_socket_t *socket, libspectrum_byte b )
 {
-  nic_w5100_debug( "w5100: writing 0x%02x to S%d_MR\n", b, socket->id );
-
   w5100_socket_mode mode = b & 0x0f;
   libspectrum_byte flags = b & 0xf0;
+
+  nic_w5100_debug( "w5100: writing 0x%02x to S%d_MR\n", b, socket->id );
 
   switch( mode ) {
     case W5100_SOCKET_MODE_CLOSED:
@@ -209,7 +207,8 @@ w5100_socket_open( nic_w5100_socket_t *socket_obj )
       sizeof(one) ) == -1 ) {
       nic_w5100_error( UI_ERROR_ERROR,
         "w5100: failed to set SO_REUSEADDR on socket %d; errno %d: %s\n",
-        socket_obj->id, compat_socket_get_error(), compat_socket_get_error() );
+        socket_obj->id, compat_socket_get_error(),
+        compat_socket_get_strerror() );
     }
 #endif
 
@@ -600,6 +599,8 @@ w5100_socket_process_accept( nic_w5100_socket_t *socket )
   struct sockaddr_in sa;
   socklen_t sa_length = sizeof(sa);
   compat_socket_t new_fd;
+
+  memset( &sa, 0, sizeof(sa) );
 
   new_fd = accept( socket->fd, (struct sockaddr*)&sa, &sa_length );
   if( new_fd == compat_socket_invalid ) {

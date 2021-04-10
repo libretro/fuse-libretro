@@ -1,8 +1,6 @@
 /* ide.c: Routines for handling HDF hard disk files
    Copyright (c) 2003-2004 Garry Lancaster,
-		 2004 Philip Kendall
-
-   $Id: ide.c 3701 2008-06-30 20:32:56Z pak21 $
+		 2004,2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,7 +22,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -106,37 +104,6 @@ typedef enum libspectrum_ide_identityfield {
   (arr)[ ( (index) << 1 ) + 1 ] = (val) >> 8; \
   (arr)[ (index) << 1 ] = (val) & 0xff;
 
-typedef struct libspectrum_hdf_header {
-
-  libspectrum_byte signature[0x06];
-  libspectrum_byte id;
-  libspectrum_byte revision;
-  libspectrum_byte flags;
-  libspectrum_byte datastart_low;
-  libspectrum_byte datastart_hi;
-  libspectrum_byte reserved[0x0b];
-  libspectrum_byte drive_identity[0x6a];
-
-} libspectrum_hdf_header;
-  
-typedef struct libspectrum_ide_drive {
-
-  /* HDF filepointer and information */
-  FILE *disk;
-  libspectrum_word data_offset;
-  libspectrum_word sector_size;
-  libspectrum_hdf_header hdf;
-  
-  /* Drive geometry */
-  int cylinders;
-  int heads;
-  int sectors;
-
-  libspectrum_byte error;
-  libspectrum_byte status;
-  
-} libspectrum_ide_drive;
-
 struct libspectrum_ide_channel {
 
   /* Interface bus width */
@@ -195,7 +162,7 @@ libspectrum_ide_alloc( libspectrum_ide_databus databus )
 {
   libspectrum_ide_channel *channel;
 
-  channel = libspectrum_malloc( sizeof( *channel ) );
+  channel = libspectrum_new( libspectrum_ide_channel, 1 );
 
   channel->databus = databus;
   channel->drive[ LIBSPECTRUM_IDE_MASTER ].disk = NULL;
@@ -226,19 +193,13 @@ libspectrum_ide_free( libspectrum_ide_channel *chn )
   return LIBSPECTRUM_ERROR_NONE;
 }
 
-/* Insert a hard disk into a drive */
 libspectrum_error
-libspectrum_ide_insert( libspectrum_ide_channel *chn,
-			libspectrum_ide_unit unit,
-                        const char *filename )
+libspectrum_ide_insert_into_drive( libspectrum_ide_drive *drv,
+                                   const char *filename )
 {
   FILE *f;
   size_t l;
-  libspectrum_ide_drive *drv = &chn->drive[unit];
 
-  libspectrum_ide_eject( chn, unit );
-  if ( !filename ) return LIBSPECTRUM_ERROR_NONE;
-  
   /* Open the file */
   f = fopen( filename, "rb+" );
   if( !f ) {
@@ -289,6 +250,20 @@ libspectrum_ide_insert( libspectrum_ide_channel *chn,
   return LIBSPECTRUM_ERROR_NONE;
 }
 
+/* Insert a hard disk into a drive */
+libspectrum_error
+libspectrum_ide_insert( libspectrum_ide_channel *chn,
+			libspectrum_ide_unit unit,
+                        const char *filename )
+{
+  libspectrum_ide_drive *drv = &chn->drive[unit];
+
+  libspectrum_ide_eject( chn, unit );
+  if ( !filename ) return LIBSPECTRUM_ERROR_NONE;
+
+  return libspectrum_ide_insert_into_drive( drv, filename );
+}
+
 static gboolean
 write_to_disk( gpointer key, gpointer value, gpointer user_data )
 {
@@ -311,20 +286,20 @@ write_to_disk( gpointer key, gpointer value, gpointer user_data )
   return TRUE;	/* TRUE => remove key/value pair from hash */
 }
 
+void
+libspectrum_ide_commit_drive( libspectrum_ide_drive *drv, GHashTable *cache )
+{
+  if( !drv->disk ) return;
+
+  g_hash_table_foreach_remove( cache, write_to_disk, drv );
+}
+
 /* Commit any pending writes to disk */
 libspectrum_error
 libspectrum_ide_commit( libspectrum_ide_channel *chn,
 			libspectrum_ide_unit unit )
 {
-  libspectrum_ide_drive *drv;
-  GHashTable *cache;
-
-  drv = &chn->drive[ unit ];
-  cache = chn->cache[ unit ];
-
-  if( !drv->disk ) return LIBSPECTRUM_ERROR_NONE;
-
-  g_hash_table_foreach_remove( cache, write_to_disk, drv );
+  libspectrum_ide_commit_drive( &chn->drive[ unit ], chn->cache[ unit ] );
 
   return LIBSPECTRUM_ERROR_NONE;
 }
@@ -345,17 +320,11 @@ libspectrum_ide_dirty( libspectrum_ide_channel *chn,
   return g_hash_table_size( chn->cache[ unit ] ) != 0;
 }
 
-/* Eject a hard disk from a drive */
+/* Eject a hard disk from a drive and free its cache */
 libspectrum_error
-libspectrum_ide_eject( libspectrum_ide_channel *chn,
-                       libspectrum_ide_unit unit )
+libspectrum_ide_eject_from_drive( libspectrum_ide_drive *drv,
+                                  GHashTable *cache )
 {
-  libspectrum_ide_drive *drv;
-  GHashTable *cache;
-
-  drv = &chn->drive[ unit ];
-  cache = chn->cache[ unit ];
-
   if( !drv->disk ) return LIBSPECTRUM_ERROR_NONE;
 
   fclose( drv->disk );
@@ -364,6 +333,15 @@ libspectrum_ide_eject( libspectrum_ide_channel *chn,
   g_hash_table_foreach_remove( cache, clear_cache, NULL );
   
   return LIBSPECTRUM_ERROR_NONE;
+}
+
+/* Eject a hard disk from a channel / unit combination */
+libspectrum_error
+libspectrum_ide_eject( libspectrum_ide_channel *chn,
+                       libspectrum_ide_unit unit )
+{
+  return libspectrum_ide_eject_from_drive( &chn->drive[ unit ],
+                                           chn->cache[ unit ] );
 }
 
 /* Reset an IDE channel */
@@ -429,22 +407,14 @@ libspectrum_ide_reset( libspectrum_ide_channel *chn )
   return LIBSPECTRUM_ERROR_NONE;
 }
 
-
-/* Read a sector from the HDF file */
-static int
-read_hdf( libspectrum_ide_channel *chn )
+int
+libspectrum_ide_read_sector_from_hdf( libspectrum_ide_drive *drv,
+    GHashTable *cache, libspectrum_dword sector_number, libspectrum_byte *dest )
 {
-  libspectrum_ide_unit selected;
-  libspectrum_ide_drive *drv;
-  GHashTable *cache;
   libspectrum_byte *buffer, packed_buf[512];
 
-  selected = chn->selected;
-  drv = &chn->drive[ selected ];
-  cache = chn->cache[ selected ];
-
   /* First look in the write cache */
-  buffer = g_hash_table_lookup( cache, &chn->sector_number );
+  buffer = g_hash_table_lookup( cache, &sector_number );
 
   /* If it's not in the write cache, read from the disk image */
   if( !buffer ) {
@@ -452,15 +422,24 @@ read_hdf( libspectrum_ide_channel *chn )
     long sector_position;
 
     sector_position =
-      drv->data_offset + ( drv->sector_size * chn->sector_number );
+      drv->data_offset + ( drv->sector_size * sector_number );
 
     /* Seek to the correct file position */
-    if( fseek( drv->disk, sector_position, SEEK_SET ) ) return 1;
+    if( fseek( drv->disk, sector_position, SEEK_SET ) ) {
+      libspectrum_print_error(
+          LIBSPECTRUM_ERROR_WARNING,
+          "Couldn't seek in HDF file\n" );
+      return 1;
+    }
 
     /* Read the packed data into a temporary buffer */
     if ( fread( packed_buf, 1, drv->sector_size, drv->disk ) !=
-	 drv->sector_size                                       )
-      return 1;		/* read error */
+	 drv->sector_size                                       ) {
+      libspectrum_print_error(
+          LIBSPECTRUM_ERROR_WARNING,
+          "Couldn't read from HDF file\n" );
+      return 1;
+    }
 
     buffer = packed_buf;
   }
@@ -471,42 +450,43 @@ read_hdf( libspectrum_ide_channel *chn )
     int i;
     
     for( i = 0; i < 256; i++ ) {
-      chn->buffer[ i*2 ] = buffer[ i ];
-      chn->buffer[ i*2 + 1 ] = 0xff;
+      dest[ i*2 ] = buffer[ i ];
+      dest[ i*2 + 1 ] = 0xff;
     }
 
   } else {
-    memcpy( chn->buffer, buffer, 512 );
+    memcpy( dest, buffer, 512 );
   }
-  
+
   return 0;
 }
 
-
-/* Write a sector to the HDF file */
+/* Read a sector from the HDF file */
 static int
-write_hdf( libspectrum_ide_channel *chn )
+read_hdf( libspectrum_ide_channel *chn )
 {
-  libspectrum_ide_unit selected;
-  libspectrum_ide_drive *drv;
-  GHashTable *cache;
+  return libspectrum_ide_read_sector_from_hdf(
+      &chn->drive[ chn->selected ], chn->cache[ chn->selected ],
+      chn->sector_number, chn->buffer );
+}
+
+void
+libspectrum_ide_write_sector_to_hdf( libspectrum_ide_drive *drv, GHashTable *cache,
+    libspectrum_dword sector_number, libspectrum_byte *src )
+{
   libspectrum_byte *buffer;
 
-  selected = chn->selected;
-  drv = &chn->drive[ selected ];
-  cache = chn->cache[ selected ];
-
-  buffer = g_hash_table_lookup( cache, &chn->sector_number );
+  buffer = g_hash_table_lookup( cache, &sector_number );
 
   /* Add this sector to the write cache if it's not already present */
   if( !buffer ) {
 
     gint *key;
 
-    key = libspectrum_malloc( sizeof( *key ) );
-    buffer = libspectrum_malloc( drv->sector_size * sizeof( *buffer ) );
+    key = libspectrum_new( gint, 1 );
+    buffer = libspectrum_new( libspectrum_byte, drv->sector_size );
 
-    *key = chn->sector_number;
+    *key = sector_number;
     g_hash_table_insert( cache, key, buffer );
 
   }
@@ -514,11 +494,17 @@ write_hdf( libspectrum_ide_channel *chn )
   /* Pack or copy the data into the write cache */
   if ( drv->sector_size == 256 ) {
     int i;
-    for( i = 0; i < 256; i++ ) buffer[i] = chn->buffer[ i * 2 ];
+    for( i = 0; i < 256; i++ ) buffer[i] = src[ i * 2 ];
   } else {
-    memcpy( buffer, chn->buffer, 512 );
+    memcpy( buffer, src, 512 );
   }
+}
 
+/* Write a sector to the HDF file */
+static int
+write_hdf( libspectrum_ide_channel *chn )
+{
+  libspectrum_ide_write_sector_to_hdf( &chn->drive[ chn->selected ], chn->cache[ chn->selected ], chn->sector_number, chn->buffer );
   return 0;
 }
 

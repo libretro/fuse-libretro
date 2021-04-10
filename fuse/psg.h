@@ -1,7 +1,5 @@
 /* psg.h: recording AY chip output to .psg files
-   Copyright (c) 2003 Matthew Westcott, Philip Kendall
-
-   $Id: psg.h 4635 2012-01-19 23:39:04Z pak21 $
+   Copyright (c) 2003-2016 Matthew Westcott, Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,7 +29,7 @@
 /* Are we currently recording a .psg file? */
 extern int psg_recording;
 
-void psg_init( void );
+void psg_register_startup( void );
 
 int psg_start_recording( const char *filename );
 int psg_stop_recording( void );
@@ -39,7 +37,5 @@ int psg_stop_recording( void );
 int psg_frame( void );
 
 int psg_write_register( libspectrum_byte reg, libspectrum_byte value );
-
-int psg_end( void );
 
 #endif			/* #ifndef FUSE_PSG_H */

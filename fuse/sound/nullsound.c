@@ -1,8 +1,6 @@
 /* nullsound.c: dummy sound routines
    Copyright (c) 2003-2004 Philip Kendall
 
-   $Id: nullsound.c 3115 2007-08-19 02:49:14Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -29,7 +27,8 @@
 int
 sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
 {
-  fuse_abort();
+  /* Audio driver not initialised */
+  return 1;
 }
 
 void

@@ -1,7 +1,5 @@
 /* timer.c: Speed routines for Fuse
-   Copyright (c) 1999-2008 Philip Kendall, Marek Januszewski, Fredrick Meunier
-
-   $Id: timer.c 4664 2012-02-12 11:51:01Z fredm $
+   Copyright (c) 1999-2017 Philip Kendall, Marek Januszewski, Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +24,9 @@
 #include <config.h>
 
 #include "event.h"
+#include "infrastructure/startup_manager.h"
 #include "movie.h"
+#include "phantom_typist.h"
 #include "settings.h"
 #include "sound.h"
 #include "tape.h"
@@ -108,8 +108,8 @@ timer_estimate_reset( void )
   return 0;
 }
 
-int
-timer_init( void )
+static int
+timer_init( void *context )
 {
   start_time = timer_get_time(); if( start_time < 0 ) return 1;
 
@@ -117,13 +117,25 @@ timer_init( void )
 
   event_add( 0, timer_event );
 
-  return 0;
+  return timer_estimate_reset();
 }
 
-void
+static void
 timer_end( void )
 {
   event_remove_type( timer_event );
+}
+
+void
+timer_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_EVENT,
+    STARTUP_MANAGER_MODULE_SETUID,
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_TIMER, dependencies,
+                            ARRAY_SIZE( dependencies ), timer_init, NULL,
+                            timer_end );
 }
 
 #ifdef SOUND_FIFO
@@ -163,6 +175,30 @@ timer_frame_callback_sound( libspectrum_dword last_tstates )
   
 #endif                          /* #ifdef SOUND_FIFO */
 
+void
+timer_start_fastloading( void )
+{
+  /* If we're fastloading, turn sound off */
+  if( settings_current.fastload ) sound_pause();
+}
+
+void
+timer_stop_fastloading( void )
+{
+  /* If we were fastloading, sound was off, so turn it back on, and
+     reset the speed counter */
+  if( settings_current.fastload ) {
+    sound_unpause();
+    timer_estimate_reset();
+  }
+}
+
+int
+timer_fastloading_active( void )
+{
+  return tape_is_playing() || phantom_typist_is_active();
+}
+
 static void
 timer_frame( libspectrum_dword last_tstates, int event GCC_UNUSED,
 	     void *user_data GCC_UNUSED )
@@ -177,7 +213,7 @@ timer_frame( libspectrum_dword last_tstates, int event GCC_UNUSED,
 
   /* If we're fastloading, just schedule another check in a frame's time
      and do nothing else */
-  if( settings_current.fastload && tape_is_playing() ) {
+  if( settings_current.fastload && timer_fastloading_active() ) {
 
     libspectrum_dword next_check_time =
       last_tstates + machine_current->timings.tstates_per_frame;

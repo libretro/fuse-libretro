@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
 
 # options-resource.pl: generate options dialog boxes
-# $Id: options-resource.pl 4321 2011-03-19 11:33:23Z fredm $
 
 # Copyright (c) 2001-2007 Philip Kendall, Stuart Brady, Marek Januszewski
+# Copyright (c) 2015 Sergio Baldoví
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,9 +58,9 @@ foreach( @dialogs ) {
 	} elsif( $widget->{type} eq "Entry" ) {
 	    $y_label = $y + 2;
 	    $buffer .= sprintf "  LTEXT \"%s\",IDC_%s_LABEL_%s,5,$y_label,90,9\n",
-		$text, $optname, uc( $widget->{value} );
-	    $buffer .= sprintf "  EDITTEXT IDC_%s_%s,100,$y,85,13\n",
-		$optname, uc( $widget->{value} );
+	        $text, $optname, uc( $widget->{value} );
+	    $buffer .= sprintf "  EDITTEXT IDC_%s_%s,100,$y,85,13,ES_NUMBER\n",
+	        $optname, uc( $widget->{value} );
 	    $y += 14;
 	} elsif( $widget->{type} eq "Combo" ) {
 	    $y_label = $y + 2;
@@ -78,8 +78,8 @@ foreach( @dialogs ) {
 
     $y += 5;
 
-    $buffer .= sprintf "  DEFPUSHBUTTON \"OK\",IDOK,45,$y,50,14\n", $optname;
-    $buffer .= sprintf "  PUSHBUTTON \"Cancel\",IDCANCEL,100,$y,50,14\n", $optname;
+    $buffer .= sprintf "  DEFPUSHBUTTON \"OK\",IDOK,45,$y,50,14\n";
+    $buffer .= sprintf "  PUSHBUTTON \"Cancel\",IDCANCEL,100,$y,50,14\n";
 
     $y += 14 + 5; #height of the buttons + 5 margin
    

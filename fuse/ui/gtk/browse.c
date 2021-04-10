@@ -1,7 +1,7 @@
 /* browse.c: tape browser dialog box
    Copyright (c) 2002-2004 Philip Kendall
-
-   $Id: browse.c 4708 2012-05-25 12:14:50Z fredm $
+   Copyright (c) 2015 Sergio Baldoví
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ menu_media_tape_browse( GtkAction *gtk_action GCC_UNUSED,
   fuse_emulation_unpause();
 }
 
-GtkWidget *
+static GtkWidget *
 create_block_list( void )
 {
   GtkWidget *view;
@@ -269,7 +269,7 @@ select_row( GtkTreeView *treeview GCC_UNUSED, GtkTreePath *path,
   if( current_block != -1 ) {
     path = gtk_tree_path_new_from_indices( current_block, -1 );
 
-    if( gtk_tree_model_get_iter( GTK_TREE_MODEL( model ), &iter, path ) ) {
+    if( !gtk_tree_model_get_iter( GTK_TREE_MODEL( model ), &iter, path ) ) {
       gtk_tree_path_free( path );
       return;
     }
@@ -306,7 +306,8 @@ mark_row( GtkTreeModel *model, int row )
 static void
 browse_done( GtkWidget *widget GCC_UNUSED, gpointer data GCC_UNUSED )
 {
-  gtk_widget_hide( dialog );
+  dialog_created = 0;
+  gtk_widget_destroy( dialog );
 }
 
 /* Catch attempts to delete the window and just hide it instead */
@@ -314,6 +315,7 @@ static gboolean
 delete_dialog( GtkWidget *widget, GdkEvent *event GCC_UNUSED,
 	       gpointer user_data GCC_UNUSED )
 {
-  gtk_widget_hide( widget );
+  dialog_created = 0;
+  gtk_widget_destroy( dialog );
   return TRUE;
 }

@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2004-2008 Philip Kendall
-
-## $Id: Makefile.am 4743 2012-10-10 13:20:50Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,20 +20,13 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+fuse_SOURCES += timer/timer.c
 
-AM_CPPFLAGS = -I$(srcdir)/..
+EXTRA_fuse_SOURCES += \
+                      timer/native.c \
+                      timer/sdl.c
 
-AM_CPPFLAGS += @LIBSPEC_CFLAGS@ @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@
+fuse_DEPENDENCIES += $(TIMER_LIBADD)
+fuse_LDADD += $(TIMER_LIBADD)
 
-noinst_LIBRARIES = libtimer.a
-
-libtimer_a_SOURCES = timer.c
-
-EXTRA_libtimer_a_SOURCES = native.c \
-			   sdl.c
-
-libtimer_a_LIBADD = $(TIMER_LIBADD)
-libtimer_a_DEPENDENCIES = $(TIMER_LIBADD)
-
-noinst_HEADERS = timer.h
+noinst_HEADERS += timer/timer.h

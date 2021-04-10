@@ -1,8 +1,6 @@
 /* file.c: File-related compatibility routines
    Copyright (c) 2008 Philip Kendall
 
-   $Id: file.c 4624 2012-01-09 20:59:35Z pak21 $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -41,6 +39,20 @@ const compat_fd COMPAT_FILE_OPEN_FAILED = NULL;
 compat_fd
 compat_file_open( const char *path, int write )
 {
+  struct stat statbuf;
+
+  if( !write ) {
+    if( stat( path, &statbuf ) ) {
+      return NULL;
+    }
+
+    /* Check file type */
+    if( !S_ISREG( statbuf.st_mode ) ) {
+      errno = EINVAL;
+      return NULL;
+    }
+  }
+
   return fopen( path, write ? "wb" : "rb" );
 }
 

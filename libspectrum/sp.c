@@ -1,8 +1,6 @@
 /* sp.c: Routines for handling .sp snapshots
    Copyright (c) 1998,2003 Philip Kendall
 
-   $Id: sp.c 3698 2008-06-30 15:12:02Z pak21 $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <string.h>
 
@@ -116,7 +114,7 @@ libspectrum_sp_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
 
   /* Get me 48K of zero-ed memory and then copy in the bits that were
      represented in the snap */
-  memory = libspectrum_calloc( 0xc000, sizeof( libspectrum_byte ) );
+  memory = libspectrum_new0( libspectrum_byte, 0xc000 );
 
   memcpy( &memory[ start ], buffer, memory_length );
 

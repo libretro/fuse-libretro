@@ -1,7 +1,6 @@
 /* tuntap.c: TUN/TAP compatability layer
    Copyright (c) 2009-2010 Patrik Persson, Philip Kendall
-
-   $Id: tuntap.c 4898 2013-02-25 22:20:54Z pak21 $
+   Copyright (c) 2016 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -48,6 +47,7 @@ compat_get_tap( const char *interface_name )
     memset( &ifr, 0, sizeof( ifr ) );
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     strncpy( ifr.ifr_name, interface_name, IFNAMSIZ );
+    ifr.ifr_name[ IFNAMSIZ - 1 ] = '\0';
 
     if ( ioctl( fd, TUNSETIFF, (void *) &ifr ) < 0 ) {
       ui_error( UI_ERROR_ERROR, "couldn't select TAP interface '%s'",

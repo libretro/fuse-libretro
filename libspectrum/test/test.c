@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -6,6 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "internals.h"
 #include "test.h"
 
 const char *progname;
@@ -38,7 +41,7 @@ read_file( libspectrum_byte **buffer, size_t *length, const char *filename )
   }
 
   *length = info.st_size;
-  *buffer = libspectrum_malloc( *length );
+  *buffer = libspectrum_new( libspectrum_byte, *length );
 
   bytes = read( fd, *buffer, *length );
   if( bytes == -1 ) {
@@ -122,7 +125,7 @@ read_snap( const char *filename, const char *filename_to_pass,
 
   libspectrum_free( buffer );
 
-  if( libspectrum_snap_free( snap ) ) return TEST_INCOMPLETE;
+  libspectrum_snap_free( snap );
 
   return TEST_PASS;
 }
@@ -165,16 +168,16 @@ play_tape( const char *filename )
 
 /* Specific tests begin here */
 
-/* Test for bugs #1479451 and #1706994: tape object incorrectly freed
-   after reading invalid tape */
+/* Test for bugs #47 and #78: tape object incorrectly freed after reading
+   invalid tape */
 static test_return_t
 test_1( void )
 {
   return read_tape( STATIC_TEST_PATH( "invalid.tzx" ), LIBSPECTRUM_ERROR_UNKNOWN );
 }
 
-/* Test for bugs #1720238: TZX turbo blocks with zero pilot pulses and
-   #1720270: freeing a turbo block with no data produces segfault */
+/* Test for bugs #84: TZX turbo blocks with zero pilot pulses and #85: freeing
+   a turbo block with no data produces segfault */
 static test_return_t
 test_2( void )
 {
@@ -211,7 +214,7 @@ test_2( void )
   }
 
   if( tstates != 667 ) {
-    fprintf( stderr, "%s: first edge of `%s' was %d tstates; expected 667\n",
+    fprintf( stderr, "%s: first edge of `%s' was %u tstates; expected 667\n",
 	     progname, filename, tstates );
     libspectrum_tape_free( tape );
     return TEST_FAIL;
@@ -222,7 +225,7 @@ test_2( void )
   return TEST_PASS;
 }
 
-/* Test for bug #1725864: writing empty .tap file causes crash */
+/* Test for bug #88: writing empty .tap file causes crash */
 static test_return_t
 test_3( void )
 {
@@ -249,7 +252,7 @@ test_3( void )
   return TEST_PASS;
 }
 
-/* Test for bug #1753279: invalid compressed file causes crash */
+/* Test for bug #102: invalid compressed file causes crash */
 static test_return_t
 test_4( void )
 {
@@ -257,14 +260,14 @@ test_4( void )
   return read_snap( filename, filename, LIBSPECTRUM_ERROR_UNKNOWN );
 }
 
-/* Further test for bug #1753279: invalid compressed file causes crash */
+/* Further test for bug #102: invalid compressed file causes crash */
 static test_return_t
 test_5( void )
 {
   return read_snap( STATIC_TEST_PATH( "invalid.gz" ), NULL, LIBSPECTRUM_ERROR_UNKNOWN );
 }
 
-/* Test for bug #1753938: pointer wraparound causes segfault */
+/* Test for bug #103: pointer wraparound causes segfault */
 static test_return_t
 test_6( void )
 {
@@ -272,50 +275,50 @@ test_6( void )
   return read_snap( filename, filename, LIBSPECTRUM_ERROR_CORRUPT );
 }
 
-/* Test for bug #1755124: lack of sanity check in GDB code */
+/* Test for bug #105: lack of sanity check in GDB code */
 static test_return_t
 test_7( void )
 {
   return read_tape( STATIC_TEST_PATH( "invalid-gdb.tzx" ), LIBSPECTRUM_ERROR_CORRUPT );
 }
 
-/* Test for bug #1755372: empty DRB causes segfault */
+/* Test for bug #106: empty DRB causes segfault */
 static test_return_t
 test_8( void )
 {
   return read_tape( STATIC_TEST_PATH( "empty-drb.tzx" ), LIBSPECTRUM_ERROR_NONE );
 }
 
-/* Test for bug #1755539: problems with invalid archive info block */
+/* Test for bug #107: problems with invalid archive info block */
 static test_return_t
 test_9( void )
 {
   return read_tape( STATIC_TEST_PATH( "invalid-archiveinfo.tzx" ), LIBSPECTRUM_ERROR_CORRUPT );
 }
 
-/* Test for bug #1755545: invalid hardware info blocks can leak memory */
+/* Test for bug #108: invalid hardware info blocks can leak memory */
 static test_return_t
 test_10( void )
 {
   return read_tape( STATIC_TEST_PATH( "invalid-hardwareinfo.tzx" ), LIBSPECTRUM_ERROR_CORRUPT );
 }
 
-/* Test for bug #1756375: invalid Warajevo tape block offset causes segfault */
+/* Test for bug #111: invalid Warajevo tape block offset causes segfault */
 static test_return_t
 test_11( void )
 {
   return read_tape( STATIC_TEST_PATH( "invalid-warajevo-blockoffset.tap" ), LIBSPECTRUM_ERROR_CORRUPT );
 }
 
-/* Test for bug #1757587: invalid custom info block causes memory leak */
+/* Test for bug #112: invalid custom info block causes memory leak */
 static test_return_t
 test_12( void )
 {
   return read_tape( STATIC_TEST_PATH( "invalid-custominfo.tzx" ), LIBSPECTRUM_ERROR_CORRUPT );
 }
 
-/* Test for bug #1758860: loop end without a loop start block accesses
-   uninitialised memory */
+/* Test for bug #113: loop end without a loop start block accesses uninitialised
+   memory */
 static test_return_t
 test_13( void )
 {
@@ -349,35 +352,35 @@ test_13( void )
   return TEST_PASS;
 }
 
-/* Test for bug #1758860: TZX loop blocks broken */
+/* Test for bug #113: TZX loop blocks broken */
 static test_return_t
 test_14( void )
 {
   return play_tape( STATIC_TEST_PATH( "loop.tzx" ) );
 }
 
-/* Test for bug #1802607: TZX loop blocks still broken */
+/* Test for bug #118: TZX loop blocks still broken */
 static test_return_t
 test_16( void )
 {
   return play_tape( STATIC_TEST_PATH( "loop2.tzx" ) );
 }
 
-/* Test for bug #1802618: TZX jump blocks broken */
+/* Test for bug #119: TZX jump blocks broken */
 static test_return_t
 test_17( void )
 {
   return play_tape( STATIC_TEST_PATH( "jump.tzx" ) );
 }
 
-/* Test for bug #1821425: crashes writing and reading empty CSW files */
+/* Test for bug #121: crashes writing and reading empty CSW files */
 static test_return_t
 test_18( void )
 {
   return play_tape( STATIC_TEST_PATH( "empty.csw" ) );
 }
 
-/* Test for bug #1828945: .tap writing code does not handle all block types */
+/* Test for bug #125: .tap writing code does not handle all block types */
 static test_return_t
 test_19( void )
 {
@@ -405,8 +408,8 @@ test_19( void )
   return TEST_PASS;
 }
 
-/* Tests for bug #1841085: SP not sanity checked when reading .sna files;
-   also tests bug #1841111: compressed snapshots cause segfault */
+/* Tests for bug #129: SP not sanity checked when reading .sna files;
+   also tests bug #130: compressed snapshots cause segfault */
 static test_return_t
 test_20( void )
 {
@@ -421,8 +424,7 @@ test_21( void )
   return read_snap( filename, filename, LIBSPECTRUM_ERROR_CORRUPT );
 } 
 
-/* Tests for bug #2002682: .mdr code does not correctly handle write protect
-   flag */
+/* Tests for bug #152: .mdr code does not correctly handle write protect flag */
 static test_return_t
 test_22( void )
 {
@@ -497,8 +499,8 @@ static test_return_t
 test_24( void )
 {
   const char *filename = DYNAMIC_TEST_PATH( "complete-tzx.tzx" );
-  libspectrum_byte *buffer;
-  size_t filesize;
+  libspectrum_byte *buffer = NULL;
+  size_t filesize = 0;
   libspectrum_tape *tape;
   libspectrum_tape_iterator it;
   libspectrum_tape_block *block;
@@ -625,8 +627,7 @@ test_25( void )
   return r;
 }
 
-/* Tests for bug #3078262: last out to 0x1ffd is not serialised into .z80
-   files */
+/* Tests for bug #198: last out to 0x1ffd is not serialised into .z80 files */
 static test_return_t
 test_26( void )
 {
@@ -685,7 +686,7 @@ test_26( void )
   return r;
 }
 
-/* Tests for bug #2857419: SZX files were written with A and F reversed */
+/* Tests for bug #184: SZX files were written with A and F reversed */
 static test_return_t
 test_27( void )
 {
@@ -732,6 +733,167 @@ test_27( void )
   return r;
 }
 
+/* Test for bug #379: converting .tap file to .csw causes crash */
+static test_return_t
+test_30( void )
+{
+  libspectrum_byte *buffer = NULL;
+  size_t length = 0;
+  libspectrum_tape *tape;
+  const char *filename = DYNAMIC_TEST_PATH( "standard-tap.tap" );
+  test_return_t r;
+
+  r = load_tape( &tape, filename, LIBSPECTRUM_ERROR_NONE );
+  if( r ) return r;
+
+  if( libspectrum_tape_write( &buffer, &length, tape,
+                              LIBSPECTRUM_ID_TAPE_CSW ) ) {
+    fprintf( stderr, "%s: writing `%s' to a .csw file was not successful\n",
+             progname, filename );
+    libspectrum_tape_free( tape );
+    return TEST_INCOMPLETE;
+  }
+
+  libspectrum_free( buffer );
+
+  if( libspectrum_tape_free( tape ) ) return TEST_INCOMPLETE;
+
+  return TEST_PASS;
+}
+
+static test_return_t
+test_71( void )
+{
+  const char *filename = STATIC_TEST_PATH( "random.szx" );
+  libspectrum_byte *buffer = NULL;
+  size_t filesize = 0;
+  size_t rzx_length = 0;
+  libspectrum_snap *snap;
+  libspectrum_rzx *rzx;
+  test_return_t r = TEST_INCOMPLETE;
+
+  if( read_file( &buffer, &filesize, filename ) ) return TEST_INCOMPLETE;
+
+  snap = libspectrum_snap_alloc();
+
+  if( libspectrum_snap_read( snap, buffer, filesize, LIBSPECTRUM_ID_UNKNOWN,
+			     filename ) != LIBSPECTRUM_ERROR_NONE ) {
+    fprintf( stderr, "%s: reading `%s' failed\n", progname, filename );
+    libspectrum_snap_free( snap );
+    libspectrum_free( buffer );
+    return TEST_INCOMPLETE;
+  }
+
+  libspectrum_free( buffer );
+
+  rzx = libspectrum_rzx_alloc();
+
+  if( libspectrum_rzx_add_snap( rzx, snap, 0 ) != LIBSPECTRUM_ERROR_NONE ) {
+    fprintf( stderr, "%s: adding snap failed\n", progname );
+    libspectrum_rzx_free( rzx );
+    libspectrum_snap_free( snap );
+    return TEST_INCOMPLETE;
+  }
+
+  if( libspectrum_rzx_write( &buffer, &rzx_length, rzx,
+        LIBSPECTRUM_ID_SNAPSHOT_SZX, NULL, 1, NULL ) != LIBSPECTRUM_ERROR_NONE ) {
+    fprintf( stderr, "%s: error serializing RZX\n", progname );
+    libspectrum_rzx_free( rzx );
+    return TEST_INCOMPLETE;
+  }
+
+  libspectrum_rzx_free( rzx );
+  libspectrum_free( buffer );
+
+  if( rzx_length > 49152 ) {
+    r = TEST_PASS;
+  } else {
+    fprintf( stderr, "%s: length %lu too short\n", progname,
+             (unsigned long)rzx_length );
+    r = TEST_FAIL;
+  }
+
+  return r;
+}
+
+static test_return_t
+test_72( void )
+{
+  const char *filename = DYNAMIC_TEST_PATH( "complete-tzx.tzx" );
+  libspectrum_byte *buffer = NULL;
+  size_t filesize = 0;
+  libspectrum_tape *tape;
+  libspectrum_tape_iterator it;
+  libspectrum_tape_type expected_next_block_types[19] = {
+    LIBSPECTRUM_TAPE_BLOCK_TURBO,       /* ROM */
+    LIBSPECTRUM_TAPE_BLOCK_PURE_TONE,   /* Turbo */
+    LIBSPECTRUM_TAPE_BLOCK_PULSES,      /* Pure tone */
+    LIBSPECTRUM_TAPE_BLOCK_PURE_DATA,   /* Pulses */
+    LIBSPECTRUM_TAPE_BLOCK_PAUSE,       /* Pure data */
+    LIBSPECTRUM_TAPE_BLOCK_GROUP_START, /* Pause */
+    LIBSPECTRUM_TAPE_BLOCK_GROUP_END,   /* Group start */
+    LIBSPECTRUM_TAPE_BLOCK_JUMP,        /* Group end */
+    LIBSPECTRUM_TAPE_BLOCK_PURE_TONE,   /* Jump */
+    LIBSPECTRUM_TAPE_BLOCK_LOOP_START,  /* Pure tone */
+    LIBSPECTRUM_TAPE_BLOCK_PURE_TONE,   /* Loop start */
+    LIBSPECTRUM_TAPE_BLOCK_LOOP_END,    /* Pure tone */
+    LIBSPECTRUM_TAPE_BLOCK_STOP48,      /* Loop end */
+    LIBSPECTRUM_TAPE_BLOCK_COMMENT,     /* Stop tape if in 48K mode */
+    LIBSPECTRUM_TAPE_BLOCK_MESSAGE,     /* Comment */
+    LIBSPECTRUM_TAPE_BLOCK_ARCHIVE_INFO,/* Message */
+    LIBSPECTRUM_TAPE_BLOCK_HARDWARE,    /* Archive info */
+    LIBSPECTRUM_TAPE_BLOCK_CUSTOM,      /* Hardware */
+    LIBSPECTRUM_TAPE_BLOCK_PURE_TONE,   /* Custom info */
+  };
+  libspectrum_tape_type *next_block_type = &expected_next_block_types[ 0 ];
+  test_return_t r = TEST_PASS;
+  int blocks_processed = 0;
+  /* Expect to check the next block type of 19 of the 20 blocks in the test
+     tzx */
+  int expected_block_count = ARRAY_SIZE( expected_next_block_types );
+
+  if( read_file( &buffer, &filesize, filename ) ) return TEST_INCOMPLETE;
+
+  tape = libspectrum_tape_alloc();
+
+  if( libspectrum_tape_read( tape, buffer, filesize, LIBSPECTRUM_ID_UNKNOWN,
+			     filename ) )
+  {
+    libspectrum_tape_free( tape );
+    libspectrum_free( buffer );
+    return TEST_INCOMPLETE;
+  }
+
+  libspectrum_free( buffer );
+
+  libspectrum_tape_iterator_init( &it, tape );
+
+  while( libspectrum_tape_iterator_peek_next( it ) )
+  {
+    libspectrum_tape_type actual_next_block_type =
+      libspectrum_tape_block_type( libspectrum_tape_iterator_peek_next( it ) );
+
+    if( actual_next_block_type != *next_block_type )
+    {
+      r = TEST_FAIL;
+      break;
+    }
+
+    libspectrum_tape_iterator_next( &it );
+    next_block_type++;
+    blocks_processed++;
+  }
+
+  if( blocks_processed != expected_block_count )
+  {
+      r = TEST_FAIL;
+  }
+
+  if( libspectrum_tape_free( tape ) ) return TEST_INCOMPLETE;
+
+  return r;
+}
+
 struct test_description {
 
   test_fn test;
@@ -768,9 +930,56 @@ static struct test_description tests[] = {
   { test_25, "Writing SNA file", 0 },
   { test_26, "Writing +3 .Z80 file", 0 },
   { test_27, "Reading old SZX file", 0 },
+  { test_28, "Zero tail length PZX file", 0 },
+  { test_29, "No pilot pulse GDB TZX file", 0 },
+  { test_30, "CSW conversion", 0 },
+  { test_31, "Write SZX Z80R chunk", 0 },
+  { test_32, "Write SZX SPCR chunk", 0 },
+  { test_33, "Write SZX JOY chunk", 0 },
+  { test_34, "Write SZX KEYB chunk", 0 },
+  { test_35, "Write SZX ZXPR chunk", 0 },
+  { test_36, "Write SZX AY chunk", 0 },
+  { test_37, "Write SZX SCLD chunk", 0 },
+  { test_38, "Write SZX ZXAT chunk", 0 },
+  { test_39, "Write SZX ZXCF chunk", 0 },
+  { test_40, "Write SZX AMXM chunk", 0 },
+  { test_41, "Write SZX SIDE chunk", 0 },
+  { test_42, "Write SZX DRUM chunk", 0 },
+  { test_43, "Write SZX COVX chunk", 0 },
+  { test_44, "Read SZX Z80R chunk", 0 },
+  { test_45, "Read SZX SPCR chunk", 0 },
+  { test_46, "Read SZX JOY chunk", 0 },
+  { test_47, "Read SZX KEYB chunk", 0 },
+  { test_48, "Read SZX ZXPR chunk", 0 },
+  { test_49, "Read SZX AY chunk", 0 },
+  { test_50, "Read SZX SCLD chunk", 0 },
+  { test_51, "Read SZX ZXAT chunk", 0 },
+  { test_52, "Read SZX ZXCF chunk", 0 },
+  { test_53, "Read SZX AMXM chunk", 0 },
+  { test_54, "Read SZX SIDE chunk", 0 },
+  { test_55, "Read SZX DRUM chunk", 0 },
+  { test_56, "Read SZX COVX chunk", 0 },
+  { test_57, "Write SZX ZMMC chunk", 0 },
+  { test_58, "Read SZX ZMMC chunk", 0 },
+  { test_59, "Write SZX RAMP chunk", 0 },
+  { test_60, "Read SZX RAMP chunk", 0 },
+  { test_61, "Write SZX ATRP chunk", 0 },
+  { test_62, "Write SZX CFRP chunk", 0 },
+  { test_63, "Read SZX ATRP chunk", 0 },
+  { test_64, "Read SZX CFRP chunk", 0 },
+  { test_65, "Write uncompressed SZX RAMP chunk", 0 },
+  { test_66, "Write uncompressed SZX ATRP chunk", 0 },
+  { test_67, "Write uncompressed SZX CFRP chunk", 0 },
+  { test_68, "Read uncompressed SZX RAMP chunk", 0 },
+  { test_69, "Read uncompressed SZX ATRP chunk", 0 },
+  { test_70, "Read uncompressed SZX CFRP chunk", 0 },
+  { test_71, "Write RZX with incompressible snap", 0 },
+  { test_72, "Tape peek next block", 0 },
+  { test_73, "Read TZX RAW block edge handling", 0 },
+  { test_74, "Trailing pause block TZX file", 0 }
 };
 
-static size_t test_count = sizeof( tests ) / sizeof( tests[0] );
+static size_t test_count = ARRAY_SIZE( tests );
 
 static void
 parse_test_specs( char **specs, int count )

@@ -1,7 +1,5 @@
-/* gtkkeyboard.c: GTK+ routines for dealing with the keyboard
+/* gtkkeyboard.c: GTK routines for dealing with the keyboard
    Copyright (c) 2000-2008 Philip Kendall, Russell Marks
-
-   $Id: gtkkeyboard.c 4723 2012-07-08 13:26:15Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -70,7 +68,7 @@ get_keysyms( input_event_t *event, guint keycode, guint keysym, gint group )
 {
   guint unshifted;
 
-  /* The GTK+ UI doesn't actually use the native keysym for anything,
+  /* The GTK UI doesn't actually use the native keysym for anything,
      but we may as well set it up anyway as we've got it */
   event->types.key.native_key = keysyms_remap( keysym );
 

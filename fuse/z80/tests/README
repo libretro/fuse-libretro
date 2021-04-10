@@ -7,7 +7,7 @@ tests.in
 Each test has the format:
 
 <arbitrary test description>
-AF BC DE HL AF' BC' DE' HL' IX IY SP PC
+AF BC DE HL AF' BC' DE' HL' IX IY SP PC MEMPTR
 I R IFF1 IFF2 IM <halted> <tstates>
 
 <halted> specifies whether the Z80 is halted.
@@ -51,8 +51,14 @@ the initial setup. Same format as for .in files.
 Why some specific tests are here
 ================================
 
+{02,0a,32}_1,edb[012389ab]_[12],d3_4:
+  check MEMPTR is set correctly after various instructions.
+
 37_{1,2,3}: check the behaviour of SCF with respect to bits 3 and 5
 	    (bug fixed on 20040225).
+
+cb46_{1,2,3,4,5}: check the correct bits of MEMPTR are copied to bits 3
+                  and 5 of the flags register after a BIT n,(HL) instruction.
 
 cb{4,5,6,7}{7,f}_1: designed to check that bits 3 and 5 are copied to
 		    F only for BIT 3,<arg> and BIT 5,<arg> respectively

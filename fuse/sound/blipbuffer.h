@@ -39,11 +39,6 @@ The source now almost according to C89. (except of course `inline')
 #ifndef BLIP_BUFFER_H
 #define BLIP_BUFFER_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-
 /*
  Time unit at source clock rate
 */
@@ -224,11 +219,6 @@ typedef struct blip_eq_s {
 /*  End of public interface */
 
 #define BLIP_UNSCALED 65535
-
-inline long blip_buffer_samples_avail( Blip_Buffer * buff );
-
-inline void blip_buffer_set_clock_rate( Blip_Buffer * buff, long cps );
-
 #define BLIP_MAX_LENGTH 0
 
 #define BLIP_SYNTH_QUALITY BLIP_GOOD_QUALITY

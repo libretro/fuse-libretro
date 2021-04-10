@@ -1,0 +1,76 @@
+CVS tags for libspectrum
+
+| libspectrum_start		libspectrum broken out from Fuse
+| libspectrum_0_1_0pre1
+|
++-\				branch for competition mode RZX files
+| |
+| | libspectrum_0_1_0pre1-crypto-branch-1
+| |				branch brought up to date with HEAD after
+| |				libspectrum_0_2_0pre1
+| | libspectrum_0_1_0pre1-crypto-branch-2
+| |				merged to trunk at
+| |				libspectrum_0_2_0pre1-merge-1
+| |
+| | libspectrum_0_1_0pre1-crypto-branch
+|
+| libspectrum_0_1_0pre2
+| libspectrum_0_1_0
+| libspectrum_0_1_1pre1
+| libspectrum_0_1_1pre2
+| libspectrum_0_1_1pre3
+| libspectrum_0_1_1pre4
+| libspectrum_0_1_1
+|
++-\				bugfix branch for the 0.1.1 release
+| |
+| | libspectrum_0_1_1-bugfix-branch
+|
+| libspectrum_0_2_0pre1
+| libspectrum_0_2_0pre1-merge-1	merge from
+|				libspectrum_0_1_0pre1-crypto-branch-2
+| libspectrum_0_2_0
+|
++-\
+| | libspectrum_0_2_0_1
+| |
+| | libspectrum_0_2_0-bugfix-branch
+|
+| libspectrum_0_2_1-trunk
+|
++-\
+| | libspectrum_0_2_1pre1
+| | libspectrum_0_2_1pre2
+| | libspectrum_0_2_1		Merged to HEAD at libspectrum_0_2_1-merge-1
+| |
+| | libspectrum_0_2_1-branch
+|
+| libspectrum_0_2_1-merge-1
+| libspectrum_0_2_2pre1
+| libspectrum_0_2_2
+|
+| libspectrum_0_3_0-trunk
+|
++-\
+| | libspectrum_0_3_0pre1
+| | libspectrum_0_3_0pre2
+| | libspectrum_0_3_0
+| | libspectrum_0_3_0_1		Merged to HEAD at libspectrum_0_3_0-merge-1
+| |
+| | libspectrum_0_3_0-branch
+|
+| libspectrum_0_3_0-merge-1
+|
++-\
+| | libspectrum_0_4_0pre1
+| | libspectrum_0_4_0
+| |
+| | libspectrum_0_4_0-branch
+|
++-\
+| | libspectrum_0_5_0-pre1
+| | libspectrum_0_5_0
+| |
+| | libspectrum_0_5_0-branch
+|
+HEAD

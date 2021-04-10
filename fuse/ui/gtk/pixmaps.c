@@ -1,8 +1,6 @@
 /* pixmaps.c: icon pixmaps
    Copyright (c) 2003-2005 Fredrick Meunier, Philip Kendall, Darren Salt
 
-   $Id: pixmaps.c 4721 2012-06-18 13:22:37Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

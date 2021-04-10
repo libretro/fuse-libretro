@@ -2,8 +2,6 @@
    Copyright (c) 2002-2004 Alexander Yurchenko, Russell Marks, Philip Kendall
 			   Matan Ziv-Av, Stuart Brady
 
-   $Id: hpsound.c 3115 2007-08-19 02:49:14Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -21,8 +19,6 @@
 */
 
 #include <config.h>
-
-#ifdef AUDIO_FORMAT_LINEAR16BIT
 
 #include <sys/types.h>
 #include <sys/audio.h>
@@ -165,5 +161,3 @@ sound_lowlevel_frame( libspectrum_signed_word *data, int len )
     }
   }
 }
-
-#endif				/* #ifdef AUDIO_FORMAT_LINEAR16BIT */

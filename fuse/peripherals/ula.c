@@ -1,7 +1,7 @@
 /* ula.c: ULA routines
-   Copyright (c) 1999-2011 Philip Kendall, Darren Salt
-
-   $Id: ula.c 4926 2013-05-05 07:58:18Z sbaldovi $
+   Copyright (c) 1999-2016 Philip Kendall, Darren Salt
+   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2016 Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,11 +28,16 @@
 #include <libspectrum.h>
 
 #include "compat.h"
+#include "debugger/debugger.h"
 #include "keyboard.h"
+#include "infrastructure/startup_manager.h"
 #include "loader.h"
 #include "machine.h"
+#include "machines/spec128.h"
+#include "machines/specplus3.h"
 #include "module.h"
 #include "periph.h"
+#include "phantom_typist.h"
 #include "settings.h"
 #include "sound.h"
 #include "spectrum.h"
@@ -51,16 +56,16 @@ libspectrum_byte ula_default_value;
 
 static void ula_from_snapshot( libspectrum_snap *snap );
 static void ula_to_snapshot( libspectrum_snap *snap );
-static libspectrum_byte ula_read( libspectrum_word port, int *attached );
+static libspectrum_byte ula_read( libspectrum_word port, libspectrum_byte *attached );
 static void ula_write( libspectrum_word port, libspectrum_byte b );
 
 static module_info_t ula_module_info = {
 
-  NULL,
-  NULL,
-  NULL,
-  ula_from_snapshot,
-  ula_to_snapshot,
+  /* .reset = */ NULL,
+  /* .romcs = */ NULL,
+  /* .snapshot_enabled = */ NULL,
+  /* .snapshot_from = */ ula_from_snapshot,
+  /* .snapshot_to = */ ula_to_snapshot,
 
 };
 
@@ -70,10 +75,10 @@ static const periph_port_t ula_ports[] = {
 };
 
 static const periph_t ula_periph = {
-  NULL,
-  ula_ports,
-  0,
-  NULL
+  /* .option = */ NULL,
+  /* .ports = */ ula_ports,
+  /* .hard_reset = */ 0,
+  /* .activate = */ NULL,
 };
 
 static const periph_port_t ula_ports_full_decode[] = {
@@ -82,31 +87,106 @@ static const periph_port_t ula_ports_full_decode[] = {
 };
 
 static const periph_t ula_periph_full_decode = {
-  NULL,
-  ula_ports_full_decode,
-  0,
-  NULL
+  /* .option = */ NULL,
+  /* .ports = */ ula_ports_full_decode,
+  /* .hard_reset = */ 0,
+  /* .activate = */ NULL,
 };
 
-void
-ula_init( void )
+/* Debugger system variables */
+static const char * const debugger_type_string = "ula";
+static const char * const last_byte_detail_string = "last";
+static const char * const tstates_detail_string = "tstates";
+static const char * const mem7ffd_detail_string = "mem7ffd";
+static const char * const mem1ffd_detail_string = "mem1ffd";
+
+/* Adapter just to get the return type to be what the debugger is expecting */
+static libspectrum_dword
+get_last_byte( void )
+{
+  return ula_last_byte();
+}
+
+static libspectrum_dword
+get_tstates( void )
+{
+  return tstates;
+}
+
+static void
+set_tstates( libspectrum_dword value )
+{
+  tstates = value;
+}
+
+static libspectrum_dword
+get_7ffd( void )
+{
+  return machine_current->ram.last_byte;
+}
+
+static void
+set_7ffd( libspectrum_dword value )
+{
+  spec128_memoryport_write( 0, value );
+}
+
+static libspectrum_dword
+get_1ffd( void )
+{
+  return machine_current->ram.last_byte2;
+}
+
+static void
+set_1ffd( libspectrum_dword value )
+{
+  specplus3_memoryport2_write_internal( 0, value );
+}
+
+static int
+ula_init( void *context )
 {
   module_register( &ula_module_info );
 
   periph_register( PERIPH_TYPE_ULA, &ula_periph );
   periph_register( PERIPH_TYPE_ULA_FULL_DECODE, &ula_periph_full_decode );
 
+  debugger_system_variable_register(
+    debugger_type_string, last_byte_detail_string, get_last_byte, NULL );
+  debugger_system_variable_register(
+    debugger_type_string, tstates_detail_string, get_tstates, set_tstates );
+  debugger_system_variable_register(
+    debugger_type_string, mem7ffd_detail_string, get_7ffd, set_7ffd );
+  debugger_system_variable_register(
+    debugger_type_string, mem1ffd_detail_string, get_1ffd, set_1ffd );
+
   ula_default_value = 0xff;
+
+  return 0;
+}
+
+void
+ula_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_DEBUGGER,
+    STARTUP_MANAGER_MODULE_SETUID,
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_ULA, dependencies,
+                            ARRAY_SIZE( dependencies ), ula_init, NULL,
+                            NULL );
 }
 
 static libspectrum_byte
-ula_read( libspectrum_word port, int *attached )
+ula_read( libspectrum_word port, libspectrum_byte *attached )
 {
   libspectrum_byte r = ula_default_value;
 
-  *attached = 1;
+  *attached = 0xff;
 
   loader_detect_loader();
+
+  r &= phantom_typist_ula_read( port );
 
   r &= keyboard_read( port >> 8 );
   if( tape_microphone ) r ^= 0x40;
@@ -121,7 +201,8 @@ ula_write( libspectrum_word port GCC_UNUSED, libspectrum_byte b )
   last_byte = b;
 
   display_set_lores_border( b & 0x07 );
-  sound_beeper( (!!(b & 0x10) << 1) + ( (!(b & 0x8)) | tape_microphone ) );
+  sound_beeper( tstates,
+                (!!(b & 0x10) << 1) + ( (!(b & 0x8)) | tape_microphone ) );
 
   /* FIXME: shouldn't really be using the memory capabilities here */
 

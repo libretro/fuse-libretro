@@ -1,7 +1,5 @@
 /* pokemem.c: help with handling pokes
-   Copyright (c) 2011 Philip Kendall, Sergio Baldoví
-
-   $Id: pokemem.c 5005 2013-05-29 21:17:26Z pak21 $
+   Copyright (c) 2011-2015 Philip Kendall, Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +28,7 @@
 
 #include "compat.h"
 #include "machine.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "pokemem.h"
 #include "spectrum.h"
 #include "utils.h"
@@ -53,28 +51,29 @@ char *pokfile = NULL;              /* Path of a .pok file to load */
 GSList *trainer_list = NULL;       /* Trainers loaded from a file */
 trainer_t *current_trainer = NULL; /* Last trainer parsed */
 
-int pokemem_read_from_buffer( const libspectrum_byte *buffer, size_t length );
-int pokemem_read_poke( const libspectrum_byte **ptr,
-                       const libspectrum_byte *end );
-int pokemem_read_trainer( const libspectrum_byte **ptr,
-                          const libspectrum_byte *end );
-void pokemem_skip_line( const libspectrum_byte **ptr,
-                        const libspectrum_byte *end );
-poke_t *pokemem_poke_add( trainer_t *trainer, int bank, int address,
-                          int value, int restore );
+static void pokemem_read_from_buffer( const libspectrum_byte *buffer,
+                                      size_t length );
+static void pokemem_read_poke( const libspectrum_byte **ptr,
+                               const libspectrum_byte *end );
+static void pokemem_read_trainer( const libspectrum_byte **ptr,
+                                  const libspectrum_byte *end );
+static void pokemem_skip_line( const libspectrum_byte **ptr,
+                               const libspectrum_byte *end );
+static poke_t *pokemem_poke_add( trainer_t *trainer, int bank, int address,
+                                 int value, int restore );
 
 static void pokemem_poke_activate( gpointer data, gpointer user_data );
 static void pokemem_poke_deactivate( gpointer data, gpointer user_data );
 
-libspectrum_byte pokemem_mem_value( libspectrum_word bank,
-                                    libspectrum_word address );
+static libspectrum_byte pokemem_mem_value( libspectrum_word bank,
+                                           libspectrum_word address );
 
 static void
 pokemem_poke_free( gpointer data, gpointer user_data GCC_UNUSED )
 {
   poke_t *poke = data;
 
-  free( poke );
+  libspectrum_free( poke );
 }
 
 static void
@@ -84,13 +83,15 @@ pokemem_trainer_free( gpointer data, gpointer user_data GCC_UNUSED )
 
   if( !trainer ) return;
 
+  pokemem_trainer_deactivate( trainer );
+
   if( trainer->poke_list ) {
     g_slist_foreach( trainer->poke_list, pokemem_poke_free, NULL );
     g_slist_free( trainer->poke_list );
   }
 
-  free( trainer->name );
-  free( trainer );
+  libspectrum_free( trainer->name );
+  libspectrum_free( trainer );
 }
 
 void
@@ -102,7 +103,7 @@ pokemem_clear( void )
     trainer_list = NULL;
   }
 
-  free( pokfile );
+  libspectrum_free( pokfile );
   pokfile = NULL;
   current_trainer = NULL;
 }
@@ -127,18 +128,18 @@ pokemem_read_from_file( const char *filename )
   if( error ) return error;
 
   pokfile = utils_safe_strdup( filename );
-  error = pokemem_read_from_buffer( file.buffer, file.length );
+  pokemem_read_from_buffer( file.buffer, file.length );
 
   utils_close_file( &file );
-  return error;
+  return 0;
 }
 
-int
+static void
 pokemem_read_from_buffer( const libspectrum_byte *buffer, size_t length )
 {
   const libspectrum_byte *ptr, *end;
   libspectrum_byte id;
-  int eop, error;
+  int eop;
   do_t do_now;
 
   trainer_list = NULL;
@@ -160,13 +161,8 @@ pokemem_read_from_buffer( const libspectrum_byte *buffer, size_t length )
         if( current_trainer ) current_trainer->disabled = 1;
       }
 
-      error = pokemem_read_trainer( &ptr, end );
-      if( error ) {
-        if( current_trainer ) current_trainer->disabled = 1;
-        pokemem_skip_line( &ptr, end );
-        do_now = DO_TRAINER;
-      } else
-        do_now = DO_POKE;
+      pokemem_read_trainer( &ptr, end );
+      do_now = DO_POKE;
       break;
 
     case POKEFILE_MORE_POKE:
@@ -217,11 +213,9 @@ pokemem_read_from_buffer( const libspectrum_byte *buffer, size_t length )
   if( do_now != DO_EOF ) {
     if( current_trainer ) current_trainer->disabled = 1;
   }
-
-  return 0;
 }
 
-void
+static void
 pokemem_skip_line( const libspectrum_byte **ptr,
                    const libspectrum_byte *end )
 {
@@ -236,7 +230,7 @@ pokemem_skip_line( const libspectrum_byte **ptr,
   *ptr = cpos;
 }
 
-int
+static void
 pokemem_read_trainer( const libspectrum_byte **ptr,
                       const libspectrum_byte *end )
 {
@@ -257,18 +251,12 @@ pokemem_read_trainer( const libspectrum_byte **ptr,
   /* store data */
   length = clast - *ptr + 1;
   if( length > 80 ) length = 80;
-  title = malloc( length + 1 );
-  if( !title ) return 1;
+  title = libspectrum_new( char, length + 1 );
 
   memcpy( title, *ptr, length );
   title[ length ] = '\0';
 
-  current_trainer = malloc( sizeof( trainer_t ) );
-  if( !current_trainer ) {
-    free( title );
-    return 1;
-  }
-  memset( current_trainer, 0, sizeof( trainer_t ) );
+  current_trainer = libspectrum_new0( trainer_t, 1 );
   current_trainer->name = title;
   trainer_list = g_slist_append( trainer_list, current_trainer );
 
@@ -276,11 +264,9 @@ pokemem_read_trainer( const libspectrum_byte **ptr,
   while( cpos < end && ( *cpos == '\r' || *cpos == '\n' ) ) cpos++;
 
   *ptr = cpos;
-
-  return 0;
 }
 
-int
+static void
 pokemem_read_poke( const libspectrum_byte **ptr, const libspectrum_byte *end )
 {
   int bank, address, value, restore;
@@ -296,15 +282,13 @@ pokemem_read_poke( const libspectrum_byte **ptr, const libspectrum_byte *end )
   /* validate data */
   if( items < 4 ) {
     current_trainer->disabled = 1;
-    return 1;
+    return;
   }
 
   pokemem_poke_add( current_trainer, bank, address, value, restore );
-
-  return 0;
 }
 
-poke_t *
+static poke_t *
 pokemem_poke_add( trainer_t *trainer, int bank, int address, int value,
                   int restore )
 {
@@ -333,11 +317,7 @@ pokemem_poke_add( trainer_t *trainer, int bank, int address, int value,
   }
 
   /* store data */
-  current_poke = malloc( sizeof( poke_t ) );
-  if( !current_poke ) {
-    trainer->disabled = 1;
-    return NULL;
-  }
+  current_poke = libspectrum_new( poke_t, 1 );
 
   current_poke->bank = bank;
   current_poke->address = address;
@@ -364,7 +344,7 @@ pokemem_poke_add( trainer_t *trainer, int bank, int address, int value,
   return current_poke;
 }
 
-libspectrum_byte
+static libspectrum_byte
 pokemem_mem_value( libspectrum_word bank, libspectrum_word address )
 {
   libspectrum_byte value;
@@ -384,17 +364,11 @@ pokemem_trainer_list_add( libspectrum_byte bank, libspectrum_word address,
 {
   char *title;
 
-  title = malloc( 17 );
-  if( !title ) return NULL;
-  snprintf( title, 17, "Custom %u,%u", address, value );
+  title = libspectrum_new( char, 19 );
+  snprintf( title, 19, "Custom %u,%u", address, value );
 
   /* Create trainer */
-  current_trainer = malloc( sizeof( trainer_t ) );
-  if( !current_trainer ) {
-    free( title );
-    return NULL;
-  }
-  memset( current_trainer, 0, sizeof( trainer_t ) );
+  current_trainer = libspectrum_new0( trainer_t, 1 );
   current_trainer->name = title;
 
   trainer_list = g_slist_append( trainer_list, current_trainer );
@@ -496,8 +470,7 @@ pokemem_find_pokfile( const char *path )
   length = strlen( path );
   if( !length ) return 1; /* Nothing to search */
 
-  test_file = malloc( length + 11 );
-  if( !test_file ) return 1;
+  test_file = libspectrum_new( char, length + 11 );
 
   memcpy( test_file, path, length + 1 );
 
@@ -517,7 +490,7 @@ pokemem_find_pokfile( const char *path )
     n = length; /* Append file extension */
   }
 
-  strncat( test_file, ".pok", 4 );
+  strcat( test_file, ".pok" );
   if( compat_file_exists( test_file ) ) {
     pokfile = test_file;
     return 0;
@@ -538,18 +511,18 @@ pokemem_find_pokfile( const char *path )
       ( has_extension )? (unsigned int) ( last_dot - last_slash - 1 ) :
                          strlen( &path[n] );
     test_file[ n ] = '\0';
-    strncat( test_file, "POKES", 5 );
+    strcat( test_file, "POKES" );
   } else {
     n = 0; /* prepend directory */
     filename_size = ( has_extension )? (unsigned int) last_dot : length;
-    strncpy( test_file, "POKES", 5 );
+    strcpy( test_file, "POKES" );
     test_file[ 5 ] = '\0';
   }
 
   /* Try .pok extension */
-  strncat( test_file, FUSE_DIR_SEP_STR, 1 );
+  strcat( test_file, FUSE_DIR_SEP_STR );
   strncat( test_file, &path[ n ], filename_size );
-  strncat( test_file, ".pok", 4 );
+  strcat( test_file, ".pok" );
 
   if( compat_file_exists( test_file ) ) {
     pokfile = test_file;
@@ -566,7 +539,7 @@ pokemem_find_pokfile( const char *path )
     return 0;
   }
 
-  free( test_file );
+  libspectrum_free( test_file );
 
   return 1;
 }
@@ -583,8 +556,8 @@ pokemem_autoload_pokfile( void )
   error = utils_read_file( pokfile, &file );
   if( error ) return error;
 
-  error = pokemem_read_from_buffer( file.buffer, file.length );
+  pokemem_read_from_buffer( file.buffer, file.length );
   utils_close_file( &file );
 
-  return error;
+  return 0;
 }

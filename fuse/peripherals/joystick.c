@@ -1,7 +1,6 @@
 /* joystick.c: Joystick emulation support
-   Copyright (c) 2001-2011 Russell Marks, Darren Salt, Philip Kendall
-
-   $Id: joystick.c 4926 2013-05-05 07:58:18Z sbaldovi $
+   Copyright (c) 2001-2016 Russell Marks, Darren Salt, Philip Kendall
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,6 +27,7 @@
 #include <libspectrum.h>
 
 #include "fuse.h"
+#include "infrastructure/startup_manager.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "module.h"
@@ -84,16 +84,16 @@ const char *joystick_connection[ JOYSTICK_CONN_COUNT ] = {
   "Joystick 2",
 };
 
-static void joystick_from_snapshot( libspectrum_snap *snap );
+static void joystick_enabled_snapshot( libspectrum_snap *snap );
 static void joystick_to_snapshot( libspectrum_snap *snap );
 
 static module_info_t joystick_module_info = {
 
-  NULL,
-  NULL,
-  NULL,
-  joystick_from_snapshot,
-  joystick_to_snapshot,
+  /* .reset = */ NULL,
+  /* .romcs = */ NULL,
+  /* .snapshot_enabled = */ joystick_enabled_snapshot,
+  /* .snapshot_from = */ NULL,
+  /* .snapshot_to = */ joystick_to_snapshot,
 
 };
 
@@ -103,10 +103,10 @@ static const periph_port_t kempston_strict_decoding[] = {
 };
 
 static const periph_t kempston_strict_periph = {
-  &settings_current.joy_kempston,
-  kempston_strict_decoding,
-  0,
-  NULL
+  /* .option = */ &settings_current.joy_kempston,
+  /* .ports = */ kempston_strict_decoding,
+  /* .hard_reset = */ 0,
+  /* .activate = */ NULL,
 };
 
 static const periph_port_t kempston_loose_decoding[] = {
@@ -115,16 +115,16 @@ static const periph_port_t kempston_loose_decoding[] = {
 };
 
 static const periph_t kempston_loose_periph = {
-  &settings_current.joy_kempston,
-  kempston_loose_decoding,
-  0,
-  NULL
+  /* .option = */ &settings_current.joy_kempston,
+  /* .ports = */ kempston_loose_decoding,
+  /* .hard_reset = */ 0,
+  /* .activate = */ NULL,
 };
 
 /* Init/shutdown functions. Errors aren't important here */
 
-void
-fuse_joystick_init (void)
+int
+joystick_init( void *context )
 {
   joysticks_supported = ui_joystick_init();
   kempston_value = timex1_value = timex2_value = 0x00;
@@ -133,12 +133,26 @@ fuse_joystick_init (void)
   module_register( &joystick_module_info );
   periph_register( PERIPH_TYPE_KEMPSTON, &kempston_strict_periph );
   periph_register( PERIPH_TYPE_KEMPSTON_LOOSE, &kempston_loose_periph );
+
+  return 0;
 }
 
 void
-fuse_joystick_end (void)
+joystick_end( void )
 {
   ui_joystick_end();
+}
+
+void
+joystick_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_LIBSPECTRUM,
+    STARTUP_MANAGER_MODULE_SETUID
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_JOYSTICK, dependencies,
+                            ARRAY_SIZE( dependencies ), joystick_init,
+                            joystick_end, NULL );
 }
 
 int
@@ -226,9 +240,9 @@ joystick_press( int which, joystick_button button, int press )
 /* Read functions for specific interfaces */
 
 libspectrum_byte
-joystick_kempston_read( libspectrum_word port GCC_UNUSED, int *attached )
+joystick_kempston_read( libspectrum_word port GCC_UNUSED, libspectrum_byte *attached )
 {
-  *attached = 1;
+  *attached = 0xff; /* TODO: check this */
   return kempston_value;
 }
 
@@ -239,14 +253,14 @@ joystick_timex_read( libspectrum_word port GCC_UNUSED, libspectrum_byte which )
 }
 
 libspectrum_byte
-joystick_fuller_read( libspectrum_word port GCC_UNUSED, int *attached )
+joystick_fuller_read( libspectrum_word port GCC_UNUSED, libspectrum_byte *attached )
 {
-  *attached = 1;
+  *attached = 0xff; /* TODO: check this */
   return fuller_value;
 }
 
 static void
-joystick_from_snapshot( libspectrum_snap *snap )
+joystick_enabled_snapshot( libspectrum_snap *snap )
 {
   size_t i;
   size_t num_joysticks = libspectrum_snap_joystick_active_count( snap );
@@ -279,7 +293,7 @@ joystick_from_snapshot( libspectrum_snap *snap )
       ui_error( UI_ERROR_INFO, "Ignoring unsupported joystick in snapshot %s", 
         libspectrum_joystick_name( libspectrum_snap_joystick_list( snap, i ) ));
       continue;
-    };
+    }
 
     if( settings_current.joystick_keyboard_output != fuse_type &&
         settings_current.joystick_1_output != fuse_type &&
@@ -342,7 +356,6 @@ add_joystick( libspectrum_snap *snap, joystick_type_t fuse_type, int inputs )
   case JOYSTICK_TYPE_NONE:
   default:
     return;
-    break;
   }
 
   for( i = 0; i < num_joysticks; i++ ) {

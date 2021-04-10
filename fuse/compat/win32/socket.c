@@ -1,7 +1,5 @@
 /* socket.c: Socket-related compatibility routines
-   Copyright (c) 2011 Sergio Baldoví, Philip Kendall
-
-   $Id: socket.c 4775 2012-11-26 23:03:36Z sbaldovi $
+   Copyright (c) 2011-2015 Sergio Baldoví, Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -41,6 +39,13 @@ struct compat_socket_selfpipe_t {
 };
 
 int
+compat_socket_blocking_mode( compat_socket_t fd, int blocking )
+{
+  u_long mode = blocking ? 1 : 0;
+  return ( ioctlsocket( fd, FIONBIO, &mode ) );
+}
+
+int
 compat_socket_close( compat_socket_t fd )
 {
   return closesocket( fd );
@@ -63,7 +68,7 @@ compat_socket_get_strerror( void )
                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                NULL, WSAGetLastError(),
                MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-               buffer, sizeof( buffer ) / sizeof( TCHAR ), NULL );
+               buffer, ARRAY_SIZE( buffer ), NULL );
 
   if( !msg_size ) return NULL;
 
@@ -111,11 +116,8 @@ compat_socket_selfpipe_alloc( void )
   struct sockaddr_in sa;
   socklen_t sa_len = sizeof(sa);
 
-  compat_socket_selfpipe_t *self = malloc( sizeof( *self ) );
-  if( !self ) {
-    ui_error( UI_ERROR_ERROR, "%s: %d: out of memory", __FILE__, __LINE__ );
-    fuse_abort();
-  }
+  compat_socket_selfpipe_t *self =
+    libspectrum_new( compat_socket_selfpipe_t, 1 );
   
   self->self_socket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
   if( self->self_socket == compat_socket_invalid ) {
@@ -172,7 +174,7 @@ void
 compat_socket_selfpipe_free( compat_socket_selfpipe_t *self )
 {
   compat_socket_close( self->self_socket );
-  free( self );
+  libspectrum_free( self );
 }
 
 compat_socket_t

@@ -1,8 +1,6 @@
 /* rollback.c: select a rollback point
    Copyright (c) 2004 Philip Kendall
 
-   $Id: rollback.c 4962 2013-05-19 05:25:15Z sbaldovi $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

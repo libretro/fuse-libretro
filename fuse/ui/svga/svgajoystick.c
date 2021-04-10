@@ -1,7 +1,7 @@
 /* svgajoystick.c: Joystick emulation (using svgalib)
    Copyright (c) 2003-4 Darren Salt
-
-   $Id: svgajoystick.c 4301 2011-02-10 00:01:17Z pak21 $
+   Copyright (c) 2015 UB880D
+   Copyright (c) 2015 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@
 #include "spectrum.h"
 #include "machine.h"
 #include "ui/ui.h"
+#include "ui/uijoystick.h"
 
 static int sticks = 0;
 static int buttons[2];
@@ -72,7 +73,7 @@ init_stick( int which )
   }
 
   buttons[which] = joystick_getnumbuttons( which );
-  if( buttons[which] > 10 ) buttons[which] = 10;
+  if( buttons[which] > NUM_JOY_BUTTONS ) buttons[which] = NUM_JOY_BUTTONS;
 
   return 0;
 }

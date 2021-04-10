@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
 .\"
 .\" libspectrum.3: libspectrum summary
-.\" Copyright (c) 2004-2013 Philip Kendall
+.\" Copyright (c) 2004-2021 Philip Kendall
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 .\" E-mail: philip-fuse@shadowmagic.org.uk
 .\"
 .\"
-.TH libspectrum 3 "24th May, 2013" "Version 1.1.1" "Emulators"
+.TH libspectrum 3 "27th February, 2021" "Version 1.5.0" "Emulators"
 .\"
 .\"------------------------------------------------------------------
 .\"
@@ -50,8 +50,8 @@ Z80Em and CSW version 1 (read only).
 .IP \(bu 2
 Input recordings: .rzx (read/write).
 .IP \(bu 2
-Disk images: .dsk (both plain and extended), .fdi, .sad, .scl, .td0, .trd
-and .udi (identification only).
+Disk images: .dsk (both plain and extended), .d40, .d80, .fdi, .img, .mgt,
+\[char46]opd, .sad, .scl, .td0, .trd and .udi (identification only).
 .IP \(bu 2
 Timex cartridges: .dck (read only).
 .IP \(bu 2
@@ -60,9 +60,10 @@ IDE hard disk images: .hdf (read/write).
 Microdrive cartridge images: .mdr (read/write).
 .PP
 Additionally, any files compressed with
-.IR bzip2 "(3)"
-or
+.IR bzip2 "(3),"
 .IR gzip "(3)"
+or
+.IR zip "(3)"
 can be read and will be transparently decompressed.
 .PP
 Full documentation for
@@ -76,7 +77,8 @@ is provided in
 .IR bzip2 "(3),"
 .IR fuse "(1),"
 .IR fuse\-utils "(1),"
-.IR gzip "(3)"
+.IR gzip "(3),"
+.IR zip "(3)."
 .PP
 The comp.sys.sinclair Spectrum FAQ, at
 .br

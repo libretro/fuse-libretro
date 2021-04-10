@@ -1,8 +1,5 @@
 /* zxatasp.h: ZXATASP interface routines
-   Copyright (c) 2003-2004 Garry Lancaster,
-		 2004 Philip Kendall
-
-   $Id: zxatasp.h 4972 2013-05-19 16:46:43Z zubzero $
+   Copyright (c) 2003-2016 Garry Lancaster, Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,8 +26,7 @@
 
 #include <libspectrum.h>
 
-int zxatasp_init( void );
-int zxatasp_end( void );
+void zxatasp_register_startup( void );
 int zxatasp_insert( const char *filename, libspectrum_ide_unit unit );
 int zxatasp_commit( libspectrum_ide_unit unit );
 int zxatasp_eject( libspectrum_ide_unit unit );
