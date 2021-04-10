@@ -1,8 +1,6 @@
 /* paths.c: Path-related compatibility routines
    Copyright (c) 1999-2012 Philip Kendall
 
-   $Id: paths.c 4738 2012-10-03 13:15:31Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -43,7 +41,7 @@ compat_get_temp_path( void )
 }
 
 const char*
-compat_get_home_path( void )
+compat_get_config_path( void )
 {
   return "PROGDIR:settings";
 }

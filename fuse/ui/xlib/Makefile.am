@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 ## Copyright (c) 2001-2004 Philip Kendall
-
-## $Id: Makefile.am 4756 2012-11-07 11:11:44Z fredm $
+## Copyright (c) 2015 Sergio Baldoví
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,31 +20,42 @@
 ##
 ## E-mail: philip-fuse@shadowmagic.org.uk
 
-AUTOMAKE_OPTIONS = foreign
+if UI_X
 
-AM_CPPFLAGS = -I$(srcdir)/../..
+fuse_SOURCES += $(ui_xlib_files)
 
-noinst_LIBRARIES = libuixlib.a
+BUILT_SOURCES += $(ui_xlib_built)
 
-libuixlib_a_SOURCES = xdisplay.c \
-		      xerror.c \
-		      xjoystick.c \
-		      xkeyboard.c \
-		      xui.c \
-		      keysyms.c
+endif
 
-BUILT_SOURCES = keysyms.c xpixmaps.c
 
-keysyms.c: $(srcdir)/../../keysyms.pl $(srcdir)/../../keysyms.dat
-	@PERL@ -I$(srcdir)/../../perl $(srcdir)/../../keysyms.pl x $(srcdir)/../../keysyms.dat > $@.tmp && mv $@.tmp $@
+EXTRA_fuse_SOURCES += $(ui_xlib_files)
 
-xpixmaps.c: xstatusbar.pl $(srcdir)/../gtk/pixmaps.c
-	@PERL@ -I$(srcdir)/../../perl $(srcdir)/xstatusbar.pl $(srcdir)/../gtk/pixmaps.c > $@.tmp && mv $@.tmp $@
+CLEANFILES += $(ui_xlib_built)
 
-AM_CPPFLAGS += @GTK_CFLAGS@ @GLIB_CFLAGS@ @LIBSPEC_CFLAGS@
+ui_xlib_files = \
+                ui/xlib/keysyms.c \
+                ui/xlib/xdisplay.c \
+                ui/xlib/xdisplay.h \
+                ui/xlib/xerror.c \
+                ui/xlib/xjoystick.c \
+                ui/xlib/xkeyboard.c \
+                ui/xlib/xkeyboard.h \
+                ui/xlib/xui.c \
+                ui/xlib/xui.h
 
-noinst_HEADERS = xdisplay.h xkeyboard.h xui.h
+ui_xlib_built = \
+                 ui/xlib/keysyms.c \
+                 ui/xlib/xpixmaps.c
 
-EXTRA_DIST = xstatusbar.pl
+EXTRA_DIST += \
+              ui/xlib/xpixmaps.c \
+              ui/xlib/xstatusbar.pl
 
-CLEANFILES = keysyms.c xpixmaps.c
+ui/xlib/keysyms.c: $(srcdir)/keysyms.pl $(srcdir)/keysyms.dat
+	@$(MKDIR_P) ui/xlib
+	$(AM_V_GEN)$(PERL) -I$(srcdir)/perl $(srcdir)/keysyms.pl x $(srcdir)/keysyms.dat > $@.tmp && mv $@.tmp $@
+
+ui/xlib/xpixmaps.c: ui/xlib/xstatusbar.pl $(srcdir)/ui/gtk/pixmaps.c
+	@$(MKDIR_P) ui/xlib
+	$(AM_V_GEN)$(PERL) -I$(srcdir)/perl $(srcdir)/ui/xlib/xstatusbar.pl $(srcdir)/ui/gtk/pixmaps.c > $@.tmp && mv $@.tmp $@

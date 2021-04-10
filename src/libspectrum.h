@@ -1,7 +1,5 @@
 /* libspectrum.h: the library for dealing with ZX Spectrum emulator files
-   Copyright (c) 2001-2007 Philip Kendall, Darren Salt, Fredrick Meunier
-
-   $Id: libspectrum.h.in 4836 2012-12-31 15:40:10Z zubzero $
+   Copyright (c) 2001-2018 Philip Kendall, Darren Salt, Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -56,24 +54,25 @@ extern "C" {
 #define LIBSPECTRUM_EXPORTS 1
 
 #ifdef LIBSPECTRUM_EXPORTS
-#define WIN32_DLL __declspec( dllexport )
+#define LIBSPECTRUM_API __declspec( dllexport )
 #else				/* #ifdef LIBSPECTRUM_EXPORTS */
-#define WIN32_DLL __declspec( dllimport )
+#define LIBSPECTRUM_API __declspec( dllimport )
 #endif				/* #ifdef LIBSPECTRUM_EXPORTS */
 
 #else				/* #ifdef _WIN32 */
 
-#define WIN32_DLL
+#ifdef LIBSPECTRUM_EXPORTS
+#define LIBSPECTRUM_API __attribute__ ((visibility ("default")))
+#else
+#define LIBSPECTRUM_API
+#endif
 
 #endif				/* #ifdef _WIN32 */
-
-#undef WIN32_DLL
-#define WIN32_DLL
 
 #ifdef __GNUC__
 #define DEPRECATED __attribute__((deprecated))
 #else                           /* #ifdef __GNUC__ */
-#define DEPRECATED 
+#define DEPRECATED
 #endif                          /* #ifdef __GNUC__ */
 
 
@@ -90,6 +89,8 @@ typedef uint64_t libspectrum_qword;
 typedef  int64_t libspectrum_signed_qword;
 
 /* glib replacement (if necessary) */
+#define LIBSPECTRUM_HAS_GLIB_REPLACEMENT 1
+
 #ifndef	FALSE
 #define	FALSE	(0)
 #endif
@@ -125,47 +126,61 @@ typedef void           (*GDestroyNotify)       (gpointer       data);
 typedef void           (*GFreeFunc)            (gpointer       data);
 
 
-WIN32_DLL GSList *g_slist_insert_sorted	(GSList		*list,
-						 gpointer	 data,
-						 GCompareFunc	 func);
+LIBSPECTRUM_API
+GSList *g_slist_insert_sorted	(GSList		*list,
+				 gpointer	 data,
+				 GCompareFunc	 func);
 
-WIN32_DLL GSList *g_slist_insert		(GSList		*list,
-			 			 gpointer	 data,
-			 			 gint		 position);
+LIBSPECTRUM_API
+GSList *g_slist_insert		(GSList		*list,
+	 			 gpointer	 data,
+	 			 gint		 position);
 
-WIN32_DLL GSList *g_slist_append		(GSList		*list,
-						 gpointer	 data);
+LIBSPECTRUM_API
+GSList *g_slist_append		(GSList		*list,
+				 gpointer	 data);
 
-WIN32_DLL GSList *g_slist_prepend		(GSList		*list,
-						 gpointer	 data);
+LIBSPECTRUM_API
+GSList *g_slist_prepend 	(GSList		*list,
+				 gpointer	 data);
 
-WIN32_DLL GSList *g_slist_remove		(GSList		*list,
-						 gconstpointer	 data);
+LIBSPECTRUM_API
+GSList *g_slist_remove		(GSList		*list,
+				 gconstpointer	 data);
 
-WIN32_DLL GSList *g_slist_last			(GSList		*list);
+LIBSPECTRUM_API
+GSList *g_slist_last		(GSList		*list);
 
-WIN32_DLL GSList *g_slist_reverse		(GSList		*list);
+LIBSPECTRUM_API
+GSList *g_slist_reverse 	(GSList		*list);
 
-WIN32_DLL GSList *g_slist_delete_link		(GSList		*list,
-				 		 GSList		*link);
+LIBSPECTRUM_API
+GSList *g_slist_delete_link	(GSList		*list,
+				 GSList		*link);
 
-WIN32_DLL guint	g_slist_length		(GSList *list);
+LIBSPECTRUM_API
+guint	g_slist_length		(GSList *list);
 
-WIN32_DLL void	g_slist_foreach			(GSList		*list,
-						 GFunc		 func,
-						 gpointer	 user_data);
+LIBSPECTRUM_API
+void	g_slist_foreach		(GSList		*list,
+				 GFunc		 func,
+				 gpointer	 user_data);
 
-WIN32_DLL void	g_slist_free			(GSList		*list);
+LIBSPECTRUM_API
+void	g_slist_free		(GSList		*list);
 
-WIN32_DLL GSList *g_slist_nth		(GSList		*list,
-					 guint		n);
+LIBSPECTRUM_API
+GSList *g_slist_nth		(GSList		*list,
+				 guint		n);
 
-WIN32_DLL GSList *g_slist_find_custom	(GSList		*list,
-					 gconstpointer	data,
-					 GCompareFunc	func );
+LIBSPECTRUM_API
+GSList *g_slist_find_custom	(GSList		*list,
+				 gconstpointer	data,
+				 GCompareFunc	func );
 
-WIN32_DLL gint	g_slist_position	(GSList		*list,
-					 GSList		*llink);
+LIBSPECTRUM_API
+gint	g_slist_position	(GSList		*list,
+				 GSList		*llink);
 
 typedef struct _GHashTable	GHashTable;
 
@@ -179,60 +194,75 @@ typedef gboolean	(*GHRFunc)		(gpointer	key,
 						 gpointer	value,
 						 gpointer	user_data);
 
-WIN32_DLL gint	g_int_equal (gconstpointer   v,
-			       gconstpointer   v2);
-WIN32_DLL guint	g_int_hash  (gconstpointer   v);
+LIBSPECTRUM_API
+gint	g_int_equal	(gconstpointer   v,
+			 gconstpointer   v2);
+LIBSPECTRUM_API
+guint	g_int_hash	(gconstpointer   v);
 
-WIN32_DLL gint	g_str_equal (gconstpointer   v,
-			       gconstpointer   v2);
-WIN32_DLL guint	g_str_hash  (gconstpointer   v);
+LIBSPECTRUM_API
+gint	g_str_equal	(gconstpointer   v,
+			 gconstpointer	 v2);
+LIBSPECTRUM_API
+guint	g_str_hash	(gconstpointer   v);
 
-WIN32_DLL GHashTable *g_hash_table_new	(GHashFunc	 hash_func,
-					 GCompareFunc	 key_compare_func);
+LIBSPECTRUM_API
+GHashTable *g_hash_table_new	(GHashFunc	 hash_func,
+				 GCompareFunc	 key_compare_func);
 
-WIN32_DLL GHashTable *g_hash_table_new_full (GHashFunc       hash_func,
-                                             GCompareFunc    key_equal_func,
-                                             GDestroyNotify  key_destroy_func,
-                                             GDestroyNotify  value_destroy_func);
+LIBSPECTRUM_API
+GHashTable *g_hash_table_new_full (GHashFunc       hash_func,
+				    GCompareFunc    key_equal_func,
+				    GDestroyNotify  key_destroy_func,
+				    GDestroyNotify  value_destroy_func);
 
-WIN32_DLL void	g_hash_table_destroy	(GHashTable	*hash_table);
+LIBSPECTRUM_API
+void	g_hash_table_destroy	(GHashTable	*hash_table);
 
-WIN32_DLL void	g_hash_table_insert	(GHashTable	*hash_table,
-					 gpointer	 key,
-					 gpointer	 value);
+LIBSPECTRUM_API
+void	g_hash_table_insert	(GHashTable	*hash_table,
+				 gpointer	 key,
+				 gpointer	 value);
 
-WIN32_DLL gpointer g_hash_table_lookup	(GHashTable	*hash_table,
-					 gconstpointer	 key);
+LIBSPECTRUM_API
+gpointer g_hash_table_lookup	(GHashTable	*hash_table,
+				 gconstpointer	 key);
 
-WIN32_DLL void	g_hash_table_foreach (GHashTable	*hash_table,
-						 GHFunc    func,
-						 gpointer  user_data);
+LIBSPECTRUM_API
+void	g_hash_table_foreach	(GHashTable	*hash_table,
+				 GHFunc    func,
+				 gpointer  user_data);
 
-WIN32_DLL guint	g_hash_table_foreach_remove	(GHashTable	*hash_table,
-						 GHRFunc	 func,
-						 gpointer	 user_data);
+LIBSPECTRUM_API
+guint	g_hash_table_foreach_remove	(GHashTable	*hash_table,
+					 GHRFunc	 func,
+					 gpointer	 user_data);
 
-WIN32_DLL guint	g_hash_table_size (GHashTable	*hash_table);
+LIBSPECTRUM_API
+guint	g_hash_table_size (GHashTable	*hash_table);
 
 typedef struct _GArray GArray;
 
 struct _GArray {
   /* Public */
   gchar *data;
-  size_t len;
+  guint len;
 
   /* Private */
   guint element_size;
-  size_t allocated;
+  guint allocated;
 };
 
-WIN32_DLL GArray* g_array_new( gboolean zero_terminated, gboolean clear,
+LIBSPECTRUM_API GArray* g_array_new( gboolean zero_terminated, gboolean clear,
 		      guint element_size );
+LIBSPECTRUM_API GArray* g_array_sized_new( gboolean zero_terminated, gboolean clear,
+                   guint element_size, guint reserved_size );
 #define g_array_append_val(a,v) g_array_append_vals( a, &(v), 1 );
-WIN32_DLL GArray* g_array_append_vals( GArray *array, gconstpointer data, guint len );
+LIBSPECTRUM_API GArray* g_array_append_vals( GArray *array, gconstpointer data, guint len );
 #define g_array_index(a,t,i) (*(((t*)a->data)+i))
-WIN32_DLL GArray* g_array_set_size( GArray *array, guint length );
-WIN32_DLL gchar* g_array_free( GArray *array, gboolean free_segment );
+LIBSPECTRUM_API GArray* g_array_set_size( GArray *array, guint length );
+LIBSPECTRUM_API GArray* g_array_remove_index_fast( GArray *array, guint index );
+LIBSPECTRUM_API gchar* g_array_free( GArray *array, gboolean free_segment );
 
 #define GINT_TO_POINTER(i)      ((gpointer)  (glong)(i))
 #define GPOINTER_TO_INT(p)      ((gint)   (glong)(p))
@@ -264,25 +294,43 @@ typedef enum libspectrum_error {
 
 /* Library capabilities */
 
+/* we support snapshots etc. requiring zlib (e.g. compressed szx) */
+#define	LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION	(1)
+
+/* zlib (de)compression routines */
+
+LIBSPECTRUM_API libspectrum_error
+libspectrum_zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
+			  libspectrum_byte **outptr, size_t *outlength );
+
+LIBSPECTRUM_API libspectrum_error
+libspectrum_zlib_compress( const libspectrum_byte *data, size_t length,
+			   libspectrum_byte **gzptr, size_t *gzlength );
+
+
+/* we support files compressed with bz2 */
+#define	LIBSPECTRUM_SUPPORTS_BZ2_COMPRESSION	(1)
+
+
 /* Initialisation */
 
-WIN32_DLL libspectrum_error libspectrum_init( void );
-WIN32_DLL void libspectrum_end( void );
+LIBSPECTRUM_API libspectrum_error libspectrum_init( void );
+LIBSPECTRUM_API void libspectrum_end( void );
 
 /* Version checking */
 
-WIN32_DLL int libspectrum_check_version( const char *version );
-WIN32_DLL const char *libspectrum_version( void );
-WIN32_DLL const char *libspectrum_gcrypt_version( void );
+LIBSPECTRUM_API int libspectrum_check_version( const char *version );
+LIBSPECTRUM_API const char *libspectrum_version( void );
+LIBSPECTRUM_API const char *libspectrum_gcrypt_version( void );
 
 /* Error handling */
 typedef libspectrum_error
 (*libspectrum_error_function_t)( libspectrum_error error,
 				 const char *format, va_list ap );
 
-extern WIN32_DLL libspectrum_error_function_t libspectrum_error_function;
+extern LIBSPECTRUM_API libspectrum_error_function_t libspectrum_error_function;
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_default_error_function( libspectrum_error error,
 				    const char *format, va_list ap );
 
@@ -300,12 +348,26 @@ typedef struct libspectrum_mem_vtable_t {
   libspectrum_free_fn_t free;
 } libspectrum_mem_vtable_t;
 
-WIN32_DLL void* libspectrum_malloc( size_t size );
-WIN32_DLL void* libspectrum_calloc( size_t nmemb, size_t size );
-WIN32_DLL void* libspectrum_realloc( void *ptr, size_t size );
-WIN32_DLL void libspectrum_free( void *ptr );
+LIBSPECTRUM_API void* libspectrum_malloc( size_t size );
+LIBSPECTRUM_API void* libspectrum_malloc_n( size_t nmemb, size_t size );
+LIBSPECTRUM_API void* libspectrum_malloc0_n( size_t nmemb, size_t size );
+LIBSPECTRUM_API void* libspectrum_realloc( void *ptr, size_t size );
+LIBSPECTRUM_API void* libspectrum_realloc_n( void *ptr, size_t nmemb, size_t size );
+LIBSPECTRUM_API void libspectrum_free( void *ptr );
 
-WIN32_DLL void libspectrum_mem_set_vtable( libspectrum_mem_vtable_t *table );
+LIBSPECTRUM_API void libspectrum_mem_set_vtable( libspectrum_mem_vtable_t *table );
+
+#define libspectrum_new( type, count ) \
+  ( ( type * ) libspectrum_malloc_n( (count), sizeof( type ) ) )
+
+#define libspectrum_new0( type, count ) \
+  ( ( type * ) libspectrum_malloc0_n( (count), sizeof( type ) ) )
+
+#define libspectrum_renew( type, mem, count ) \
+  ( ( type * ) libspectrum_realloc_n( (void *)mem, (count), sizeof( type ) ) )
+
+/* Deprecated */
+#define libspectrum_calloc libspectrum_malloc0_n
 
 /* Attempt to identify a given file */
 
@@ -333,7 +395,7 @@ typedef enum libspectrum_id_t {
 
   /* Below here, present only in 0.2.0 and later */
 
-  LIBSPECTRUM_ID_TAPE_WARAJEVO,		/* Warajevo-style .tap tape image */ 
+  LIBSPECTRUM_ID_TAPE_WARAJEVO,		/* Warajevo-style .tap tape image */
 
   LIBSPECTRUM_ID_SNAPSHOT_PLUSD,	/* DISCiPLE/+D snapshot */
   LIBSPECTRUM_ID_SNAPSHOT_SP,		/* .sp snapshot */
@@ -376,11 +438,31 @@ typedef enum libspectrum_id_t {
   LIBSPECTRUM_ID_DISK_SAD,		/* .sad generic disk image */
   LIBSPECTRUM_ID_DISK_TD0,		/* .td0 generic disk image */
 
+  /* Below here, present only in 1.0.0 and later */
+
   LIBSPECTRUM_ID_DISK_OPD,		/* .opu/.opd Opus Discovery disk image */
+
+  /* Below here, present only in 1.1.0 and later */
 
   LIBSPECTRUM_ID_TAPE_PZX,		/* PZX tape image */
 
   LIBSPECTRUM_ID_AUX_POK,		/* POKE file */
+
+  /* Below here, present only in 1.2.0 and later */
+
+  LIBSPECTRUM_ID_DISK_D80,		/* .d80/.d40 Didaktik disk image */
+
+  /* Below here, present only in 1.2.2 and later */
+
+  LIBSPECTRUM_ID_COMPRESSED_ZIP,	/* zip compressed file */
+
+  /* Below here, present only in 1.3.5 and later */
+
+  LIBSPECTRUM_ID_SCREEN_SCR,		/* .scr screen file */
+
+  /* Below here, present only in 1.4.0 and later */
+
+  LIBSPECTRUM_ID_SCREEN_MLT,		/* .mlt screen file */
 
 } libspectrum_id_t;
 
@@ -418,24 +500,80 @@ typedef enum libspectrum_class_t {
 
   LIBSPECTRUM_CLASS_DISK_GENERIC,	/* generic disk image */
 
+  /* Below here, present only in 1.1.0 and later */
+
   LIBSPECTRUM_CLASS_AUXILIARY,	        /* auxiliary supported file */
+
+  /* Below here, present only in 1.2.0 and later */
+
+  LIBSPECTRUM_CLASS_DISK_DIDAKTIK,	/* Didaktik disk */
+
+  /* Below here, present only in 1.3.5 and later */
+
+  LIBSPECTRUM_CLASS_SCREENSHOT,		/* Screenshot */
 
 } libspectrum_class_t;
 
-WIN32_DLL libspectrum_error
+typedef struct libspectrum_buffer libspectrum_buffer;
+
+LIBSPECTRUM_API libspectrum_buffer*
+libspectrum_buffer_alloc( void );
+LIBSPECTRUM_API void
+libspectrum_buffer_reallocate( libspectrum_buffer *buffer, size_t new_size );
+LIBSPECTRUM_API void
+libspectrum_buffer_free( libspectrum_buffer *buffer );
+
+LIBSPECTRUM_API int
+libspectrum_buffer_is_empty( const libspectrum_buffer *buffer );
+LIBSPECTRUM_API int
+libspectrum_buffer_is_not_empty( const libspectrum_buffer *buffer );
+
+LIBSPECTRUM_API void
+libspectrum_buffer_write_byte( libspectrum_buffer *buffer,
+                               libspectrum_byte data );
+LIBSPECTRUM_API void
+libspectrum_buffer_write_word( libspectrum_buffer *buffer,
+                               libspectrum_word data );
+LIBSPECTRUM_API void
+libspectrum_buffer_write_dword( libspectrum_buffer *buffer,
+                                libspectrum_dword data );
+LIBSPECTRUM_API void
+libspectrum_buffer_write_buffer( libspectrum_buffer *dest,
+                                 const libspectrum_buffer *src );
+LIBSPECTRUM_API void
+libspectrum_buffer_write( libspectrum_buffer *buffer, const void *data,
+                          size_t size );
+LIBSPECTRUM_API void
+libspectrum_buffer_set( libspectrum_buffer *buffer, libspectrum_byte value,
+                        size_t size );
+
+LIBSPECTRUM_API size_t
+libspectrum_buffer_get_data_size( const libspectrum_buffer *buffer );
+LIBSPECTRUM_API libspectrum_byte*
+libspectrum_buffer_get_data( const libspectrum_buffer *buffer );
+
+LIBSPECTRUM_API void
+libspectrum_buffer_clear( libspectrum_buffer *buffer );
+
+LIBSPECTRUM_API void
+libspectrum_buffer_append( libspectrum_byte **buffer, size_t *length,
+                           libspectrum_byte **ptr,
+                           const libspectrum_buffer *src );
+
+LIBSPECTRUM_API libspectrum_error
 libspectrum_identify_file( libspectrum_id_t *type, const char *filename,
                            const unsigned char *buffer, size_t length );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_identify_file_with_class(
   libspectrum_id_t *type, libspectrum_class_t *libspectrum_class,
   const char *filename, const unsigned char *buffer, size_t length );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
 			       const unsigned char *buffer, size_t length );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
                             libspectrum_id_t type );
 
@@ -474,122 +612,122 @@ typedef enum libspectrum_machine {
 
 } libspectrum_machine;
 
-WIN32_DLL const char* libspectrum_machine_name( libspectrum_machine type );
+LIBSPECTRUM_API const char* libspectrum_machine_name( libspectrum_machine type );
 
 /* The various capabilities of the different machines */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_AY;                              /* AY-3-8192 */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_128_MEMORY;        /* 128-style memory paging */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_PLUS3_MEMORY;       /* +3-style memory paging */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_PLUS3_DISK;            /* +3-style disk drive */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_MEMORY;    /* Timex-style memory paging */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_VIDEO;       /* Timex-style video modes */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_TRDOS_DISK;         /* TRDOS-style disk drive */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_DOCK; /* T[SC]2068-style cartridge port */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_SINCLAIR_JOYSTICK;
                                             /* Sinclair-style joystick ports */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_KEMPSTON_JOYSTICK;
                                             /* Kempston-style joystick ports */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_SCORP_MEMORY; /* Scorpion-style memory paging */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_EVEN_M1;
                              /* M1 cycles always start on even tstate counts */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_SE_MEMORY;          /* SE-style memory paging */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_NTSC;                         /* NTSC display */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_PENT512_MEMORY; /* Pentagon 512 memory paging */
-extern WIN32_DLL const int
+extern LIBSPECTRUM_API const int
 LIBSPECTRUM_MACHINE_CAPABILITY_PENT1024_MEMORY;
 					      /* Pentagon 1024 memory paging */
 
 /* Get the capabilities of a machine */
-WIN32_DLL int libspectrum_machine_capabilities( libspectrum_machine type );
+LIBSPECTRUM_API int libspectrum_machine_capabilities( libspectrum_machine type );
 
 /* Get the timings of a machine */
-WIN32_DLL libspectrum_dword
+LIBSPECTRUM_API libspectrum_dword
 libspectrum_timings_processor_speed( libspectrum_machine machine );
-WIN32_DLL libspectrum_dword
+LIBSPECTRUM_API libspectrum_dword
 libspectrum_timings_ay_speed( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_left_border( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_horizontal_screen( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_right_border( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_horizontal_retrace( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_top_border( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_vertical_screen( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_bottom_border( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_vertical_retrace( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_interrupt_length( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_top_left_pixel( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_tstates_per_line( libspectrum_machine machine );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_timings_lines_per_frame( libspectrum_machine machine );
-WIN32_DLL libspectrum_dword
+LIBSPECTRUM_API libspectrum_dword
 libspectrum_timings_tstates_per_frame( libspectrum_machine machine );
 
 /* Creator information */
 
 typedef struct libspectrum_creator libspectrum_creator;
 
-WIN32_DLL libspectrum_creator*
+LIBSPECTRUM_API libspectrum_creator*
 libspectrum_creator_alloc( void );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_creator_free( libspectrum_creator *creator );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_creator_set_program( libspectrum_creator *creator,
 				 const char *program );
-WIN32_DLL const char *
+LIBSPECTRUM_API const char *
 libspectrum_creator_program( libspectrum_creator *creator );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_creator_set_major( libspectrum_creator *creator,
 			       libspectrum_word major );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_creator_major( libspectrum_creator *creator );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_creator_set_minor( libspectrum_creator *creator,
 			       libspectrum_word minor );
-WIN32_DLL libspectrum_word
+LIBSPECTRUM_API libspectrum_word
 libspectrum_creator_minor( libspectrum_creator *creator );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_creator_set_competition_code( libspectrum_creator *creator,
 					  libspectrum_dword competition_code );
-WIN32_DLL libspectrum_dword
+LIBSPECTRUM_API libspectrum_dword
 libspectrum_creator_competition_code( libspectrum_creator *creator );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_creator_set_custom( libspectrum_creator *creator,
 				libspectrum_byte *data, size_t length );
 
-WIN32_DLL libspectrum_byte *
+LIBSPECTRUM_API libspectrum_byte *
 libspectrum_creator_custom( libspectrum_creator *creator );
 
-WIN32_DLL size_t
+LIBSPECTRUM_API size_t
 libspectrum_creator_custom_length( libspectrum_creator *creator );
 
 /*
@@ -598,29 +736,29 @@ libspectrum_creator_custom_length( libspectrum_creator *creator );
 
 typedef struct libspectrum_snap libspectrum_snap;
 
-WIN32_DLL libspectrum_snap* libspectrum_snap_alloc( void );
-WIN32_DLL libspectrum_error libspectrum_snap_free( libspectrum_snap *snap );
+LIBSPECTRUM_API libspectrum_snap* libspectrum_snap_alloc( void );
+LIBSPECTRUM_API libspectrum_error libspectrum_snap_free( libspectrum_snap *snap );
 
 /* Read in a snapshot, optionally guessing what type it is */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_snap_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
 		       size_t length, libspectrum_id_t type,
 		       const char *filename );
 
 /* Write a snapshot */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_snap_write( libspectrum_byte **buffer, size_t *length,
 			int *out_flags, libspectrum_snap *snap,
-	 		libspectrum_id_t type, libspectrum_creator *creator,
+			libspectrum_id_t type, libspectrum_creator *creator,
 			int in_flags );
 
 /* The flags that can be given to libspectrum_snap_write() */
-extern WIN32_DLL const int LIBSPECTRUM_FLAG_SNAPSHOT_NO_COMPRESSION;
-extern WIN32_DLL const int LIBSPECTRUM_FLAG_SNAPSHOT_ALWAYS_COMPRESS;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_FLAG_SNAPSHOT_NO_COMPRESSION;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_FLAG_SNAPSHOT_ALWAYS_COMPRESS;
 
 /* The flags that may be returned from libspectrum_snap_write() */
-extern WIN32_DLL const int LIBSPECTRUM_FLAG_SNAPSHOT_MINOR_INFO_LOSS;
-extern WIN32_DLL const int LIBSPECTRUM_FLAG_SNAPSHOT_MAJOR_INFO_LOSS;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_FLAG_SNAPSHOT_MINOR_INFO_LOSS;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_FLAG_SNAPSHOT_MAJOR_INFO_LOSS;
 
 /* The joystick types we can handle */
 typedef enum libspectrum_joystick {
@@ -637,302 +775,418 @@ typedef enum libspectrum_joystick {
 
 } libspectrum_joystick;
 
-WIN32_DLL const char* libspectrum_joystick_name( libspectrum_joystick type );
+LIBSPECTRUM_API const char* libspectrum_joystick_name( libspectrum_joystick type );
 
-extern WIN32_DLL const int LIBSPECTRUM_JOYSTICK_INPUT_NONE;
-extern WIN32_DLL const int LIBSPECTRUM_JOYSTICK_INPUT_KEYBOARD;
-extern WIN32_DLL const int LIBSPECTRUM_JOYSTICK_INPUT_JOYSTICK_1;
-extern WIN32_DLL const int LIBSPECTRUM_JOYSTICK_INPUT_JOYSTICK_2;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_JOYSTICK_INPUT_NONE;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_JOYSTICK_INPUT_KEYBOARD;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_JOYSTICK_INPUT_JOYSTICK_1;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_JOYSTICK_INPUT_JOYSTICK_2;
 
 /* Accessor functions */
-WIN32_DLL libspectrum_machine libspectrum_snap_machine( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_machine( libspectrum_snap *snap, libspectrum_machine machine );
-WIN32_DLL libspectrum_byte libspectrum_snap_a( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_a( libspectrum_snap *snap, libspectrum_byte a );
-WIN32_DLL libspectrum_byte libspectrum_snap_f( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_f( libspectrum_snap *snap, libspectrum_byte f );
-WIN32_DLL libspectrum_word libspectrum_snap_bc( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_bc( libspectrum_snap *snap, libspectrum_word bc );
-WIN32_DLL libspectrum_word libspectrum_snap_de( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_de( libspectrum_snap *snap, libspectrum_word de );
-WIN32_DLL libspectrum_word libspectrum_snap_hl( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_hl( libspectrum_snap *snap, libspectrum_word hl );
-WIN32_DLL libspectrum_byte libspectrum_snap_a_( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_a_( libspectrum_snap *snap, libspectrum_byte a_ );
-WIN32_DLL libspectrum_byte libspectrum_snap_f_( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_f_( libspectrum_snap *snap, libspectrum_byte f_ );
-WIN32_DLL libspectrum_word libspectrum_snap_bc_( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_bc_( libspectrum_snap *snap, libspectrum_word bc_ );
-WIN32_DLL libspectrum_word libspectrum_snap_de_( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_de_( libspectrum_snap *snap, libspectrum_word de_ );
-WIN32_DLL libspectrum_word libspectrum_snap_hl_( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_hl_( libspectrum_snap *snap, libspectrum_word hl_ );
-WIN32_DLL libspectrum_word libspectrum_snap_ix( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_ix( libspectrum_snap *snap, libspectrum_word ix );
-WIN32_DLL libspectrum_word libspectrum_snap_iy( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_iy( libspectrum_snap *snap, libspectrum_word iy );
-WIN32_DLL libspectrum_byte libspectrum_snap_i( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_i( libspectrum_snap *snap, libspectrum_byte i );
-WIN32_DLL libspectrum_byte libspectrum_snap_r( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_r( libspectrum_snap *snap, libspectrum_byte r );
-WIN32_DLL libspectrum_word libspectrum_snap_sp( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_sp( libspectrum_snap *snap, libspectrum_word sp );
-WIN32_DLL libspectrum_word libspectrum_snap_pc( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_pc( libspectrum_snap *snap, libspectrum_word pc );
-WIN32_DLL libspectrum_word libspectrum_snap_memptr( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_memptr( libspectrum_snap *snap, libspectrum_word memptr );
-WIN32_DLL libspectrum_byte libspectrum_snap_iff1( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_iff1( libspectrum_snap *snap, libspectrum_byte iff1 );
-WIN32_DLL libspectrum_byte libspectrum_snap_iff2( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_iff2( libspectrum_snap *snap, libspectrum_byte iff2 );
-WIN32_DLL libspectrum_byte libspectrum_snap_im( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_im( libspectrum_snap *snap, libspectrum_byte im );
-WIN32_DLL libspectrum_dword libspectrum_snap_tstates( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_tstates( libspectrum_snap *snap, libspectrum_dword tstates );
-WIN32_DLL int libspectrum_snap_halted( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_halted( libspectrum_snap *snap, int halted );
-WIN32_DLL int libspectrum_snap_last_instruction_ei( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_last_instruction_ei( libspectrum_snap *snap, int last_instruction_ei );
-WIN32_DLL int libspectrum_snap_last_instruction_set_f( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_last_instruction_set_f( libspectrum_snap *snap, int last_instruction_set_f );
-WIN32_DLL libspectrum_byte libspectrum_snap_out_ula( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_out_ula( libspectrum_snap *snap, libspectrum_byte out_ula );
-WIN32_DLL libspectrum_byte libspectrum_snap_out_128_memoryport( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_out_128_memoryport( libspectrum_snap *snap, libspectrum_byte out_128_memoryport );
-WIN32_DLL libspectrum_byte libspectrum_snap_out_plus3_memoryport( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_out_plus3_memoryport( libspectrum_snap *snap, libspectrum_byte out_plus3_memoryport );
-WIN32_DLL libspectrum_byte libspectrum_snap_out_ay_registerport( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_out_ay_registerport( libspectrum_snap *snap, libspectrum_byte out_ay_registerport );
-WIN32_DLL libspectrum_byte libspectrum_snap_ay_registers( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_ay_registers( libspectrum_snap *snap, int idx, libspectrum_byte ay_registers );
-WIN32_DLL libspectrum_byte libspectrum_snap_out_scld_hsr( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_out_scld_hsr( libspectrum_snap *snap, libspectrum_byte out_scld_hsr );
-WIN32_DLL libspectrum_byte libspectrum_snap_out_scld_dec( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_out_scld_dec( libspectrum_snap *snap, libspectrum_byte out_scld_dec );
-WIN32_DLL int libspectrum_snap_interface1_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_interface1_active( libspectrum_snap *snap, int interface1_active );
-WIN32_DLL int libspectrum_snap_interface1_paged( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_interface1_paged( libspectrum_snap *snap, int interface1_paged );
-WIN32_DLL int libspectrum_snap_interface1_drive_count( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_interface1_drive_count( libspectrum_snap *snap, int interface1_drive_count );
-WIN32_DLL int libspectrum_snap_interface1_custom_rom( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_interface1_custom_rom( libspectrum_snap *snap, int interface1_custom_rom );
-WIN32_DLL libspectrum_byte * libspectrum_snap_interface1_rom( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_interface1_rom( libspectrum_snap *snap, int idx, libspectrum_byte* interface1_rom );
-WIN32_DLL size_t libspectrum_snap_interface1_rom_length( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_interface1_rom_length( libspectrum_snap *snap, int idx, size_t interface1_rom_length );
-WIN32_DLL int libspectrum_snap_beta_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_active( libspectrum_snap *snap, int beta_active );
-WIN32_DLL int libspectrum_snap_beta_paged( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_paged( libspectrum_snap *snap, int beta_paged );
-WIN32_DLL int libspectrum_snap_beta_autoboot( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_autoboot( libspectrum_snap *snap, int beta_autoboot );
-WIN32_DLL int libspectrum_snap_beta_drive_count( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_drive_count( libspectrum_snap *snap, int beta_drive_count );
-WIN32_DLL int libspectrum_snap_beta_custom_rom( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_custom_rom( libspectrum_snap *snap, int beta_custom_rom );
-WIN32_DLL int libspectrum_snap_beta_direction( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_direction( libspectrum_snap *snap, int beta_direction );
-WIN32_DLL libspectrum_byte libspectrum_snap_beta_system( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_system( libspectrum_snap *snap, libspectrum_byte beta_system );
-WIN32_DLL libspectrum_byte libspectrum_snap_beta_track( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_track( libspectrum_snap *snap, libspectrum_byte beta_track );
-WIN32_DLL libspectrum_byte libspectrum_snap_beta_sector( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_sector( libspectrum_snap *snap, libspectrum_byte beta_sector );
-WIN32_DLL libspectrum_byte libspectrum_snap_beta_data( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_data( libspectrum_snap *snap, libspectrum_byte beta_data );
-WIN32_DLL libspectrum_byte libspectrum_snap_beta_status( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_beta_status( libspectrum_snap *snap, libspectrum_byte beta_status );
-WIN32_DLL libspectrum_byte * libspectrum_snap_beta_rom( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_beta_rom( libspectrum_snap *snap, int idx, libspectrum_byte* beta_rom );
-WIN32_DLL int libspectrum_snap_plusd_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_active( libspectrum_snap *snap, int plusd_active );
-WIN32_DLL int libspectrum_snap_plusd_paged( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_paged( libspectrum_snap *snap, int plusd_paged );
-WIN32_DLL int libspectrum_snap_plusd_drive_count( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_drive_count( libspectrum_snap *snap, int plusd_drive_count );
-WIN32_DLL int libspectrum_snap_plusd_custom_rom( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_custom_rom( libspectrum_snap *snap, int plusd_custom_rom );
-WIN32_DLL int libspectrum_snap_plusd_direction( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_direction( libspectrum_snap *snap, int plusd_direction );
-WIN32_DLL libspectrum_byte libspectrum_snap_plusd_control( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_control( libspectrum_snap *snap, libspectrum_byte plusd_control );
-WIN32_DLL libspectrum_byte libspectrum_snap_plusd_track( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_track( libspectrum_snap *snap, libspectrum_byte plusd_track );
-WIN32_DLL libspectrum_byte libspectrum_snap_plusd_sector( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_sector( libspectrum_snap *snap, libspectrum_byte plusd_sector );
-WIN32_DLL libspectrum_byte libspectrum_snap_plusd_data( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_data( libspectrum_snap *snap, libspectrum_byte plusd_data );
-WIN32_DLL libspectrum_byte libspectrum_snap_plusd_status( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_plusd_status( libspectrum_snap *snap, libspectrum_byte plusd_status );
-WIN32_DLL libspectrum_byte * libspectrum_snap_plusd_rom( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_plusd_rom( libspectrum_snap *snap, int idx, libspectrum_byte* plusd_rom );
-WIN32_DLL libspectrum_byte * libspectrum_snap_plusd_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_plusd_ram( libspectrum_snap *snap, int idx, libspectrum_byte* plusd_ram );
-WIN32_DLL int libspectrum_snap_opus_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_active( libspectrum_snap *snap, int opus_active );
-WIN32_DLL int libspectrum_snap_opus_paged( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_paged( libspectrum_snap *snap, int opus_paged );
-WIN32_DLL int libspectrum_snap_opus_drive_count( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_drive_count( libspectrum_snap *snap, int opus_drive_count );
-WIN32_DLL int libspectrum_snap_opus_custom_rom( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_custom_rom( libspectrum_snap *snap, int opus_custom_rom );
-WIN32_DLL int libspectrum_snap_opus_direction( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_direction( libspectrum_snap *snap, int opus_direction );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_track( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_track( libspectrum_snap *snap, libspectrum_byte opus_track );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_sector( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_sector( libspectrum_snap *snap, libspectrum_byte opus_sector );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_data( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_data( libspectrum_snap *snap, libspectrum_byte opus_data );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_status( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_status( libspectrum_snap *snap, libspectrum_byte opus_status );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_data_reg_a( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_data_reg_a( libspectrum_snap *snap, libspectrum_byte opus_data_reg_a );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_data_dir_a( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_data_dir_a( libspectrum_snap *snap, libspectrum_byte opus_data_dir_a );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_control_a( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_control_a( libspectrum_snap *snap, libspectrum_byte opus_control_a );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_data_reg_b( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_data_reg_b( libspectrum_snap *snap, libspectrum_byte opus_data_reg_b );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_data_dir_b( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_data_dir_b( libspectrum_snap *snap, libspectrum_byte opus_data_dir_b );
-WIN32_DLL libspectrum_byte libspectrum_snap_opus_control_b( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_opus_control_b( libspectrum_snap *snap, libspectrum_byte opus_control_b );
-WIN32_DLL libspectrum_byte * libspectrum_snap_opus_rom( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_opus_rom( libspectrum_snap *snap, int idx, libspectrum_byte* opus_rom );
-WIN32_DLL libspectrum_byte * libspectrum_snap_opus_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_opus_ram( libspectrum_snap *snap, int idx, libspectrum_byte* opus_ram );
-WIN32_DLL int libspectrum_snap_custom_rom( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_custom_rom( libspectrum_snap *snap, int custom_rom );
-WIN32_DLL size_t libspectrum_snap_custom_rom_pages( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_custom_rom_pages( libspectrum_snap *snap, size_t custom_rom_pages );
-WIN32_DLL libspectrum_byte * libspectrum_snap_roms( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_roms( libspectrum_snap *snap, int idx, libspectrum_byte* roms );
-WIN32_DLL size_t libspectrum_snap_rom_length( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_rom_length( libspectrum_snap *snap, int idx, size_t rom_length );
-WIN32_DLL libspectrum_byte * libspectrum_snap_pages( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_pages( libspectrum_snap *snap, int idx, libspectrum_byte* pages );
-WIN32_DLL libspectrum_byte * libspectrum_snap_slt( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_slt( libspectrum_snap *snap, int idx, libspectrum_byte* slt );
-WIN32_DLL size_t libspectrum_snap_slt_length( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_slt_length( libspectrum_snap *snap, int idx, size_t slt_length );
-WIN32_DLL libspectrum_byte * libspectrum_snap_slt_screen( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_slt_screen( libspectrum_snap *snap, libspectrum_byte* slt_screen );
-WIN32_DLL int libspectrum_snap_slt_screen_level( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_slt_screen_level( libspectrum_snap *snap, int slt_screen_level );
-WIN32_DLL int libspectrum_snap_zxatasp_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_active( libspectrum_snap *snap, int zxatasp_active );
-WIN32_DLL int libspectrum_snap_zxatasp_upload( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_upload( libspectrum_snap *snap, int zxatasp_upload );
-WIN32_DLL int libspectrum_snap_zxatasp_writeprotect( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_writeprotect( libspectrum_snap *snap, int zxatasp_writeprotect );
-WIN32_DLL libspectrum_byte libspectrum_snap_zxatasp_port_a( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_port_a( libspectrum_snap *snap, libspectrum_byte zxatasp_port_a );
-WIN32_DLL libspectrum_byte libspectrum_snap_zxatasp_port_b( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_port_b( libspectrum_snap *snap, libspectrum_byte zxatasp_port_b );
-WIN32_DLL libspectrum_byte libspectrum_snap_zxatasp_port_c( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_port_c( libspectrum_snap *snap, libspectrum_byte zxatasp_port_c );
-WIN32_DLL libspectrum_byte libspectrum_snap_zxatasp_control( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_control( libspectrum_snap *snap, libspectrum_byte zxatasp_control );
-WIN32_DLL size_t libspectrum_snap_zxatasp_pages( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_pages( libspectrum_snap *snap, size_t zxatasp_pages );
-WIN32_DLL size_t libspectrum_snap_zxatasp_current_page( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxatasp_current_page( libspectrum_snap *snap, size_t zxatasp_current_page );
-WIN32_DLL libspectrum_byte * libspectrum_snap_zxatasp_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_zxatasp_ram( libspectrum_snap *snap, int idx, libspectrum_byte* zxatasp_ram );
-WIN32_DLL int libspectrum_snap_zxcf_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxcf_active( libspectrum_snap *snap, int zxcf_active );
-WIN32_DLL int libspectrum_snap_zxcf_upload( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxcf_upload( libspectrum_snap *snap, int zxcf_upload );
-WIN32_DLL libspectrum_byte libspectrum_snap_zxcf_memctl( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxcf_memctl( libspectrum_snap *snap, libspectrum_byte zxcf_memctl );
-WIN32_DLL size_t libspectrum_snap_zxcf_pages( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zxcf_pages( libspectrum_snap *snap, size_t zxcf_pages );
-WIN32_DLL libspectrum_byte * libspectrum_snap_zxcf_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_zxcf_ram( libspectrum_snap *snap, int idx, libspectrum_byte* zxcf_ram );
-WIN32_DLL int libspectrum_snap_interface2_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_interface2_active( libspectrum_snap *snap, int interface2_active );
-WIN32_DLL libspectrum_byte * libspectrum_snap_interface2_rom( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_interface2_rom( libspectrum_snap *snap, int idx, libspectrum_byte* interface2_rom );
-WIN32_DLL int libspectrum_snap_dock_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_dock_active( libspectrum_snap *snap, int dock_active );
-WIN32_DLL libspectrum_byte libspectrum_snap_exrom_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_exrom_ram( libspectrum_snap *snap, int idx, libspectrum_byte exrom_ram );
-WIN32_DLL libspectrum_byte * libspectrum_snap_exrom_cart( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_exrom_cart( libspectrum_snap *snap, int idx, libspectrum_byte* exrom_cart );
-WIN32_DLL libspectrum_byte libspectrum_snap_dock_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_dock_ram( libspectrum_snap *snap, int idx, libspectrum_byte dock_ram );
-WIN32_DLL libspectrum_byte * libspectrum_snap_dock_cart( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_dock_cart( libspectrum_snap *snap, int idx, libspectrum_byte* dock_cart );
-WIN32_DLL int libspectrum_snap_issue2( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_issue2( libspectrum_snap *snap, int issue2 );
-WIN32_DLL size_t libspectrum_snap_joystick_active_count( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_joystick_active_count( libspectrum_snap *snap, size_t joystick_active_count );
-WIN32_DLL libspectrum_joystick libspectrum_snap_joystick_list( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_joystick_list( libspectrum_snap *snap, int idx, libspectrum_joystick joystick_list );
-WIN32_DLL int libspectrum_snap_joystick_inputs( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_joystick_inputs( libspectrum_snap *snap, int idx, int joystick_inputs );
-WIN32_DLL int libspectrum_snap_kempston_mouse_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_kempston_mouse_active( libspectrum_snap *snap, int kempston_mouse_active );
-WIN32_DLL int libspectrum_snap_simpleide_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_simpleide_active( libspectrum_snap *snap, int simpleide_active );
-WIN32_DLL int libspectrum_snap_divide_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_divide_active( libspectrum_snap *snap, int divide_active );
-WIN32_DLL int libspectrum_snap_divide_eprom_writeprotect( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_divide_eprom_writeprotect( libspectrum_snap *snap, int divide_eprom_writeprotect );
-WIN32_DLL int libspectrum_snap_divide_paged( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_divide_paged( libspectrum_snap *snap, int divide_paged );
-WIN32_DLL libspectrum_byte libspectrum_snap_divide_control( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_divide_control( libspectrum_snap *snap, libspectrum_byte divide_control );
-WIN32_DLL size_t libspectrum_snap_divide_pages( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_divide_pages( libspectrum_snap *snap, size_t divide_pages );
-WIN32_DLL libspectrum_byte * libspectrum_snap_divide_eprom( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_divide_eprom( libspectrum_snap *snap, int idx, libspectrum_byte* divide_eprom );
-WIN32_DLL libspectrum_byte * libspectrum_snap_divide_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_divide_ram( libspectrum_snap *snap, int idx, libspectrum_byte* divide_ram );
-WIN32_DLL int libspectrum_snap_fuller_box_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_fuller_box_active( libspectrum_snap *snap, int fuller_box_active );
-WIN32_DLL int libspectrum_snap_melodik_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_melodik_active( libspectrum_snap *snap, int melodik_active );
-WIN32_DLL int libspectrum_snap_specdrum_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_specdrum_active( libspectrum_snap *snap, int specdrum_active );
-WIN32_DLL libspectrum_signed_byte libspectrum_snap_specdrum_dac( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_specdrum_dac( libspectrum_snap *snap, libspectrum_signed_byte specdrum_dac );
-WIN32_DLL int libspectrum_snap_spectranet_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_active( libspectrum_snap *snap, int spectranet_active );
-WIN32_DLL int libspectrum_snap_spectranet_paged( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_paged( libspectrum_snap *snap, int spectranet_paged );
-WIN32_DLL int libspectrum_snap_spectranet_paged_via_io( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_paged_via_io( libspectrum_snap *snap, int spectranet_paged_via_io );
-WIN32_DLL int libspectrum_snap_spectranet_nmi_flipflop( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_nmi_flipflop( libspectrum_snap *snap, int spectranet_nmi_flipflop );
-WIN32_DLL int libspectrum_snap_spectranet_programmable_trap_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_programmable_trap_active( libspectrum_snap *snap, int spectranet_programmable_trap_active );
-WIN32_DLL int libspectrum_snap_spectranet_programmable_trap_msb( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_programmable_trap_msb( libspectrum_snap *snap, int spectranet_programmable_trap_msb );
-WIN32_DLL int libspectrum_snap_spectranet_all_traps_disabled( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_all_traps_disabled( libspectrum_snap *snap, int spectranet_all_traps_disabled );
-WIN32_DLL int libspectrum_snap_spectranet_rst8_trap_disabled( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_rst8_trap_disabled( libspectrum_snap *snap, int spectranet_rst8_trap_disabled );
-WIN32_DLL int libspectrum_snap_spectranet_deny_downstream_a15( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_deny_downstream_a15( libspectrum_snap *snap, int spectranet_deny_downstream_a15 );
-WIN32_DLL int libspectrum_snap_spectranet_page_a( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_page_a( libspectrum_snap *snap, int spectranet_page_a );
-WIN32_DLL int libspectrum_snap_spectranet_page_b( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_page_b( libspectrum_snap *snap, int spectranet_page_b );
-WIN32_DLL libspectrum_word libspectrum_snap_spectranet_programmable_trap( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_spectranet_programmable_trap( libspectrum_snap *snap, libspectrum_word spectranet_programmable_trap );
-WIN32_DLL libspectrum_byte * libspectrum_snap_spectranet_w5100( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_spectranet_w5100( libspectrum_snap *snap, int idx, libspectrum_byte* spectranet_w5100 );
-WIN32_DLL libspectrum_byte * libspectrum_snap_spectranet_flash( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_spectranet_flash( libspectrum_snap *snap, int idx, libspectrum_byte* spectranet_flash );
-WIN32_DLL libspectrum_byte * libspectrum_snap_spectranet_ram( libspectrum_snap *snap, int idx );
-WIN32_DLL void libspectrum_snap_set_spectranet_ram( libspectrum_snap *snap, int idx, libspectrum_byte* spectranet_ram );
-WIN32_DLL int libspectrum_snap_late_timings( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_late_timings( libspectrum_snap *snap, int late_timings );
-WIN32_DLL int libspectrum_snap_zx_printer_active( libspectrum_snap *snap );
-WIN32_DLL void libspectrum_snap_set_zx_printer_active( libspectrum_snap *snap, int zx_printer_active );
+LIBSPECTRUM_API libspectrum_machine libspectrum_snap_machine( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_machine( libspectrum_snap *snap, libspectrum_machine machine );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_a( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_a( libspectrum_snap *snap, libspectrum_byte a );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_f( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_f( libspectrum_snap *snap, libspectrum_byte f );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_bc( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_bc( libspectrum_snap *snap, libspectrum_word bc );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_de( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_de( libspectrum_snap *snap, libspectrum_word de );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_hl( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_hl( libspectrum_snap *snap, libspectrum_word hl );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_a_( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_a_( libspectrum_snap *snap, libspectrum_byte a_ );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_f_( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_f_( libspectrum_snap *snap, libspectrum_byte f_ );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_bc_( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_bc_( libspectrum_snap *snap, libspectrum_word bc_ );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_de_( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_de_( libspectrum_snap *snap, libspectrum_word de_ );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_hl_( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_hl_( libspectrum_snap *snap, libspectrum_word hl_ );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_ix( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_ix( libspectrum_snap *snap, libspectrum_word ix );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_iy( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_iy( libspectrum_snap *snap, libspectrum_word iy );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_i( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_i( libspectrum_snap *snap, libspectrum_byte i );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_r( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_r( libspectrum_snap *snap, libspectrum_byte r );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_sp( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_sp( libspectrum_snap *snap, libspectrum_word sp );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_pc( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_pc( libspectrum_snap *snap, libspectrum_word pc );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_memptr( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_memptr( libspectrum_snap *snap, libspectrum_word memptr );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_iff1( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_iff1( libspectrum_snap *snap, libspectrum_byte iff1 );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_iff2( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_iff2( libspectrum_snap *snap, libspectrum_byte iff2 );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_im( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_im( libspectrum_snap *snap, libspectrum_byte im );
+LIBSPECTRUM_API libspectrum_dword libspectrum_snap_tstates( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_tstates( libspectrum_snap *snap, libspectrum_dword tstates );
+LIBSPECTRUM_API int libspectrum_snap_halted( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_halted( libspectrum_snap *snap, int halted );
+LIBSPECTRUM_API int libspectrum_snap_last_instruction_ei( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_last_instruction_ei( libspectrum_snap *snap, int last_instruction_ei );
+LIBSPECTRUM_API int libspectrum_snap_last_instruction_set_f( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_last_instruction_set_f( libspectrum_snap *snap, int last_instruction_set_f );
+LIBSPECTRUM_API int libspectrum_snap_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_custom_rom( libspectrum_snap *snap, int custom_rom );
+LIBSPECTRUM_API size_t libspectrum_snap_custom_rom_pages( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_custom_rom_pages( libspectrum_snap *snap, size_t custom_rom_pages );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_roms( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_roms( libspectrum_snap *snap, int idx, libspectrum_byte* roms );
+LIBSPECTRUM_API size_t libspectrum_snap_rom_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_rom_length( libspectrum_snap *snap, int idx, size_t rom_length );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_pages( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_pages( libspectrum_snap *snap, int idx, libspectrum_byte* pages );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_slt( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_slt( libspectrum_snap *snap, int idx, libspectrum_byte* slt );
+LIBSPECTRUM_API size_t libspectrum_snap_slt_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_slt_length( libspectrum_snap *snap, int idx, size_t slt_length );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_slt_screen( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_slt_screen( libspectrum_snap *snap, libspectrum_byte* slt_screen );
+LIBSPECTRUM_API int libspectrum_snap_slt_screen_level( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_slt_screen_level( libspectrum_snap *snap, int slt_screen_level );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_ula( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_ula( libspectrum_snap *snap, libspectrum_byte out_ula );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_128_memoryport( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_128_memoryport( libspectrum_snap *snap, libspectrum_byte out_128_memoryport );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_plus3_memoryport( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_plus3_memoryport( libspectrum_snap *snap, libspectrum_byte out_plus3_memoryport );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_ay_registerport( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_ay_registerport( libspectrum_snap *snap, libspectrum_byte out_ay_registerport );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_ay_registers( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_ay_registers( libspectrum_snap *snap, int idx, libspectrum_byte ay_registers );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_scld_hsr( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_scld_hsr( libspectrum_snap *snap, libspectrum_byte out_scld_hsr );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_scld_dec( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_scld_dec( libspectrum_snap *snap, libspectrum_byte out_scld_dec );
+LIBSPECTRUM_API int libspectrum_snap_interface1_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_interface1_active( libspectrum_snap *snap, int interface1_active );
+LIBSPECTRUM_API int libspectrum_snap_interface1_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_interface1_paged( libspectrum_snap *snap, int interface1_paged );
+LIBSPECTRUM_API int libspectrum_snap_interface1_drive_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_interface1_drive_count( libspectrum_snap *snap, int interface1_drive_count );
+LIBSPECTRUM_API int libspectrum_snap_interface1_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_interface1_custom_rom( libspectrum_snap *snap, int interface1_custom_rom );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_interface1_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_interface1_rom( libspectrum_snap *snap, int idx, libspectrum_byte* interface1_rom );
+LIBSPECTRUM_API size_t libspectrum_snap_interface1_rom_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_interface1_rom_length( libspectrum_snap *snap, int idx, size_t interface1_rom_length );
+LIBSPECTRUM_API int libspectrum_snap_beta_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_active( libspectrum_snap *snap, int beta_active );
+LIBSPECTRUM_API int libspectrum_snap_beta_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_paged( libspectrum_snap *snap, int beta_paged );
+LIBSPECTRUM_API int libspectrum_snap_beta_autoboot( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_autoboot( libspectrum_snap *snap, int beta_autoboot );
+LIBSPECTRUM_API int libspectrum_snap_beta_drive_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_drive_count( libspectrum_snap *snap, int beta_drive_count );
+LIBSPECTRUM_API int libspectrum_snap_beta_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_custom_rom( libspectrum_snap *snap, int beta_custom_rom );
+LIBSPECTRUM_API int libspectrum_snap_beta_direction( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_direction( libspectrum_snap *snap, int beta_direction );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_beta_system( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_system( libspectrum_snap *snap, libspectrum_byte beta_system );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_beta_track( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_track( libspectrum_snap *snap, libspectrum_byte beta_track );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_beta_sector( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_sector( libspectrum_snap *snap, libspectrum_byte beta_sector );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_beta_data( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_data( libspectrum_snap *snap, libspectrum_byte beta_data );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_beta_status( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_status( libspectrum_snap *snap, libspectrum_byte beta_status );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_beta_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_beta_rom( libspectrum_snap *snap, int idx, libspectrum_byte* beta_rom );
+LIBSPECTRUM_API int libspectrum_snap_plusd_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_active( libspectrum_snap *snap, int plusd_active );
+LIBSPECTRUM_API int libspectrum_snap_plusd_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_paged( libspectrum_snap *snap, int plusd_paged );
+LIBSPECTRUM_API int libspectrum_snap_plusd_drive_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_drive_count( libspectrum_snap *snap, int plusd_drive_count );
+LIBSPECTRUM_API int libspectrum_snap_plusd_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_custom_rom( libspectrum_snap *snap, int plusd_custom_rom );
+LIBSPECTRUM_API int libspectrum_snap_plusd_direction( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_direction( libspectrum_snap *snap, int plusd_direction );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_plusd_control( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_control( libspectrum_snap *snap, libspectrum_byte plusd_control );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_plusd_track( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_track( libspectrum_snap *snap, libspectrum_byte plusd_track );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_plusd_sector( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_sector( libspectrum_snap *snap, libspectrum_byte plusd_sector );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_plusd_data( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_data( libspectrum_snap *snap, libspectrum_byte plusd_data );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_plusd_status( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_status( libspectrum_snap *snap, libspectrum_byte plusd_status );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_plusd_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_rom( libspectrum_snap *snap, int idx, libspectrum_byte* plusd_rom );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_plusd_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_plusd_ram( libspectrum_snap *snap, int idx, libspectrum_byte* plusd_ram );
+LIBSPECTRUM_API int libspectrum_snap_opus_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_active( libspectrum_snap *snap, int opus_active );
+LIBSPECTRUM_API int libspectrum_snap_opus_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_paged( libspectrum_snap *snap, int opus_paged );
+LIBSPECTRUM_API int libspectrum_snap_opus_drive_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_drive_count( libspectrum_snap *snap, int opus_drive_count );
+LIBSPECTRUM_API int libspectrum_snap_opus_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_custom_rom( libspectrum_snap *snap, int opus_custom_rom );
+LIBSPECTRUM_API int libspectrum_snap_opus_direction( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_direction( libspectrum_snap *snap, int opus_direction );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_track( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_track( libspectrum_snap *snap, libspectrum_byte opus_track );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_sector( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_sector( libspectrum_snap *snap, libspectrum_byte opus_sector );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_data( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_data( libspectrum_snap *snap, libspectrum_byte opus_data );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_status( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_status( libspectrum_snap *snap, libspectrum_byte opus_status );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_data_reg_a( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_data_reg_a( libspectrum_snap *snap, libspectrum_byte opus_data_reg_a );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_data_dir_a( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_data_dir_a( libspectrum_snap *snap, libspectrum_byte opus_data_dir_a );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_control_a( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_control_a( libspectrum_snap *snap, libspectrum_byte opus_control_a );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_data_reg_b( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_data_reg_b( libspectrum_snap *snap, libspectrum_byte opus_data_reg_b );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_data_dir_b( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_data_dir_b( libspectrum_snap *snap, libspectrum_byte opus_data_dir_b );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_opus_control_b( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_control_b( libspectrum_snap *snap, libspectrum_byte opus_control_b );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_opus_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_rom( libspectrum_snap *snap, int idx, libspectrum_byte* opus_rom );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_opus_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_opus_ram( libspectrum_snap *snap, int idx, libspectrum_byte* opus_ram );
+LIBSPECTRUM_API int libspectrum_snap_zxatasp_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_active( libspectrum_snap *snap, int zxatasp_active );
+LIBSPECTRUM_API int libspectrum_snap_zxatasp_upload( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_upload( libspectrum_snap *snap, int zxatasp_upload );
+LIBSPECTRUM_API int libspectrum_snap_zxatasp_writeprotect( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_writeprotect( libspectrum_snap *snap, int zxatasp_writeprotect );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_zxatasp_port_a( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_port_a( libspectrum_snap *snap, libspectrum_byte zxatasp_port_a );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_zxatasp_port_b( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_port_b( libspectrum_snap *snap, libspectrum_byte zxatasp_port_b );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_zxatasp_port_c( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_port_c( libspectrum_snap *snap, libspectrum_byte zxatasp_port_c );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_zxatasp_control( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_control( libspectrum_snap *snap, libspectrum_byte zxatasp_control );
+LIBSPECTRUM_API size_t libspectrum_snap_zxatasp_pages( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_pages( libspectrum_snap *snap, size_t zxatasp_pages );
+LIBSPECTRUM_API size_t libspectrum_snap_zxatasp_current_page( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_current_page( libspectrum_snap *snap, size_t zxatasp_current_page );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_zxatasp_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_zxatasp_ram( libspectrum_snap *snap, int idx, libspectrum_byte* zxatasp_ram );
+LIBSPECTRUM_API int libspectrum_snap_zxcf_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxcf_active( libspectrum_snap *snap, int zxcf_active );
+LIBSPECTRUM_API int libspectrum_snap_zxcf_upload( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxcf_upload( libspectrum_snap *snap, int zxcf_upload );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_zxcf_memctl( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxcf_memctl( libspectrum_snap *snap, libspectrum_byte zxcf_memctl );
+LIBSPECTRUM_API size_t libspectrum_snap_zxcf_pages( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxcf_pages( libspectrum_snap *snap, size_t zxcf_pages );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_zxcf_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_zxcf_ram( libspectrum_snap *snap, int idx, libspectrum_byte* zxcf_ram );
+LIBSPECTRUM_API int libspectrum_snap_interface2_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_interface2_active( libspectrum_snap *snap, int interface2_active );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_interface2_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_interface2_rom( libspectrum_snap *snap, int idx, libspectrum_byte* interface2_rom );
+LIBSPECTRUM_API int libspectrum_snap_dock_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_dock_active( libspectrum_snap *snap, int dock_active );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_exrom_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_exrom_ram( libspectrum_snap *snap, int idx, libspectrum_byte exrom_ram );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_exrom_cart( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_exrom_cart( libspectrum_snap *snap, int idx, libspectrum_byte* exrom_cart );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_dock_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_dock_ram( libspectrum_snap *snap, int idx, libspectrum_byte dock_ram );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_dock_cart( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_dock_cart( libspectrum_snap *snap, int idx, libspectrum_byte* dock_cart );
+LIBSPECTRUM_API int libspectrum_snap_issue2( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_issue2( libspectrum_snap *snap, int issue2 );
+LIBSPECTRUM_API size_t libspectrum_snap_joystick_active_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_joystick_active_count( libspectrum_snap *snap, size_t joystick_active_count );
+LIBSPECTRUM_API libspectrum_joystick libspectrum_snap_joystick_list( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_joystick_list( libspectrum_snap *snap, int idx, libspectrum_joystick joystick_list );
+LIBSPECTRUM_API int libspectrum_snap_joystick_inputs( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_joystick_inputs( libspectrum_snap *snap, int idx, int joystick_inputs );
+LIBSPECTRUM_API int libspectrum_snap_kempston_mouse_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_kempston_mouse_active( libspectrum_snap *snap, int kempston_mouse_active );
+LIBSPECTRUM_API int libspectrum_snap_simpleide_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_simpleide_active( libspectrum_snap *snap, int simpleide_active );
+LIBSPECTRUM_API int libspectrum_snap_divide_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_active( libspectrum_snap *snap, int divide_active );
+LIBSPECTRUM_API int libspectrum_snap_divide_eprom_writeprotect( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_eprom_writeprotect( libspectrum_snap *snap, int divide_eprom_writeprotect );
+LIBSPECTRUM_API int libspectrum_snap_divide_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_paged( libspectrum_snap *snap, int divide_paged );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_divide_control( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_control( libspectrum_snap *snap, libspectrum_byte divide_control );
+LIBSPECTRUM_API size_t libspectrum_snap_divide_pages( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_pages( libspectrum_snap *snap, size_t divide_pages );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_divide_eprom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_eprom( libspectrum_snap *snap, int idx, libspectrum_byte* divide_eprom );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_divide_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_divide_ram( libspectrum_snap *snap, int idx, libspectrum_byte* divide_ram );
+LIBSPECTRUM_API int libspectrum_snap_divmmc_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_active( libspectrum_snap *snap, int divmmc_active );
+LIBSPECTRUM_API int libspectrum_snap_divmmc_eprom_writeprotect( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_eprom_writeprotect( libspectrum_snap *snap, int divmmc_eprom_writeprotect );
+LIBSPECTRUM_API int libspectrum_snap_divmmc_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_paged( libspectrum_snap *snap, int divmmc_paged );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_divmmc_control( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_control( libspectrum_snap *snap, libspectrum_byte divmmc_control );
+LIBSPECTRUM_API size_t libspectrum_snap_divmmc_pages( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_pages( libspectrum_snap *snap, size_t divmmc_pages );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_divmmc_eprom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_eprom( libspectrum_snap *snap, int idx, libspectrum_byte* divmmc_eprom );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_divmmc_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_divmmc_ram( libspectrum_snap *snap, int idx, libspectrum_byte* divmmc_ram );
+LIBSPECTRUM_API int libspectrum_snap_fuller_box_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_fuller_box_active( libspectrum_snap *snap, int fuller_box_active );
+LIBSPECTRUM_API int libspectrum_snap_melodik_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_melodik_active( libspectrum_snap *snap, int melodik_active );
+LIBSPECTRUM_API int libspectrum_snap_specdrum_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_specdrum_active( libspectrum_snap *snap, int specdrum_active );
+LIBSPECTRUM_API libspectrum_signed_byte libspectrum_snap_specdrum_dac( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_specdrum_dac( libspectrum_snap *snap, libspectrum_signed_byte specdrum_dac );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_active( libspectrum_snap *snap, int spectranet_active );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_paged( libspectrum_snap *snap, int spectranet_paged );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_paged_via_io( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_paged_via_io( libspectrum_snap *snap, int spectranet_paged_via_io );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_nmi_flipflop( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_nmi_flipflop( libspectrum_snap *snap, int spectranet_nmi_flipflop );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_programmable_trap_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_programmable_trap_active( libspectrum_snap *snap, int spectranet_programmable_trap_active );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_programmable_trap_msb( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_programmable_trap_msb( libspectrum_snap *snap, int spectranet_programmable_trap_msb );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_all_traps_disabled( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_all_traps_disabled( libspectrum_snap *snap, int spectranet_all_traps_disabled );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_rst8_trap_disabled( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_rst8_trap_disabled( libspectrum_snap *snap, int spectranet_rst8_trap_disabled );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_deny_downstream_a15( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_deny_downstream_a15( libspectrum_snap *snap, int spectranet_deny_downstream_a15 );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_page_a( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_page_a( libspectrum_snap *snap, int spectranet_page_a );
+LIBSPECTRUM_API int libspectrum_snap_spectranet_page_b( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_page_b( libspectrum_snap *snap, int spectranet_page_b );
+LIBSPECTRUM_API libspectrum_word libspectrum_snap_spectranet_programmable_trap( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_programmable_trap( libspectrum_snap *snap, libspectrum_word spectranet_programmable_trap );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_spectranet_w5100( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_w5100( libspectrum_snap *snap, int idx, libspectrum_byte* spectranet_w5100 );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_spectranet_flash( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_flash( libspectrum_snap *snap, int idx, libspectrum_byte* spectranet_flash );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_spectranet_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_spectranet_ram( libspectrum_snap *snap, int idx, libspectrum_byte* spectranet_ram );
+LIBSPECTRUM_API int libspectrum_snap_late_timings( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_late_timings( libspectrum_snap *snap, int late_timings );
+LIBSPECTRUM_API int libspectrum_snap_zx_printer_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zx_printer_active( libspectrum_snap *snap, int zx_printer_active );
+LIBSPECTRUM_API int libspectrum_snap_usource_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_usource_active( libspectrum_snap *snap, int usource_active );
+LIBSPECTRUM_API int libspectrum_snap_usource_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_usource_paged( libspectrum_snap *snap, int usource_paged );
+LIBSPECTRUM_API int libspectrum_snap_usource_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_usource_custom_rom( libspectrum_snap *snap, int usource_custom_rom );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_usource_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_usource_rom( libspectrum_snap *snap, int idx, libspectrum_byte* usource_rom );
+LIBSPECTRUM_API size_t libspectrum_snap_usource_rom_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_usource_rom_length( libspectrum_snap *snap, int idx, size_t usource_rom_length );
+LIBSPECTRUM_API int libspectrum_snap_disciple_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_active( libspectrum_snap *snap, int disciple_active );
+LIBSPECTRUM_API int libspectrum_snap_disciple_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_paged( libspectrum_snap *snap, int disciple_paged );
+LIBSPECTRUM_API int libspectrum_snap_disciple_inhibit_button( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_inhibit_button( libspectrum_snap *snap, int disciple_inhibit_button );
+LIBSPECTRUM_API int libspectrum_snap_disciple_drive_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_drive_count( libspectrum_snap *snap, int disciple_drive_count );
+LIBSPECTRUM_API int libspectrum_snap_disciple_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_custom_rom( libspectrum_snap *snap, int disciple_custom_rom );
+LIBSPECTRUM_API int libspectrum_snap_disciple_direction( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_direction( libspectrum_snap *snap, int disciple_direction );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_disciple_control( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_control( libspectrum_snap *snap, libspectrum_byte disciple_control );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_disciple_track( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_track( libspectrum_snap *snap, libspectrum_byte disciple_track );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_disciple_sector( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_sector( libspectrum_snap *snap, libspectrum_byte disciple_sector );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_disciple_data( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_data( libspectrum_snap *snap, libspectrum_byte disciple_data );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_disciple_status( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_status( libspectrum_snap *snap, libspectrum_byte disciple_status );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_disciple_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_rom( libspectrum_snap *snap, int idx, libspectrum_byte* disciple_rom );
+LIBSPECTRUM_API size_t libspectrum_snap_disciple_rom_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_rom_length( libspectrum_snap *snap, int idx, size_t disciple_rom_length );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_disciple_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_disciple_ram( libspectrum_snap *snap, int idx, libspectrum_byte* disciple_ram );
+LIBSPECTRUM_API int libspectrum_snap_didaktik80_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_active( libspectrum_snap *snap, int didaktik80_active );
+LIBSPECTRUM_API int libspectrum_snap_didaktik80_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_paged( libspectrum_snap *snap, int didaktik80_paged );
+LIBSPECTRUM_API int libspectrum_snap_didaktik80_drive_count( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_drive_count( libspectrum_snap *snap, int didaktik80_drive_count );
+LIBSPECTRUM_API int libspectrum_snap_didaktik80_custom_rom( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_custom_rom( libspectrum_snap *snap, int didaktik80_custom_rom );
+LIBSPECTRUM_API int libspectrum_snap_didaktik80_direction( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_direction( libspectrum_snap *snap, int didaktik80_direction );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_didaktik80_aux( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_aux( libspectrum_snap *snap, libspectrum_byte didaktik80_aux );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_didaktik80_track( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_track( libspectrum_snap *snap, libspectrum_byte didaktik80_track );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_didaktik80_sector( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_sector( libspectrum_snap *snap, libspectrum_byte didaktik80_sector );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_didaktik80_data( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_data( libspectrum_snap *snap, libspectrum_byte didaktik80_data );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_didaktik80_status( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_status( libspectrum_snap *snap, libspectrum_byte didaktik80_status );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_didaktik80_rom( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_rom( libspectrum_snap *snap, int idx, libspectrum_byte* didaktik80_rom );
+LIBSPECTRUM_API size_t libspectrum_snap_didaktik80_rom_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_rom_length( libspectrum_snap *snap, int idx, size_t didaktik80_rom_length );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_didaktik80_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_didaktik80_ram( libspectrum_snap *snap, int idx, libspectrum_byte* didaktik80_ram );
+LIBSPECTRUM_API int libspectrum_snap_covox_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_covox_active( libspectrum_snap *snap, int covox_active );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_covox_dac( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_covox_dac( libspectrum_snap *snap, libspectrum_byte covox_dac );
+LIBSPECTRUM_API int libspectrum_snap_ulaplus_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_ulaplus_active( libspectrum_snap *snap, int ulaplus_active );
+LIBSPECTRUM_API int libspectrum_snap_ulaplus_palette_enabled( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_ulaplus_palette_enabled( libspectrum_snap *snap, int ulaplus_palette_enabled );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_ulaplus_current_register( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_ulaplus_current_register( libspectrum_snap *snap, libspectrum_byte ulaplus_current_register );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_ulaplus_palette( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_ulaplus_palette( libspectrum_snap *snap, int idx, libspectrum_byte* ulaplus_palette );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_ulaplus_ff_register( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_ulaplus_ff_register( libspectrum_snap *snap, libspectrum_byte ulaplus_ff_register );
+LIBSPECTRUM_API int libspectrum_snap_multiface_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_active( libspectrum_snap *snap, int multiface_active );
+LIBSPECTRUM_API int libspectrum_snap_multiface_paged( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_paged( libspectrum_snap *snap, int multiface_paged );
+LIBSPECTRUM_API int libspectrum_snap_multiface_model_one( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_model_one( libspectrum_snap *snap, int multiface_model_one );
+LIBSPECTRUM_API int libspectrum_snap_multiface_model_128( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_model_128( libspectrum_snap *snap, int multiface_model_128 );
+LIBSPECTRUM_API int libspectrum_snap_multiface_model_3( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_model_3( libspectrum_snap *snap, int multiface_model_3 );
+LIBSPECTRUM_API int libspectrum_snap_multiface_disabled( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_disabled( libspectrum_snap *snap, int multiface_disabled );
+LIBSPECTRUM_API int libspectrum_snap_multiface_software_lockout( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_software_lockout( libspectrum_snap *snap, int multiface_software_lockout );
+LIBSPECTRUM_API int libspectrum_snap_multiface_red_button_disabled( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_red_button_disabled( libspectrum_snap *snap, int multiface_red_button_disabled );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_snap_multiface_ram( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_ram( libspectrum_snap *snap, int idx, libspectrum_byte* multiface_ram );
+LIBSPECTRUM_API size_t libspectrum_snap_multiface_ram_length( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_multiface_ram_length( libspectrum_snap *snap, int idx, size_t multiface_ram_length );
+LIBSPECTRUM_API int libspectrum_snap_zxmmc_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_zxmmc_active( libspectrum_snap *snap, int zxmmc_active );
+LIBSPECTRUM_API int libspectrum_snap_ttx2000s_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_ttx2000s_active( libspectrum_snap *snap, int ttx2000s_active );
 
 /*
  * Tape handling routines
@@ -991,17 +1245,17 @@ typedef struct libspectrum_tape_generalised_data_symbol_table libspectrum_tape_g
 typedef struct _GSList *libspectrum_tape_iterator;
 
 /* Some flags */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_BLOCK;  /* End of block */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_STOP;	  /* Stop tape */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_STOP48; /* Stop tape if in 48K mode */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_NO_EDGE; /* Edge isn't really an edge */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_LEVEL_LOW; /* Set level low */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_LEVEL_HIGH; /* Set level high */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_LENGTH_SHORT;/* Short edge;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_BLOCK;  /* End of block */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_STOP;	  /* Stop tape */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_STOP48; /* Stop tape if in 48K mode */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_NO_EDGE; /* Edge isn't really an edge */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_LEVEL_LOW; /* Set level low */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_LEVEL_HIGH; /* Set level high */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_LENGTH_SHORT;/* Short edge;
                                                 used for loader acceleration */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_LENGTH_LONG; /* Long edge;
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_LENGTH_LONG; /* Long edge;
                                                 used for loader acceleration */
-extern WIN32_DLL const int LIBSPECTRUM_TAPE_FLAGS_TAPE;	/* Tape has finished */
+extern LIBSPECTRUM_API const int LIBSPECTRUM_TAPE_FLAGS_TAPE;	/* Tape has finished */
 
 /* The states which a block can be in */
 typedef enum libspectrum_tape_state_type {
@@ -1019,186 +1273,189 @@ typedef enum libspectrum_tape_state_type {
 } libspectrum_tape_state_type;
 
 /* Routines to manipulate tape blocks */
-WIN32_DLL libspectrum_tape_block*
+LIBSPECTRUM_API libspectrum_tape_block*
 libspectrum_tape_block_alloc( libspectrum_tape_type type );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_block_free( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_tape_type
+LIBSPECTRUM_API libspectrum_tape_type
 libspectrum_tape_block_type( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_block_set_type( libspectrum_tape_block *block,
 				 libspectrum_tape_type type );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_block_init( libspectrum_tape_block *block,
                              libspectrum_tape_block_state *state );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_block_description( char *buffer, size_t length,
 	                            libspectrum_tape_block *block );
 
-WIN32_DLL int
+LIBSPECTRUM_API int
 libspectrum_tape_block_metadata( libspectrum_tape_block *block );
 
-WIN32_DLL libspectrum_dword
+LIBSPECTRUM_API libspectrum_dword
 libspectrum_tape_block_length( libspectrum_tape_block *block );
 
 /* Accessor functions */
-WIN32_DLL libspectrum_dword libspectrum_tape_block_bit_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit_length( libspectrum_tape_block *block, libspectrum_dword bit_length );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_bit0_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit0_length( libspectrum_tape_block *block, libspectrum_dword bit0_length );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_bit1_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit1_length( libspectrum_tape_block *block, libspectrum_dword bit1_length );
-WIN32_DLL size_t libspectrum_tape_block_bits_in_last_byte( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bits_in_last_byte( libspectrum_tape_block *block, size_t bits_in_last_byte );
-WIN32_DLL size_t libspectrum_tape_block_bits_per_data_symbol( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bits_per_data_symbol( libspectrum_tape_block *block, size_t bits_per_data_symbol );
-WIN32_DLL size_t libspectrum_tape_block_count( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_count( libspectrum_tape_block *block, size_t count );
-WIN32_DLL libspectrum_byte * libspectrum_tape_block_data( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_data( libspectrum_tape_block *block, libspectrum_byte* data );
-WIN32_DLL size_t libspectrum_tape_block_data_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_data_length( libspectrum_tape_block *block, size_t data_length );
-WIN32_DLL libspectrum_tape_generalised_data_symbol_table * libspectrum_tape_block_data_table( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_data_table( libspectrum_tape_block *block, libspectrum_tape_generalised_data_symbol_table* data_table );
-WIN32_DLL int libspectrum_tape_block_ids( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_ids( libspectrum_tape_block *block, int *ids );
-WIN32_DLL int libspectrum_tape_block_offset( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_offset( libspectrum_tape_block *block, int offset );
-WIN32_DLL int libspectrum_tape_block_offsets( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_offsets( libspectrum_tape_block *block, int *offsets );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_pause( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pause( libspectrum_tape_block *block, libspectrum_dword pause );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_pause_tstates( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pause_tstates( libspectrum_tape_block *block, libspectrum_dword pause_tstates );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_pilot_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pilot_length( libspectrum_tape_block *block, libspectrum_dword pilot_length );
-WIN32_DLL size_t libspectrum_tape_block_pilot_pulses( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pilot_pulses( libspectrum_tape_block *block, size_t pilot_pulses );
-WIN32_DLL libspectrum_word libspectrum_tape_block_pilot_repeats( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pilot_repeats( libspectrum_tape_block *block, libspectrum_word *pilot_repeats );
-WIN32_DLL libspectrum_byte libspectrum_tape_block_pilot_symbols( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pilot_symbols( libspectrum_tape_block *block, libspectrum_byte *pilot_symbols );
-WIN32_DLL libspectrum_tape_generalised_data_symbol_table * libspectrum_tape_block_pilot_table( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pilot_table( libspectrum_tape_block *block, libspectrum_tape_generalised_data_symbol_table* pilot_table );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_pulse_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pulse_length( libspectrum_tape_block *block, libspectrum_dword pulse_length );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_scale( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_scale( libspectrum_tape_block *block, libspectrum_dword scale );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_pulse_lengths( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pulse_lengths( libspectrum_tape_block *block, libspectrum_dword *pulse_lengths );
-WIN32_DLL size_t libspectrum_tape_block_pulse_repeats( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_pulse_repeats( libspectrum_tape_block *block, size_t *pulse_repeats );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_sync1_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_sync1_length( libspectrum_tape_block *block, libspectrum_dword sync1_length );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_sync2_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_sync2_length( libspectrum_tape_block *block, libspectrum_dword sync2_length );
-WIN32_DLL libspectrum_dword libspectrum_tape_block_tail_length( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_tail_length( libspectrum_tape_block *block, libspectrum_dword tail_length );
-WIN32_DLL char * libspectrum_tape_block_text( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_text( libspectrum_tape_block *block, char* text );
-WIN32_DLL char * libspectrum_tape_block_texts( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_texts( libspectrum_tape_block *block, char* *texts );
-WIN32_DLL int libspectrum_tape_block_types( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_types( libspectrum_tape_block *block, int *types );
-WIN32_DLL int libspectrum_tape_block_values( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_values( libspectrum_tape_block *block, int *values );
-WIN32_DLL int libspectrum_tape_block_level( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_level( libspectrum_tape_block *block, int level );
-WIN32_DLL libspectrum_byte libspectrum_tape_block_bit0_pulse_count( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit0_pulse_count( libspectrum_tape_block *block, libspectrum_byte bit0_pulse_count );
-WIN32_DLL libspectrum_byte libspectrum_tape_block_bit1_pulse_count( libspectrum_tape_block *block );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit1_pulse_count( libspectrum_tape_block *block, libspectrum_byte bit1_pulse_count );
-WIN32_DLL libspectrum_word libspectrum_tape_block_bit0_pulses( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit0_pulses( libspectrum_tape_block *block, libspectrum_word *bit0_pulses );
-WIN32_DLL libspectrum_word libspectrum_tape_block_bit1_pulses( libspectrum_tape_block *block, size_t idx );
-WIN32_DLL libspectrum_error libspectrum_tape_block_set_bit1_pulses( libspectrum_tape_block *block, libspectrum_word *bit1_pulses );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_bit_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit_length( libspectrum_tape_block *block, libspectrum_dword bit_length );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_bit0_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit0_length( libspectrum_tape_block *block, libspectrum_dword bit0_length );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_bit1_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit1_length( libspectrum_tape_block *block, libspectrum_dword bit1_length );
+LIBSPECTRUM_API size_t libspectrum_tape_block_bits_in_last_byte( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bits_in_last_byte( libspectrum_tape_block *block, size_t bits_in_last_byte );
+LIBSPECTRUM_API size_t libspectrum_tape_block_bits_per_data_symbol( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bits_per_data_symbol( libspectrum_tape_block *block, size_t bits_per_data_symbol );
+LIBSPECTRUM_API size_t libspectrum_tape_block_count( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_count( libspectrum_tape_block *block, size_t count );
+LIBSPECTRUM_API libspectrum_byte * libspectrum_tape_block_data( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_data( libspectrum_tape_block *block, libspectrum_byte* data );
+LIBSPECTRUM_API size_t libspectrum_tape_block_data_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_data_length( libspectrum_tape_block *block, size_t data_length );
+LIBSPECTRUM_API libspectrum_tape_generalised_data_symbol_table * libspectrum_tape_block_data_table( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_data_table( libspectrum_tape_block *block, libspectrum_tape_generalised_data_symbol_table* data_table );
+LIBSPECTRUM_API int libspectrum_tape_block_ids( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_ids( libspectrum_tape_block *block, int *ids );
+LIBSPECTRUM_API int libspectrum_tape_block_offset( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_offset( libspectrum_tape_block *block, int offset );
+LIBSPECTRUM_API int libspectrum_tape_block_offsets( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_offsets( libspectrum_tape_block *block, int *offsets );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_pause( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pause( libspectrum_tape_block *block, libspectrum_dword pause );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_pause_tstates( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pause_tstates( libspectrum_tape_block *block, libspectrum_dword pause_tstates );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_pilot_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pilot_length( libspectrum_tape_block *block, libspectrum_dword pilot_length );
+LIBSPECTRUM_API size_t libspectrum_tape_block_pilot_pulses( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pilot_pulses( libspectrum_tape_block *block, size_t pilot_pulses );
+LIBSPECTRUM_API libspectrum_word libspectrum_tape_block_pilot_repeats( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pilot_repeats( libspectrum_tape_block *block, libspectrum_word *pilot_repeats );
+LIBSPECTRUM_API libspectrum_byte libspectrum_tape_block_pilot_symbols( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pilot_symbols( libspectrum_tape_block *block, libspectrum_byte *pilot_symbols );
+LIBSPECTRUM_API libspectrum_tape_generalised_data_symbol_table * libspectrum_tape_block_pilot_table( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pilot_table( libspectrum_tape_block *block, libspectrum_tape_generalised_data_symbol_table* pilot_table );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_pulse_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pulse_length( libspectrum_tape_block *block, libspectrum_dword pulse_length );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_scale( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_scale( libspectrum_tape_block *block, libspectrum_dword scale );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_pulse_lengths( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pulse_lengths( libspectrum_tape_block *block, libspectrum_dword *pulse_lengths );
+LIBSPECTRUM_API size_t libspectrum_tape_block_pulse_repeats( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_pulse_repeats( libspectrum_tape_block *block, size_t *pulse_repeats );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_sync1_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_sync1_length( libspectrum_tape_block *block, libspectrum_dword sync1_length );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_sync2_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_sync2_length( libspectrum_tape_block *block, libspectrum_dword sync2_length );
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_block_tail_length( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_tail_length( libspectrum_tape_block *block, libspectrum_dword tail_length );
+LIBSPECTRUM_API char * libspectrum_tape_block_text( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_text( libspectrum_tape_block *block, char* text );
+LIBSPECTRUM_API char * libspectrum_tape_block_texts( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_texts( libspectrum_tape_block *block, char* *texts );
+LIBSPECTRUM_API int libspectrum_tape_block_types( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_types( libspectrum_tape_block *block, int *types );
+LIBSPECTRUM_API int libspectrum_tape_block_values( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_values( libspectrum_tape_block *block, int *values );
+LIBSPECTRUM_API int libspectrum_tape_block_level( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_level( libspectrum_tape_block *block, int level );
+LIBSPECTRUM_API libspectrum_byte libspectrum_tape_block_bit0_pulse_count( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit0_pulse_count( libspectrum_tape_block *block, libspectrum_byte bit0_pulse_count );
+LIBSPECTRUM_API libspectrum_byte libspectrum_tape_block_bit1_pulse_count( libspectrum_tape_block *block );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit1_pulse_count( libspectrum_tape_block *block, libspectrum_byte bit1_pulse_count );
+LIBSPECTRUM_API libspectrum_word libspectrum_tape_block_bit0_pulses( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit0_pulses( libspectrum_tape_block *block, libspectrum_word *bit0_pulses );
+LIBSPECTRUM_API libspectrum_word libspectrum_tape_block_bit1_pulses( libspectrum_tape_block *block, size_t idx );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_block_set_bit1_pulses( libspectrum_tape_block *block, libspectrum_word *bit1_pulses );
 
 /* A linked list of tape blocks */
 typedef struct libspectrum_tape libspectrum_tape;
 
-WIN32_DLL libspectrum_tape* libspectrum_tape_alloc( void );
-WIN32_DLL libspectrum_error libspectrum_tape_clear( libspectrum_tape *tape );
-WIN32_DLL libspectrum_error libspectrum_tape_free( libspectrum_tape *tape );
+LIBSPECTRUM_API libspectrum_tape* libspectrum_tape_alloc( void );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_clear( libspectrum_tape *tape );
+LIBSPECTRUM_API libspectrum_error libspectrum_tape_free( libspectrum_tape *tape );
 
 /* Read in a tape file, optionally guessing what sort of file it is */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 		       size_t length, libspectrum_id_t type,
 		       const char *filename );
 
 /* Write a tape file */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_write( libspectrum_byte **buffer, size_t *length,
 			libspectrum_tape *tape, libspectrum_id_t type );
 
 /* Does this tape structure actually contain a tape? */
-WIN32_DLL int libspectrum_tape_present( const libspectrum_tape *tape );
+LIBSPECTRUM_API int libspectrum_tape_present( const libspectrum_tape *tape );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_get_next_edge( libspectrum_dword *tstates, int *flags,
 	                        libspectrum_tape *tape );
 
 /* Get the current block from the tape */
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_current_block( libspectrum_tape *tape );
 
 /* Get the state of the active block on the tape */
-WIN32_DLL libspectrum_tape_state_type
+LIBSPECTRUM_API libspectrum_tape_state_type
 libspectrum_tape_state( libspectrum_tape *tape );
 
 /* Set the state of the active block on the tape */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_set_state( libspectrum_tape *tape,
                             libspectrum_tape_state_type state );
 
 /* Peek at the next block on the tape */
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_peek_next_block( libspectrum_tape *tape );
 
 /* Peek at the last block on the tape */
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_peek_last_block( libspectrum_tape *tape );
 
 /* Cause the next block on the tape to be active, initialise it
    and return it */
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_select_next_block( libspectrum_tape *tape );
 
 /* Get the position on the tape of the current block */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_position( int *n, libspectrum_tape *tape );
 
 /* Select the nth block on the tape */
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_nth_block( libspectrum_tape *tape, int n );
 
 /* Append a block to the current tape */
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_tape_append_block( libspectrum_tape *tape,
 			       libspectrum_tape_block *block );
 
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_tape_remove_block( libspectrum_tape *tape,
 			       libspectrum_tape_iterator it );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_tape_insert_block( libspectrum_tape *tape,
 			       libspectrum_tape_block *block,
 			       size_t position );
 
 /*** Routines for iterating through a tape ***/
 
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_iterator_init( libspectrum_tape_iterator *iterator,
 				libspectrum_tape *tape );
 
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_iterator_current( libspectrum_tape_iterator iterator );
 
-WIN32_DLL libspectrum_tape_block *
+LIBSPECTRUM_API libspectrum_tape_block *
 libspectrum_tape_iterator_next( libspectrum_tape_iterator *iterator );
+
+LIBSPECTRUM_API libspectrum_tape_block *
+libspectrum_tape_iterator_peek_next( libspectrum_tape_iterator iterator );
 
 /*** Routines for handling the TZX generalised data block symbol table
      structure ***/
@@ -1214,13 +1471,13 @@ typedef enum libspectrum_tape_generalised_data_symbol_edge_type {
 
 typedef struct libspectrum_tape_generalised_data_symbol libspectrum_tape_generalised_data_symbol;
 
-WIN32_DLL libspectrum_dword libspectrum_tape_generalised_data_symbol_table_symbols_in_block( const libspectrum_tape_generalised_data_symbol_table *table );
-WIN32_DLL libspectrum_byte libspectrum_tape_generalised_data_symbol_table_max_pulses( const libspectrum_tape_generalised_data_symbol_table *table );
-WIN32_DLL libspectrum_word libspectrum_tape_generalised_data_symbol_table_symbols_in_table( const libspectrum_tape_generalised_data_symbol_table *table );
-WIN32_DLL libspectrum_tape_generalised_data_symbol* libspectrum_tape_generalised_data_symbol_table_symbol( const libspectrum_tape_generalised_data_symbol_table *table, size_t which );	
+LIBSPECTRUM_API libspectrum_dword libspectrum_tape_generalised_data_symbol_table_symbols_in_block( const libspectrum_tape_generalised_data_symbol_table *table );
+LIBSPECTRUM_API libspectrum_byte libspectrum_tape_generalised_data_symbol_table_max_pulses( const libspectrum_tape_generalised_data_symbol_table *table );
+LIBSPECTRUM_API libspectrum_word libspectrum_tape_generalised_data_symbol_table_symbols_in_table( const libspectrum_tape_generalised_data_symbol_table *table );
+LIBSPECTRUM_API libspectrum_tape_generalised_data_symbol* libspectrum_tape_generalised_data_symbol_table_symbol( const libspectrum_tape_generalised_data_symbol_table *table, size_t which );
 
-WIN32_DLL libspectrum_tape_generalised_data_symbol_edge_type libspectrum_tape_generalised_data_symbol_type( const libspectrum_tape_generalised_data_symbol *symbol );
-WIN32_DLL libspectrum_word libspectrum_tape_generalised_data_symbol_pulse( const libspectrum_tape_generalised_data_symbol *symbol, size_t which );
+LIBSPECTRUM_API libspectrum_tape_generalised_data_symbol_edge_type libspectrum_tape_generalised_data_symbol_type( const libspectrum_tape_generalised_data_symbol *symbol );
+LIBSPECTRUM_API libspectrum_word libspectrum_tape_generalised_data_symbol_pulse( const libspectrum_tape_generalised_data_symbol *symbol, size_t which );
 
 
 /*
@@ -1229,40 +1486,40 @@ WIN32_DLL libspectrum_word libspectrum_tape_generalised_data_symbol_pulse( const
 
 typedef struct libspectrum_rzx libspectrum_rzx;
 
-WIN32_DLL libspectrum_rzx* libspectrum_rzx_alloc( void );
-WIN32_DLL libspectrum_error libspectrum_rzx_free( libspectrum_rzx *rzx );
+LIBSPECTRUM_API libspectrum_rzx* libspectrum_rzx_alloc( void );
+LIBSPECTRUM_API libspectrum_error libspectrum_rzx_free( libspectrum_rzx *rzx );
 
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_rzx_start_input( libspectrum_rzx *rzx, libspectrum_dword tstates );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_stop_input( libspectrum_rzx *rzx );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_add_snap( libspectrum_rzx *rzx, libspectrum_snap *snap, int automatic );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_rollback( libspectrum_rzx *rzx, libspectrum_snap **snap );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_rollback_to( libspectrum_rzx *rzx, libspectrum_snap **snap,
 			     size_t which );
 
-WIN32_DLL libspectrum_error
-libspectrum_rzx_store_frame( libspectrum_rzx *rzx, size_t instructions, 
+LIBSPECTRUM_API libspectrum_error
+libspectrum_rzx_store_frame( libspectrum_rzx *rzx, size_t instructions,
 			     size_t count, libspectrum_byte *in_bytes );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_start_playback( libspectrum_rzx *rzx, int which,
 				libspectrum_snap **snap );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_playback_frame( libspectrum_rzx *rzx, int *finished, libspectrum_snap **snap );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_playback( libspectrum_rzx *rzx, libspectrum_byte *byte );
 
 /* Get and set the tstate counter */
-WIN32_DLL size_t libspectrum_rzx_tstates( libspectrum_rzx *rzx );
+LIBSPECTRUM_API size_t libspectrum_rzx_tstates( libspectrum_rzx *rzx );
 
 /* Get the current frame's instruction count */
-WIN32_DLL size_t libspectrum_rzx_instructions( libspectrum_rzx *rzx );
+LIBSPECTRUM_API size_t libspectrum_rzx_instructions( libspectrum_rzx *rzx );
 
-WIN32_DLL libspectrum_dword libspectrum_rzx_get_keyid( libspectrum_rzx *rzx );
+LIBSPECTRUM_API libspectrum_dword libspectrum_rzx_get_keyid( libspectrum_rzx *rzx );
 
 typedef struct libspectrum_signature {
 
@@ -1273,7 +1530,7 @@ typedef struct libspectrum_signature {
 
 } libspectrum_signature;
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_get_signature( libspectrum_rzx *rzx,
 			       libspectrum_signature *signature );
 
@@ -1285,11 +1542,11 @@ typedef struct libspectrum_rzx_dsa_key {
 
 } libspectrum_rzx_dsa_key;
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_read( libspectrum_rzx *rzx, const libspectrum_byte *buffer,
 		      size_t length );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_rzx_write( libspectrum_byte **buffer, size_t *length,
 		       libspectrum_rzx *rzx, libspectrum_id_t snap_format,
 		       libspectrum_creator *creator, int compress,
@@ -1312,27 +1569,32 @@ typedef enum libspectrum_rzx_block_id {
 
 } libspectrum_rzx_block_id;
 
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_rzx_insert_snap( libspectrum_rzx *rzx, libspectrum_snap *snap,
 			     int where );
 
-WIN32_DLL libspectrum_rzx_iterator
+LIBSPECTRUM_API libspectrum_rzx_iterator
 libspectrum_rzx_iterator_begin( libspectrum_rzx *rzx );
-WIN32_DLL libspectrum_rzx_iterator
+LIBSPECTRUM_API libspectrum_rzx_iterator
 libspectrum_rzx_iterator_next( libspectrum_rzx_iterator it );
+LIBSPECTRUM_API libspectrum_rzx_iterator
+libspectrum_rzx_iterator_last( libspectrum_rzx *rzx );
 
-WIN32_DLL libspectrum_rzx_block_id
+LIBSPECTRUM_API libspectrum_rzx_block_id
 libspectrum_rzx_iterator_get_type( libspectrum_rzx_iterator it );
-WIN32_DLL size_t
+LIBSPECTRUM_API size_t
 libspectrum_rzx_iterator_get_frames( libspectrum_rzx_iterator it );
 
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_rzx_iterator_delete( libspectrum_rzx *rzx,
 				 libspectrum_rzx_iterator it );
-WIN32_DLL libspectrum_snap*
+LIBSPECTRUM_API libspectrum_snap*
 libspectrum_rzx_iterator_get_snap( libspectrum_rzx_iterator it );
-WIN32_DLL int
+LIBSPECTRUM_API int
 libspectrum_rzx_iterator_snap_is_automatic( libspectrum_rzx_iterator it );
+
+LIBSPECTRUM_API libspectrum_error
+libspectrum_rzx_finalise( libspectrum_rzx *rzx );
 
 /*
  * Microdrive image handling routines
@@ -1351,41 +1613,41 @@ typedef struct libspectrum_microdrive libspectrum_microdrive;
 
 /* Constructor/destructor */
 
-WIN32_DLL libspectrum_microdrive*
+LIBSPECTRUM_API libspectrum_microdrive*
 libspectrum_microdrive_alloc( void );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_microdrive_free( libspectrum_microdrive *microdrive );
 
 /* Accessors */
 
-WIN32_DLL libspectrum_byte
+LIBSPECTRUM_API libspectrum_byte
 libspectrum_microdrive_data( const libspectrum_microdrive *microdrive,
 			     size_t which );
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_microdrive_set_data( libspectrum_microdrive *microdrive,
 				 size_t which, libspectrum_byte data );
 
-WIN32_DLL int
+LIBSPECTRUM_API int
 libspectrum_microdrive_write_protect( const libspectrum_microdrive *microdrive );
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_microdrive_set_write_protect( libspectrum_microdrive *microdrive,
 					  int write_protect );
 
-WIN32_DLL libspectrum_byte
+LIBSPECTRUM_API libspectrum_byte
 libspectrum_microdrive_cartridge_len( const libspectrum_microdrive *microdrive );
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_microdrive_set_cartridge_len( libspectrum_microdrive *microdrive,
 					  libspectrum_byte len );
 
 /* .mdr format routines */
 
-WIN32_DLL int
+LIBSPECTRUM_API int
 libspectrum_microdrive_checksum( libspectrum_microdrive *microdrive,
 				 libspectrum_byte what );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_microdrive_mdr_read( libspectrum_microdrive *microdrive,
 				 libspectrum_byte *buffer, size_t length );
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_microdrive_mdr_write( const libspectrum_microdrive *microdrive,
 				  libspectrum_byte **buffer, size_t *length );
 
@@ -1398,7 +1660,7 @@ typedef enum libspectrum_dck_bank {
   LIBSPECTRUM_DCK_BANK_DOCK = 0,
   LIBSPECTRUM_DCK_BANK_EXROM = 254,
   LIBSPECTRUM_DCK_BANK_HOME = 255
-} libspectrum_dck_bank; 
+} libspectrum_dck_bank;
 
 /* The type of one 8Kb page */
 typedef enum libspectrum_dck_page_type {
@@ -1421,17 +1683,17 @@ typedef struct libspectrum_dck {
   libspectrum_dck_block *dck[256];	/* dck block data */
 } libspectrum_dck;
 
-WIN32_DLL libspectrum_dck* libspectrum_dck_alloc( void );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_dck* libspectrum_dck_alloc( void );
+LIBSPECTRUM_API libspectrum_error
 libspectrum_dck_free( libspectrum_dck *dck, int keep_pages );
 
 /* Read in a DCK file */
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_dck_read( libspectrum_dck *dck, const libspectrum_byte *buffer,
                       size_t length );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
                        size_t length, const char *filename );
 
@@ -1439,10 +1701,10 @@ libspectrum_dck_read2( libspectrum_dck *dck, const libspectrum_byte *buffer,
  * Crypto functions
  */
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_verify_signature( libspectrum_signature *signature,
 			      libspectrum_rzx_dsa_key *key );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_signature_free( libspectrum_signature *signature );
 
 /*
@@ -1450,7 +1712,7 @@ libspectrum_signature_free( libspectrum_signature *signature );
  */
 
 typedef enum libspectrum_ide_databus {
-  
+
   LIBSPECTRUM_IDE_DATA8,
   LIBSPECTRUM_IDE_DATA16,
   LIBSPECTRUM_IDE_DATA16_BYTESWAP,
@@ -1459,7 +1721,7 @@ typedef enum libspectrum_ide_databus {
 } libspectrum_ide_databus;
 
 typedef enum libspectrum_ide_unit {
-  
+
   LIBSPECTRUM_IDE_MASTER = 0,
   LIBSPECTRUM_IDE_SLAVE = 1,
 
@@ -1481,36 +1743,67 @@ typedef enum libspectrum_ide_register {
 
 typedef struct libspectrum_ide_channel libspectrum_ide_channel;
 
-WIN32_DLL libspectrum_ide_channel*
+LIBSPECTRUM_API libspectrum_ide_channel*
 libspectrum_ide_alloc( libspectrum_ide_databus databus );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_ide_free( libspectrum_ide_channel *chn );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_ide_insert( libspectrum_ide_channel *chn,
                         libspectrum_ide_unit unit,
                         const char *filename );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_ide_commit( libspectrum_ide_channel *chn,
 			libspectrum_ide_unit unit );
-WIN32_DLL int
+LIBSPECTRUM_API int
 libspectrum_ide_dirty( libspectrum_ide_channel *chn,
 		       libspectrum_ide_unit unit );
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_ide_eject( libspectrum_ide_channel *chn,
 		       libspectrum_ide_unit unit );
 
-WIN32_DLL libspectrum_error
+LIBSPECTRUM_API libspectrum_error
 libspectrum_ide_reset( libspectrum_ide_channel *chn );
 
-WIN32_DLL libspectrum_byte
+LIBSPECTRUM_API libspectrum_byte
 libspectrum_ide_read( libspectrum_ide_channel *chn,
 		      libspectrum_ide_register reg );
 
-WIN32_DLL void
+LIBSPECTRUM_API void
 libspectrum_ide_write( libspectrum_ide_channel *chn,
 		       libspectrum_ide_register reg,
 		       libspectrum_byte data );
+
+/* MMC handling routines */
+
+typedef struct libspectrum_mmc_card libspectrum_mmc_card;
+
+LIBSPECTRUM_API libspectrum_mmc_card*
+libspectrum_mmc_alloc( void );
+
+LIBSPECTRUM_API void
+libspectrum_mmc_free( libspectrum_mmc_card *card );
+
+LIBSPECTRUM_API libspectrum_error
+libspectrum_mmc_insert( libspectrum_mmc_card *card, const char *filename );
+
+LIBSPECTRUM_API void
+libspectrum_mmc_eject( libspectrum_mmc_card *card );
+
+LIBSPECTRUM_API void
+libspectrum_mmc_reset( libspectrum_mmc_card *card );
+
+LIBSPECTRUM_API int
+libspectrum_mmc_dirty( libspectrum_mmc_card *card );
+
+LIBSPECTRUM_API void
+libspectrum_mmc_commit( libspectrum_mmc_card *card );
+
+LIBSPECTRUM_API libspectrum_byte
+libspectrum_mmc_read( libspectrum_mmc_card *card );
+
+LIBSPECTRUM_API void
+libspectrum_mmc_write( libspectrum_mmc_card *card, libspectrum_byte data );
 
 #ifdef __cplusplus
 };

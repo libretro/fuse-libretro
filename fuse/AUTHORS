@@ -11,7 +11,7 @@ Fuse has been brought to you by:
 
 * John Elliott: for lib765, which provided Fuse's original emulation of the
   +3's FDC, and libdsk which provided support for more disk image formats:
-  see http://www.seasip.demon.co.uk/Unix/LibDsk/
+  see http://www.seasip.info/Unix/LibDsk/index.html
 
 * Darren Salt: the original versions of the code for +3 emulation,
   SLT support, MITSHM support (for the Xlib UI), TZX raw data blocks,
@@ -32,7 +32,7 @@ Fuse has been brought to you by:
 * Matthew Wescott: the AY logging code.
 
 * Marek Januszewski: Some patches making Fuse much closer to compiling under
-  Win32, and fixing up the GTK+ 2.0 interface.
+  Win32, and fixing up the GTK 2.0 interface.
 
 * Sergio Baldoví: improvements to the Win32 UI.
 
@@ -41,8 +41,8 @@ Fuse has been brought to you by:
 
 * Garry Lancaster: the simple 8-bit IDE, ZXATASP and ZXCF support.
 
-* Gergely Szasz: +3, +D, Opus and Interface 1/Microdrive emulation, the 'movie'
-  code and the ao sound driver.
+* Gergely Szasz: +3, +D, Opus, Didaktik 80 and Interface 1/Microdrive emulation,
+  the 'movie' code and the ALSA and ao sound drivers.
 
 * Bjoern Giesler: the original Wii port.
 
@@ -53,5 +53,3 @@ Fuse has been brought to you by:
 * Patrik Persson: the SpeccyBoot Ethernet emulation.
 
 * Philip Kendall: everything else.
-
-$Id: AUTHORS 4972 2013-05-19 16:46:43Z zubzero $

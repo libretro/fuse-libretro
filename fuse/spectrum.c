@@ -1,7 +1,5 @@
 /* spectrum.c: Generic Spectrum routines
-   Copyright (c) 1999-2004 Philip Kendall, Darren Salt
-
-   $Id: spectrum.c 4882 2013-02-15 23:47:37Z sbaldovi $
+   Copyright (c) 1999-2016 Philip Kendall, Darren Salt
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -32,10 +30,14 @@
 #include "display.h"
 #include "event.h"
 #include "keyboard.h"
+#include "infrastructure/startup_manager.h"
 #include "loader.h"
 #include "machine.h"
-#include "memory.h"
+#include "memory_pages.h"
+#include "module.h"
 #include "peripherals/printer.h"
+#include "peripherals/ula.h"
+#include "phantom_typist.h"
 #include "psg.h"
 #include "profile.h"
 #include "rzx.h"
@@ -55,15 +57,35 @@ libspectrum_byte RAM[ SPECTRUM_RAM_PAGES ][0x4000];
    precisely, since the ULA last pulled the /INT line to the Z80 low) */
 libspectrum_dword tstates;
 
-/* The last byte written to the ULA */
-libspectrum_byte spectrum_last_ula;
-
 /* Contention patterns */
 static int contention_pattern_65432100[] = { 5, 4, 3, 2, 1, 0, 0, 6 };
 static int contention_pattern_76543210[] = { 5, 4, 3, 2, 1, 0, 7, 6 };
 
 /* Event */
 int spectrum_frame_event;
+
+/* Debugger variable prefix */
+static const char * const debugger_type_string = "spectrum";
+
+/* Debugger variable for frame count */
+static const char * const frame_count_name = "frames";
+
+/* Count of frames since last reset */
+static libspectrum_dword frames_since_reset;
+
+static void
+spectrum_reset( int hard_reset )
+{
+  frames_since_reset = 0;
+}
+
+static module_info_t module_info = {
+  /* .reset = */ spectrum_reset,
+  /* .romcs = */ NULL,
+  /* .snapshot_enabled = */ NULL,
+  /* .snapshot_from = */ NULL,
+  /* .snapshot_to = */ NULL
+};
 
 static void
 spectrum_frame_event_fn( libspectrum_dword last_tstates, int type,
@@ -81,11 +103,37 @@ spectrum_frame_event_fn( libspectrum_dword last_tstates, int type,
   ui_error_frame();
 }
 
-void
-spectrum_init( void )
+static libspectrum_dword
+get_frame_count( void )
+{
+  return frames_since_reset;
+}
+
+static int
+spectrum_init( void *context )
 {
   spectrum_frame_event = event_register( spectrum_frame_event_fn,
 					 "End of frame" );
+
+  module_register( &module_info );
+
+  debugger_system_variable_register( debugger_type_string,
+      frame_count_name, get_frame_count, NULL );
+
+  return 0;
+}
+
+void
+spectrum_register_startup( void )
+{
+  startup_manager_module dependencies[] = {
+    STARTUP_MANAGER_MODULE_DEBUGGER,
+    STARTUP_MANAGER_MODULE_EVENT,
+    STARTUP_MANAGER_MODULE_SETUID,
+  };
+  startup_manager_register( STARTUP_MANAGER_MODULE_SPECTRUM, dependencies,
+                            ARRAY_SIZE( dependencies ), spectrum_init, NULL, 
+                            NULL );
 }
 
 int
@@ -100,6 +148,7 @@ spectrum_frame( void )
 			      : machine_current->timings.tstates_per_frame;
 
   event_frame( frame_length );
+  debugger_breakpoint_reduce_tstates( frame_length );
   tstates -= frame_length;
   if( z80.interrupts_enabled_at >= 0 )
     z80.interrupts_enabled_at -= frame_length;
@@ -116,6 +165,9 @@ spectrum_frame( void )
                spectrum_frame_event );
 
   loader_frame( frame_length );
+  phantom_typist_frame();
+
+  frames_since_reset++;
 
   return 0;
 }

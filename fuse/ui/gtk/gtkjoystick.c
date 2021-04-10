@@ -1,7 +1,5 @@
 /* gtkjoystick.c: Joystick emulation
-   Copyright (c) 2003-2004 Darren Salt, Philip Kendall
-
-   $Id: gtkjoystick.c 4962 2013-05-19 05:25:15Z sbaldovi $
+   Copyright (c) 2003-2015 Darren Salt, Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -68,12 +66,12 @@ struct joystick_info {
   int *type;
   GtkWidget *radio[ JOYSTICK_TYPE_COUNT ];
 
-  struct button_info button[15];
+  struct button_info button[NUM_JOY_BUTTONS];
 };
 
 typedef enum key_item_t {
   ITEM = 0,
-  GROUP,
+  KEY_GROUP,
   SUBITEM,
 } key_item_t;
 
@@ -98,7 +96,7 @@ static key_menu_t key_menu[] = {
 
     { ITEM, "Joystick Fire", KEYBOARD_JOYSTICK_FIRE }, 
 
-    { GROUP, "Numbers", KEYBOARD_NONE }, 
+    { KEY_GROUP, "Numbers", KEYBOARD_NONE },
     { SUBITEM, "0", KEYBOARD_0 },
     { SUBITEM, "1", KEYBOARD_1 },
     { SUBITEM, "2", KEYBOARD_2 },
@@ -110,7 +108,7 @@ static key_menu_t key_menu[] = {
     { SUBITEM, "8", KEYBOARD_8 },
     { SUBITEM, "9", KEYBOARD_9 },
 
-    { GROUP, "A - M", KEYBOARD_NONE },
+    { KEY_GROUP, "A - M", KEYBOARD_NONE },
     { SUBITEM, "A", KEYBOARD_a },
     { SUBITEM, "B", KEYBOARD_b },
     { SUBITEM, "C", KEYBOARD_c },
@@ -125,7 +123,7 @@ static key_menu_t key_menu[] = {
     { SUBITEM, "L", KEYBOARD_l },
     { SUBITEM, "M", KEYBOARD_m },
 
-    { GROUP, "N - Z", KEYBOARD_NONE },
+    { KEY_GROUP, "N - Z", KEYBOARD_NONE },
     { SUBITEM, "N", KEYBOARD_n },
     { SUBITEM, "O", KEYBOARD_o },
     { SUBITEM, "P", KEYBOARD_p },
@@ -148,9 +146,7 @@ static key_menu_t key_menu[] = {
 
 };
 
-static const guint key_menu_count = G_N_ELEMENTS( key_menu );
-
-GtkTreeModel *
+static GtkTreeModel *
 create_joystick_options_store( void )
 {
   GtkTreeIter iter, iter2;
@@ -159,12 +155,12 @@ create_joystick_options_store( void )
 
   store = gtk_tree_store_new( NUM_COLS, G_TYPE_STRING, G_TYPE_INT );
 
-  for( i = 0; i < key_menu_count; i++ ) {
+  for( i = 0; i < ARRAY_SIZE( key_menu ); i++ ) {
 
     switch( key_menu[i].item ) {
 
       case ITEM:
-      case GROUP:
+      case KEY_GROUP:
         gtk_tree_store_append( store, &iter, NULL );
         gtk_tree_store_set( store, &iter,
                             COL_TEXT, key_menu[i].text,
@@ -214,7 +210,7 @@ menu_options_joysticks_select( GtkAction *gtk_action GCC_UNUSED,
 
   model = create_joystick_options_store();
 
-  for( i = 0; i < 15; i += 5 ) {
+  for( i = 0; i < NUM_JOY_BUTTONS; i += 5 ) {
     
     int j;
 
@@ -232,6 +228,8 @@ menu_options_joysticks_select( GtkAction *gtk_action GCC_UNUSED,
 
   gtkstock_create_ok_cancel( dialog, NULL, G_CALLBACK( joystick_done ),
                              &info, DEFAULT_DESTROY, DEFAULT_DESTROY );
+
+  gtk_dialog_set_default_response( GTK_DIALOG( dialog ), GTK_RESPONSE_OK );
 
   gtk_widget_show_all( dialog );
   gtk_main();
@@ -263,7 +261,7 @@ setup_info( struct joystick_info *info, int callback_action )
     info->button[12].setting = &( settings_current.joystick_1_fire_13 );
     info->button[13].setting = &( settings_current.joystick_1_fire_14 );
     info->button[14].setting = &( settings_current.joystick_1_fire_15 );
-    for( i = 0; i < 15; i++ )
+    for( i = 0; i < NUM_JOY_BUTTONS; i++ )
       snprintf( info->button[i].name, 80, "Button %lu", (unsigned long)i + 1 );
     break;
 
@@ -284,7 +282,7 @@ setup_info( struct joystick_info *info, int callback_action )
     info->button[12].setting = &( settings_current.joystick_2_fire_12 );
     info->button[13].setting = &( settings_current.joystick_2_fire_13 );
     info->button[14].setting = &( settings_current.joystick_2_fire_14 );
-    for( i = 0; i < 15; i++ )
+    for( i = 0; i < NUM_JOY_BUTTONS; i++ )
       snprintf( info->button[i].name, 80, "Button %lu", (unsigned long)i + 1 );
     break;
 
@@ -300,7 +298,7 @@ setup_info( struct joystick_info *info, int callback_action )
     snprintf( info->button[3].name, 80, "Button for RIGHT" );
     info->button[4].setting = &( settings_current.joystick_keyboard_fire  );
     snprintf( info->button[4].name, 80, "Button for FIRE" );
-    for( i = 5; i < 10; i++ ) info->button[i].setting = NULL;
+    for( i = 5; i < NUM_JOY_BUTTONS; i++ ) info->button[i].setting = NULL;
     break;
 
   }
@@ -371,13 +369,13 @@ create_fire_button_selector( const char *title, struct button_info *info,
   info->key = *info->setting;
   info->label = gtk_label_new( "" );
 
-  for( i = 0; i < key_menu_count; i++ ) {
+  for( i = 0; i < ARRAY_SIZE( key_menu ); i++ ) {
     
     keyboard_key_name key;
 
     key = key_menu[i].key;
 
-    if( key_menu[i].item != GROUP && key == (unsigned int)*info->setting ) {
+    if( key_menu[i].item != KEY_GROUP && key == (unsigned int)*info->setting ) {
       set_key_text( info->label, key );
       break;
     }
@@ -450,7 +448,7 @@ joystick_done( GtkButton *button GCC_UNUSED, gpointer user_data )
   int i;
   GtkToggleButton *toggle;
 
-  for( i = 0; i < 15; i++ )
+  for( i = 0; i < NUM_JOY_BUTTONS; i++ )
     if( info->button[i].setting )
       *info->button[i].setting = info->button[i].key;
 

@@ -1,7 +1,5 @@
 /* bzip2.c: routines for bzip2 decompression of data
-   Copyright (c) 2003-2005 Philip Kendall
-
-   $Id: bzip2.c 3698 2008-06-30 15:12:02Z pak21 $
+   Copyright (c) 2003-2015 Philip Kendall
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #ifdef HAVE_LIBBZ2
 
@@ -44,7 +42,7 @@ libspectrum_bzip2_inflate( const libspectrum_byte *bzptr, size_t bzlength,
   /* Known length, so we can use the easy method */
   if( *outlength ) {
 
-    *outptr = libspectrum_malloc( *outlength );
+    *outptr = libspectrum_new( libspectrum_byte, *outlength );
     length2 = *outlength;
 
     error = BZ2_bzBuffToBuffDecompress( (char*)*outptr, &length2, (char*)bzptr,
@@ -66,7 +64,7 @@ libspectrum_bzip2_inflate( const libspectrum_byte *bzptr, size_t bzlength,
 
     length = bzlength;
 
-    *outptr = libspectrum_malloc( length );
+    *outptr = libspectrum_new( libspectrum_byte, length );
 
     /* Use standard memory allocation/free routines */
     stream.bzalloc = NULL; stream.bzfree = NULL; stream.opaque = NULL;
@@ -113,13 +111,13 @@ libspectrum_bzip2_inflate( const libspectrum_byte *bzptr, size_t bzlength,
 	  return LIBSPECTRUM_ERROR_LOGIC;
 	}
 	*outlength = stream.total_out_lo32;
-	*outptr = libspectrum_realloc( *outptr, *outlength );
+	*outptr = libspectrum_renew( libspectrum_byte, *outptr, *outlength );
 	return LIBSPECTRUM_ERROR_NONE;
 
       case BZ_OK:		/* More output space required */
 
 	length += bzlength;
-	ptr = libspectrum_realloc( *outptr, length );
+	ptr = libspectrum_renew( libspectrum_byte, *outptr, length );
 	*outptr = ptr;
 	stream.next_out = (char*)*outptr + stream.total_out_lo32;
 	stream.avail_out += bzlength;

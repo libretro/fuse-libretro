@@ -1,7 +1,6 @@
 /* breakpoint.h: a debugger breakpoint
    Copyright (c) 2002-2011 Philip Kendall
-
-   $Id: breakpoint.h 4415 2011-05-01 22:51:43Z pak21 $
+   Copyright (c) 2013 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +25,7 @@
 #ifndef FUSE_DEBUGGER_BREAKPOINT_H
 #define FUSE_DEBUGGER_BREAKPOINT_H
 
-#include "memory.h"
+#include "memory_pages.h"
 
 /* Types of breakpoint */
 typedef enum debugger_breakpoint_type {
@@ -76,6 +75,7 @@ typedef struct debugger_breakpoint_port {
 
 typedef struct debugger_breakpoint_time {
   libspectrum_dword tstates;
+  libspectrum_dword initial_tstates;
   int triggered;
 } debugger_breakpoint_time;
 
@@ -116,6 +116,9 @@ extern GSList *debugger_breakpoints;
 
 int debugger_check( debugger_breakpoint_type type, libspectrum_dword value );
 
+void
+debugger_breakpoint_reduce_tstates( libspectrum_dword tstates );
+
 /* Add a new breakpoint */
 int
 debugger_breakpoint_add_address(
@@ -131,7 +134,7 @@ debugger_breakpoint_add_port(
 
 int
 debugger_breakpoint_add_time(
-  debugger_breakpoint_type type, libspectrum_dword tstates,
+  debugger_breakpoint_type type, libspectrum_dword breakpoint_tstates,
   size_t ignore, debugger_breakpoint_life life, debugger_expression *condition
 );
 

@@ -1,8 +1,6 @@
 /* sdlsound.c: SDL sound I/O
-   Copyright (c) 2002-2004 Alexander Yurchenko, Russell Marks, Philip Kendall,
+   Copyright (c) 2002-2015 Alexander Yurchenko, Russell Marks, Philip Kendall,
 			   Fredrick Meunier
-
-   $Id: sdlsound.c 4670 2012-02-20 10:24:22Z fredm $
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -60,11 +58,12 @@ sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
   /* I'd rather just use setenv, but Windows doesn't have it */
   if( device ) {
     const char *environment = "SDL_AUDIODRIVER=";
-    char *command = malloc( strlen( environment ) + strlen( device ) + 1 );
+    char *command = libspectrum_new( char, strlen( environment ) +
+                                           strlen( device ) + 1 );
     strcpy( command, environment );
     strcat( command, device );
     error = putenv( command );
-    free( command );
+    libspectrum_free( command );
     if( error ) { 
       settings_current.sound = 0;
       ui_error( UI_ERROR_ERROR, "Couldn't set SDL_AUDIODRIVER: %s",
@@ -94,7 +93,11 @@ sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
      speed to about 2000% on my Mac, 100Hz allows up to 5000% for me) */
   if( hz > 100.0 ) hz = 100.0;
   sound_framesiz = *freqptr / hz;
+#ifdef __FreeBSD__
+  requested.samples = pow( 2.0, floor( log2( sound_framesiz ) ) );
+#else			/* #ifdef __FreeBSD__ */
   requested.samples = sound_framesiz;
+#endif			/* #ifdef __FreeBSD__ */
 
   if ( SDL_OpenAudio( &requested, &received ) < 0 ) {
     settings_current.sound = 0;

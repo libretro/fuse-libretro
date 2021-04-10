@@ -1,7 +1,10 @@
 /* utils.c: some useful helper functions
    Copyright (c) 1999-2012 Philip Kendall
-
-   $Id: utils.c 4842 2013-01-02 23:03:32Z zubzero $
+   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2015 Gergely Szasz
+   Copyright (c) 2015 Fredrick Meunier
+   Copyright (c) 2016 BogDan Vatra
+   Copyright (c) 2016 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,19 +33,21 @@
 #include <libgen.h>
 #endif				/* #ifdef HAVE_LIBGEN_H */
 #include <string.h>
-#include <sys/stat.h>
 #include <ui/ui.h>
+#include <unistd.h>
 
 #include <libspectrum.h>
 
 #include "fuse.h"
 #include "machines/specplus3.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "peripherals/dck.h"
 #include "peripherals/ide/divide.h"
+#include "peripherals/ide/divmmc.h"
 #include "peripherals/ide/simpleide.h"
 #include "peripherals/ide/zxatasp.h"
 #include "peripherals/ide/zxcf.h"
+#include "peripherals/ide/zxmmc.h"
 #include "peripherals/if1.h"
 #include "peripherals/if2.h"
 #include "pokefinder/pokemem.h"
@@ -115,6 +120,11 @@ utils_open_file( const char *filename, int autoload,
     error = specplus3_disk_insert( SPECPLUS3_DRIVE_A, filename, autoload );
     break;
 
+  case LIBSPECTRUM_CLASS_DISK_DIDAKTIK:
+
+    error = didaktik80_disk_insert( DIDAKTIK80_DRIVE_A, filename, autoload );
+    break;
+
   case LIBSPECTRUM_CLASS_DISK_PLUSD:
 
     if( periph_is_active( PERIPH_TYPE_DISCIPLE ) )
@@ -130,9 +140,18 @@ utils_open_file( const char *filename, int autoload,
 
   case LIBSPECTRUM_CLASS_DISK_TRDOS:
 
-    error = machine_select( LIBSPECTRUM_MACHINE_PENT512 ); if( error ) break;
-    error = beta_disk_insert( BETA_DRIVE_A, filename, autoload ); if( error ) break;
-    error = machine_reset( 1 );
+    if( !( machine_current->capabilities &
+	   LIBSPECTRUM_MACHINE_CAPABILITY_TRDOS_DISK ) &&
+        !periph_is_active( PERIPH_TYPE_BETA128 ) ) {
+      error = machine_select( LIBSPECTRUM_MACHINE_SCORP ); if( error ) break;
+    }
+
+    /* Check that we actually got a Beta capable machine to insert the disk */
+    if( ( machine_current->capabilities & 
+          LIBSPECTRUM_MACHINE_CAPABILITY_TRDOS_DISK ) ||
+        periph_is_active( PERIPH_TYPE_BETA128 ) ) {
+      error = beta_disk_insert( BETA_DRIVE_A, filename, autoload );
+    }
     break;
 
   case LIBSPECTRUM_CLASS_DISK_GENERIC:
@@ -166,13 +185,19 @@ utils_open_file( const char *filename, int autoload,
 	   LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_DOCK ) ) {
       error = machine_select( LIBSPECTRUM_MACHINE_TC2068 ); if( error ) break;
     }
-    error = dck_insert( filename );
+    /* Check that we actually got a Dock capable machine to insert the cart */
+    if( machine_current->capabilities &
+	   LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_DOCK ) {
+      error = dck_insert( filename );
+    }
     break;
 
   case LIBSPECTRUM_CLASS_HARDDISK:
     if( !settings_current.simpleide_active &&
 	!settings_current.zxatasp_active   &&
 	!settings_current.divide_enabled   &&
+	!settings_current.divmmc_enabled   &&
+	!settings_current.zxmmc_enabled    &&
 	!settings_current.zxcf_active         ) {
       settings_current.zxcf_active = 1;
       periph_update();
@@ -184,8 +209,12 @@ utils_open_file( const char *filename, int autoload,
       error = zxatasp_insert( filename, LIBSPECTRUM_IDE_MASTER );
     } else if( settings_current.simpleide_active ) {
       error = simpleide_insert( filename, LIBSPECTRUM_IDE_MASTER );
-    } else {
+    } else if( settings_current.divide_enabled ) {
       error = divide_insert( filename, LIBSPECTRUM_IDE_MASTER );
+    } else if( settings_current.zxmmc_enabled ) {
+      error = zxmmc_insert( filename );
+    } else {
+      error = divmmc_insert( filename );
     }
     if( error ) return error;
     
@@ -259,11 +288,11 @@ utils_find_file_path( const char *filename, char *ret_path,
 		      utils_aux_type type )
 {
   path_context ctx;
-  struct stat stat_info;
 
   /* If given an absolute path, just look there */
   if( compat_is_absolute_path( filename ) ) {
     strncpy( ret_path, filename, PATH_MAX );
+    ret_path[ PATH_MAX - 1 ] = '\0';
     return 0;
   }
 
@@ -271,15 +300,14 @@ utils_find_file_path( const char *filename, char *ret_path,
   init_path_context( &ctx, type );
 
   while( compat_get_next_path( &ctx ) ) {
-
+    int bytes_written;
 #ifdef AMIGA
-    snprintf( ret_path, PATH_MAX, "%s%s", ctx.path, filename );
+    bytes_written = snprintf( ret_path, PATH_MAX, "%s%s", ctx.path, filename );
 #else
-    snprintf( ret_path, PATH_MAX, "%s" FUSE_DIR_SEP_STR "%s", ctx.path,
-              filename );
+    bytes_written = snprintf( ret_path, PATH_MAX, "%s" FUSE_DIR_SEP_STR "%s",
+        ctx.path, filename );
 #endif
-    if( !stat( ret_path, &stat_info ) ) return 0;
-
+    if( bytes_written < PATH_MAX && compat_file_exists(ret_path) ) return 0;
   }
 
   return 1;
@@ -322,7 +350,7 @@ utils_read_fd( compat_fd fd, const char *filename, utils_file *file )
   file->length = compat_file_get_length( fd );
   if( file->length == -1 ) return 1;
 
-  file->buffer = libspectrum_malloc( file->length );
+  file->buffer = libspectrum_new( unsigned char, file->length );
 
   if( compat_file_read( fd, file ) ) {
     libspectrum_free( file->buffer );
@@ -368,52 +396,6 @@ int utils_write_file( const char *filename, const unsigned char *buffer,
   return 0;
 }
 
-/* Make a copy of a file in a temporary file */
-int
-utils_make_temp_file( int *fd, char *tempfilename, const char *filename,
-		      const char *template )
-{
-  int error;
-  utils_file file;
-  ssize_t bytes_written;
-
-#if defined AMIGA || defined __MORPHOS__
-  snprintf( tempfilename, PATH_MAX, "%s%s", compat_get_temp_path(), template );
-#else
-  snprintf( tempfilename, PATH_MAX, "%s" FUSE_DIR_SEP_STR "%s",
-            compat_get_temp_path(), template );
-#endif
-
-  *fd = mkstemp( tempfilename );
-  if( *fd == -1 ) {
-    ui_error( UI_ERROR_ERROR, "couldn't create temporary file: %s",
-	      strerror( errno ) );
-    return 1;
-  }
-
-  error = utils_read_file( filename, &file );
-  if( error ) { close( *fd ); unlink( tempfilename ); return error; }
-
-  bytes_written = write( *fd, file.buffer, file.length );
-  if( bytes_written != file.length ) {
-    if( bytes_written == -1 ) {
-      ui_error( UI_ERROR_ERROR, "error writing to temporary file '%s': %s",
-		tempfilename, strerror( errno ) );
-    } else {
-      ui_error( UI_ERROR_ERROR,
-		"could write only %lu of %lu bytes to temporary file '%s'",
-		(unsigned long)bytes_written, (unsigned long)file.length,
-		tempfilename );
-    }
-    utils_close_file( &file ); close( *fd ); unlink( tempfilename );
-    return 1;
-  }
-
-  utils_close_file( &file );
-
-  return 0;
-}
-
 int
 utils_read_auxiliary_file( const char *filename, utils_file *file,
                            utils_aux_type type )
@@ -421,28 +403,20 @@ utils_read_auxiliary_file( const char *filename, utils_file *file,
   int error;
   compat_fd fd;
 
-#ifdef __CELLOS_LV2__
-  char fullpath[256];
-  sprintf(fullpath, "%s/%s", compat_get_home_path(),filename);
-  fd = utils_find_auxiliary_file( fullpath, type );
-#else
   fd = utils_find_auxiliary_file( filename, type );
-#endif
-  if( fd == COMPAT_FILE_OPEN_FAILED ) printf("COMPAT_FILE_OPEN_FAILED\n");
   if( fd == COMPAT_FILE_OPEN_FAILED ) return -1;
 
   error = utils_read_fd( fd, filename, file );
   if( error ) return error;
 
   return 0;
-
 }
 
 int
 utils_read_screen( const char *filename, utils_file *screen )
 {
   int error;
-  
+
   error = utils_read_auxiliary_file( filename, screen, UTILS_AUXILIARY_LIB );
   if( error == -1 ) {
     ui_error( UI_ERROR_ERROR, "couldn't find screen picture ('%s')",
@@ -467,13 +441,31 @@ utils_safe_strdup( const char *src )
 {
   char *dest = NULL;
   if( src ) {
-    dest = strdup( src );
-    if( !dest ) {
-      ui_error( UI_ERROR_ERROR, "out of memory at %s:%d\n", __FILE__, __LINE__ );
-      fuse_abort();
-    }
+    size_t length = strlen( src ) + 1;
+    dest = libspectrum_new( char, length );
+    memcpy( dest, src, length );
   }
   return dest;
+}
+
+int
+utils_save_binary( libspectrum_word start, size_t length,
+                   const char *filename )
+{
+  libspectrum_byte *buffer;
+  size_t i;
+  int error = 0;
+
+  buffer = libspectrum_new( libspectrum_byte, length );
+
+  for( i = 0; i < length; i++ )
+    buffer[ i ] = readbyte_internal( start + i );
+
+  error = utils_write_file( filename, buffer, length );
+
+  libspectrum_free( buffer );
+
+  return error;
 }
 
 void

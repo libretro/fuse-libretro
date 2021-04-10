@@ -1,8 +1,6 @@
 /* binary.h: Win32 routines to load/save chunks of binary data
    Copyright (c) 2008 Marek Januszewski
 
-   $Id: binary.h 3589 2008-03-27 20:16:53Z specu $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

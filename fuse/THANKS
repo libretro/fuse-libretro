@@ -22,14 +22,14 @@ Some thanks (in alphabetical order):
 
 * Ivan Ruiz Etxabe: for helping test RZX competition mode recording.
 
-* Martin Garton: making the GTK+ user interface compatible with GTK+ 2.0,
+* Martin Garton: making the GTK user interface compatible with GTK 2.0,
   although I then went and broke it in other ways.
 
 * Ian Greenway: for information about reading from unattached ports. If
   you've got an Amiga, you may well like to check out Ian's Spectrum
   Emulator, ASp: http://www.lasernet.plus.com/asp.html
 
-* Shawn Hargreaves: for Allegro (http://alleg.sourceforge.net/)
+* Shawn Hargreaves: for Allegro (http://liballeg.org/)
   (again, used by previous versions of Fuse for the graphical display)
 
 * Steven Harrison: for helping track down why the SDL sound routines
@@ -44,7 +44,7 @@ Some thanks (in alphabetical order):
   emulations (see `AUTHORS')
 
 * Gerton Lunter: his wonderful z80
-  (ftp://ftp.worldofspectrum.org/pub/sinclair/emulators/pc/dos/z80-400.zip)
+  (http://www.worldofspectrum.org/pub/sinclair/emulators/pc/windows/z80-400.zip)
   got me started on this emulation lark all those years ago...
 
 * Anders Holmberg: for reporting a bug in the z80 v1.45 load routines. Anders
@@ -59,6 +59,9 @@ Some thanks (in alphabetical order):
   the code as this has already been done by Fred :-(
 
 * David Muriel: for helping test RZX competition mode recording.
+
+* Andrew Owen: for providing the PNG keyboard image used in GTK and
+  win32 UIs.
 
 * Santiago Romero: for putting me on the track of a bug in Fuse's keyboard
   emulation.
@@ -101,5 +104,3 @@ Some thanks (in alphabetical order):
 * Alexander Yurchenko: for the OpenBSD/Solaris sound code (see `AUTHORS')
 
 * Matan Ziv-Av: for various bits of code (see `AUTHORS')
-
-$Id: THANKS 4882 2013-02-15 23:47:37Z sbaldovi $

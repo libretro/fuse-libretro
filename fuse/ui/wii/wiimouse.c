@@ -1,8 +1,6 @@
 /* wiimouse.c: routines for dealing with the Wiimote as a mouse
    Copyright (c) 2008-2009 Bjoern Giesler, Marek Januszewski
 
-   $Id: wiimouse.c 3995 2009-04-04 20:19:32Z specu $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

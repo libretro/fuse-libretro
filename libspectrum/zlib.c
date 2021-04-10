@@ -1,7 +1,6 @@
 /* zlib.c: routines for zlib (de)compression of data
    Copyright (c) 2002 Darren Salt, Philip Kendall
-
-   $Id: zlib.c 3698 2008-06-30 15:12:02Z pak21 $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,9 +24,7 @@
 
 */
 
-#include <config.h>
-
-#ifdef HAVE_ZLIB_H
+#include "config.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -38,6 +35,7 @@
 #include <unistd.h>
 #endif			/* #ifdef HAVE_UNISTD_H */
 
+#define ZLIB_CONST
 #include <zlib.h>
 
 #include "internals.h"
@@ -76,6 +74,13 @@ libspectrum_gzip_inflate( const libspectrum_byte *gzptr, size_t gzlength,
   return zlib_inflate( gzptr, gzlength, outptr, outlength, 1 );
 }
 
+libspectrum_error
+libspectrum_zip_inflate( const libspectrum_byte *zipptr, size_t ziplength,
+                         libspectrum_byte **outptr, size_t *outlength )
+{
+  return zlib_inflate( zipptr, ziplength, outptr, outlength, 1 );
+}
+
 static libspectrum_error
 zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
 	      libspectrum_byte **outptr, size_t *outlength, int gzip_hack )
@@ -86,8 +91,7 @@ zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
   /* Use default memory management */
   stream.zalloc = Z_NULL; stream.zfree = Z_NULL; stream.opaque = Z_NULL;
 
-  /* Cast needed to avoid warning about losing const */
-  stream.next_in = (libspectrum_byte*)gzptr; stream.avail_in = gzlength;
+  stream.next_in = gzptr; stream.avail_in = gzlength;
 
   if( gzip_hack ) { 
 
@@ -129,7 +133,7 @@ zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
 
   if( *outlength ) {
 
-    *outptr = libspectrum_malloc( *outlength );
+    *outptr = libspectrum_new( libspectrum_byte, *outlength );
     stream.next_out = *outptr; stream.avail_out = *outlength;
     error = inflate( &stream, Z_FINISH );
 
@@ -143,7 +147,7 @@ zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
       libspectrum_byte *ptr;
 
       *outlength += 16384; stream.avail_out += 16384;
-      ptr = libspectrum_realloc( *outptr, *outlength );
+      ptr = libspectrum_renew( libspectrum_byte, *outptr, *outlength );
       stream.next_out = ptr + ( stream.next_out - *outptr );
       *outptr = ptr;
 
@@ -154,7 +158,7 @@ zlib_inflate( const libspectrum_byte *gzptr, size_t gzlength,
   }
 
   *outlength = stream.next_out - *outptr;
-  *outptr = libspectrum_realloc( *outptr, *outlength );
+  *outptr = libspectrum_renew( libspectrum_byte, *outptr, *outlength );
 
   switch( error ) {
 
@@ -318,7 +322,7 @@ libspectrum_zlib_compress( const libspectrum_byte *data, size_t length,
   uLongf gzl = (uLongf)( length * 1.001 ) + 12;
   int gzret;
 
-  *gzptr = libspectrum_malloc( gzl );
+  *gzptr = libspectrum_new( libspectrum_byte, gzl );
   gzret = compress2( *gzptr, &gzl, data, length, Z_BEST_COMPRESSION );
 
   switch (gzret) {
@@ -353,5 +357,3 @@ libspectrum_zlib_compress( const libspectrum_byte *data, size_t length,
     return LIBSPECTRUM_ERROR_LOGIC;
   }
 }
-
-#endif				/* #ifdef HAVE_ZLIB_H */

@@ -2,8 +2,7 @@
                era Pentagon machine with Beta 128 and AY as described in the
                Russian Speccy FAQ and emulated on most Spectrum emulators.
    Copyright (c) 1999-2012 Philip Kendall and Fredrick Meunier
-
-   $Id: pentagon.c 4737 2012-09-28 13:15:27Z fredm $
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,7 +32,7 @@
 #include "machine.h"
 #include "machines.h"
 #include "machines_periph.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "module.h"
 #include "pentagon.h"
 #include "periph.h"
@@ -58,17 +57,19 @@ static module_info_t pentagon_module_info = {
 static int pentagon_reset( void );
 
 libspectrum_byte
-pentagon_select_1f_read( libspectrum_word port, int *attached )
+pentagon_select_1f_read( libspectrum_word port, libspectrum_byte *attached )
 {
   libspectrum_byte data;
-  int tmpattached = 0;
+  libspectrum_byte tmpattached = 0x00;
+
+  /* TODO: fine-grained attachment handling */
 
   data = beta_sr_read( port, &tmpattached );
   if( !tmpattached && settings_current.joy_kempston )
     data = joystick_kempston_read( port, &tmpattached );
 
   if( tmpattached ) {
-    *attached = 1;
+    *attached = 0xff; /* TODO: check this */
     return data;
   }
 
@@ -76,16 +77,18 @@ pentagon_select_1f_read( libspectrum_word port, int *attached )
 }
 
 libspectrum_byte
-pentagon_select_ff_read( libspectrum_word port, int *attached )
+pentagon_select_ff_read( libspectrum_word port, libspectrum_byte *attached )
 {
   libspectrum_byte data;
-  int tmpattached = 0;
+  libspectrum_byte tmpattached = 0x00;
   
+  /* TODO: fine-grained attachment handling */
+
   data = beta_sp_read( port, &tmpattached );
   if( !tmpattached )
     data = spectrum_unattached_port();
 
-  *attached = 1;
+  *attached = 0xff; /* TODO: check this */
   return data;
 }
 
@@ -145,6 +148,8 @@ pentagon_reset(void)
 
   /* Earlier style Betadisk 128 interface */
   periph_set_present( PERIPH_TYPE_BETA128_PENTAGON, PERIPH_PRESENT_ALWAYS );
+
+  periph_set_present( PERIPH_TYPE_COVOX_FB, PERIPH_PRESENT_OPTIONAL );
 
   periph_update();
 

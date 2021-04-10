@@ -1,8 +1,6 @@
 /* pzx_read.c: Routines for reading .pzx files
    Copyright (c) 2001, 2002 Philip Kendall, Darren Salt
-   Copyright (c) 2011 Fredrick Meunier
-
-   $Id: pzx_read.c 4388 2011-04-27 12:52:26Z fredm $
+   Copyright (c) 2011-2015 Fredrick Meunier
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,9 +22,8 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
-#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,9 +37,6 @@ typedef struct pzx_context {
   libspectrum_word version;
 
 } pzx_context;
-
-static const libspectrum_byte PZX_VERSION_MAJOR = 1;
-static const libspectrum_byte PZX_VERSION_MINOR = 0;
 
 /* Constants etc for each block type */
 
@@ -69,9 +63,6 @@ static struct info_t info_ids[] = {
 
 };
 
-static size_t info_ids_count =
-  sizeof( info_ids ) / sizeof( struct info_t );
-
 #define PZX_PULSE  "PULS"
 
 #define PZX_DATA   "DATA"
@@ -86,7 +77,7 @@ static const libspectrum_byte PZXF_STOP48 = 1;
 /* TODO: an extension to be similar to the TZX Custom Block Picture type */
 #define PZX_INLAY  "inly"
 
-static const char *signature = PZX_HEADER;
+static const char * const signature = PZX_HEADER;
 static const size_t signature_length = 4;
 
 static libspectrum_error
@@ -101,7 +92,7 @@ typedef libspectrum_error (*read_block_fn)( libspectrum_tape *tape,
 
 static libspectrum_error
 pzx_read_data( const libspectrum_byte **ptr, const libspectrum_byte *end,
-	       size_t length, libspectrum_byte **data );
+	       int count, size_t width, libspectrum_byte **data );
 
 static libspectrum_error
 pzx_read_string( const libspectrum_byte **ptr, const libspectrum_byte *end,
@@ -110,15 +101,15 @@ pzx_read_string( const libspectrum_byte **ptr, const libspectrum_byte *end,
 static int
 info_t_compar(const void *a, const void *b)
 {
-  char *key = (char *)a;
-  struct info_t *test = (struct info_t *)b;
+  const char *key = a;
+  const struct info_t *test = b;
   return strcmp( key, test->id );
 }
 
 static int
 get_id_byte( char *info_tag ) {
   struct info_t *info =
-    (struct info_t*)bsearch( info_tag, info_ids, info_ids_count,
+    (struct info_t*)bsearch( info_tag, info_ids, ARRAY_SIZE( info_ids ),
                              sizeof( struct info_t ), info_t_compar );
   return info == NULL ? -1 : info->archive_info_id;
 }
@@ -157,8 +148,8 @@ read_pzxt_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
   }
 
   if( *buffer < block_end ) {
-    ids = libspectrum_malloc( sizeof( *ids ) );
-    strings = libspectrum_malloc( sizeof( *strings ) );
+    ids = libspectrum_new( int, 1 );
+    strings = libspectrum_new( char *, 1 );
     count = 1;
     i = 0;
 
@@ -194,13 +185,13 @@ read_pzxt_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
     }
 
     i = count++;
-    ids = libspectrum_realloc( ids, count * sizeof( *ids ) );
-    strings = libspectrum_realloc( strings, count * sizeof( *strings ) );
+    ids = libspectrum_renew( int, ids, count );
+    strings = libspectrum_renew( char *, strings, count );
 
     if( id == -1 ) {
       size_t new_len = strlen( info_tag ) + strlen( string ) +
                        strlen( ": " ) + 1;
-      char *comment = libspectrum_malloc( new_len );
+      char *comment = libspectrum_new( char, new_len );
       snprintf( comment, new_len, "%s: %s", info_tag, string );
       libspectrum_free( string );
       ids[i] = 0xff;
@@ -238,6 +229,15 @@ read_data_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
   libspectrum_byte *data;
 
   libspectrum_error error;
+  libspectrum_dword count;
+  int initial_level;
+  size_t count_bytes;
+  size_t bits_in_last_byte;
+  libspectrum_word tail;
+  libspectrum_byte p0_count;
+  libspectrum_byte p1_count;
+  libspectrum_word *p0_pulses;
+  libspectrum_word *p1_pulses;
 
   /* Check there's enough left in the buffer for all the metadata */
   if( data_length < 8 ) {
@@ -249,16 +249,16 @@ read_data_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
   }
 
   /* Get the metadata */
-  libspectrum_dword count = libspectrum_read_dword( buffer );
-  int initial_level = !!(count & 0x80000000);
+  count = libspectrum_read_dword( buffer );
+  initial_level = !!(count & 0x80000000);
   count &= 0x7fffffff;
-  size_t count_bytes = ceil( count / (double)LIBSPECTRUM_BITS_IN_BYTE );
-  size_t bits_in_last_byte =
+  count_bytes = libspectrum_bits_to_bytes( count );
+  bits_in_last_byte =
     count % LIBSPECTRUM_BITS_IN_BYTE ?
       count % LIBSPECTRUM_BITS_IN_BYTE : LIBSPECTRUM_BITS_IN_BYTE;
-  libspectrum_word tail = libspectrum_read_word( buffer );
-  libspectrum_byte p0_count = **buffer; (*buffer)++;
-  libspectrum_byte p1_count = **buffer; (*buffer)++;
+  tail = libspectrum_read_word( buffer );
+  p0_count = **buffer; (*buffer)++;
+  p1_count = **buffer; (*buffer)++;
 
   /* need to confirm that we have enough length left for the pulse definitions
    */
@@ -270,20 +270,18 @@ read_data_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
-  libspectrum_word *p0_pulses;
   error = pzx_read_data( buffer, block_end,
-                         p0_count * sizeof( libspectrum_word ),
+                         p0_count, sizeof( libspectrum_word ),
                          (libspectrum_byte**)&p0_pulses );
   if( error ) return error;
 
-  libspectrum_word *p1_pulses;
   error = pzx_read_data( buffer, block_end,
-                         p1_count * sizeof( libspectrum_word ),
+                         p1_count, sizeof( libspectrum_word ),
                          (libspectrum_byte**)&p1_pulses );
   if( error ) { libspectrum_free( p0_pulses ); return error; }
 
   /* And the actual data */
-  error = pzx_read_data( buffer, block_end, count_bytes, &data );
+  error = pzx_read_data( buffer, block_end, count_bytes, 1, &data );
   if( error ) {
     libspectrum_free( p0_pulses );
     libspectrum_free( p1_pulses );
@@ -350,9 +348,9 @@ read_puls_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
   libspectrum_error error;
   size_t buffer_sizes = 64;
   size_t *pulse_repeats_buffer =
-    libspectrum_malloc( buffer_sizes * sizeof( size_t ) );
+    libspectrum_new( size_t, buffer_sizes );
   libspectrum_dword *lengths_buffer =
-    libspectrum_malloc( buffer_sizes * sizeof( libspectrum_dword ) );
+    libspectrum_new( libspectrum_dword, buffer_sizes );
   const libspectrum_byte *block_end = *buffer + data_length;
 
   while( ( block_end - (*buffer) ) > (ptrdiff_t)0 ) {
@@ -368,11 +366,9 @@ read_puls_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
     if( buffer_sizes == count ) {
       buffer_sizes *= 2;
       pulse_repeats_buffer =
-        libspectrum_realloc( pulse_repeats_buffer,
-                             buffer_sizes * sizeof( size_t ) );
+        libspectrum_renew( size_t, pulse_repeats_buffer, buffer_sizes );
       lengths_buffer =
-        libspectrum_realloc( lengths_buffer,
-                             buffer_sizes * sizeof( libspectrum_dword ) );
+        libspectrum_renew( libspectrum_dword, lengths_buffer, buffer_sizes );
     }
   }
 
@@ -384,11 +380,9 @@ read_puls_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
 
   if( buffer_sizes != count ) {
     pulse_repeats_buffer =
-      libspectrum_realloc( pulse_repeats_buffer,
-                           count * sizeof( size_t ) );
+      libspectrum_renew( size_t, pulse_repeats_buffer, count );
     lengths_buffer =
-      libspectrum_realloc( lengths_buffer,
-                           count * sizeof( libspectrum_dword ) );
+      libspectrum_renew( libspectrum_dword, lengths_buffer, count );
   }
 
   block = libspectrum_tape_block_alloc( LIBSPECTRUM_TAPE_BLOCK_PULSE_SEQUENCE );
@@ -462,6 +456,7 @@ read_stop_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
                  pzx_context *ctx )
 {
   libspectrum_tape_block *block;
+  libspectrum_word flags;
 
   if( data_length < 2 ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
@@ -469,7 +464,7 @@ read_stop_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
-  libspectrum_word flags = libspectrum_read_word( buffer );
+  flags = libspectrum_read_word( buffer );
 
   if( flags == PZXF_STOP48 ) {
     block = libspectrum_tape_block_alloc( LIBSPECTRUM_TAPE_BLOCK_STOP48 );
@@ -514,9 +509,6 @@ static struct read_block_t read_blocks[] = {
 
 };
 
-static size_t read_blocks_count =
-  sizeof( read_blocks ) / sizeof( struct read_block_t );
-
 static libspectrum_error
 read_block_header( char *id, libspectrum_dword *data_length, 
 		   const libspectrum_byte **buffer,
@@ -548,7 +540,7 @@ read_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
   error = read_block_header( id, &data_length, buffer, end );
   if( error ) return error;
 
-  if( *buffer + data_length > end || *buffer + data_length < *buffer ) {
+  if( end - *buffer < data_length ) {
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_CORRUPT,
       "read_block: block length goes beyond end of file"
@@ -558,7 +550,7 @@ read_block( libspectrum_tape *tape, const libspectrum_byte **buffer,
 
   done = 0;
 
-  for( i = 0; !done && i < read_blocks_count; i++ ) {
+  for( i = 0; !done && i < ARRAY_SIZE( read_blocks ); i++ ) {
 
     if( !memcmp( id, read_blocks[i].id, 4 ) ) {
       error = read_blocks[i].function( tape, buffer, end, data_length, ctx );
@@ -603,7 +595,7 @@ internal_pzx_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
     return LIBSPECTRUM_ERROR_SIGNATURE;
   }
 
-  ctx = libspectrum_malloc( sizeof( *ctx ) );
+  ctx = libspectrum_new( pzx_context, 1 );
   ctx->version = 0;
 
   while( buffer < end ) {
@@ -620,8 +612,9 @@ internal_pzx_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 
 static libspectrum_error
 pzx_read_data( const libspectrum_byte **ptr, const libspectrum_byte *end,
-	       size_t length, libspectrum_byte **data )
+	       int count, size_t width, libspectrum_byte **data )
 {
+  size_t length = count * width;
   /* Have we got enough bytes left in buffer? */
   if( ( end - (*ptr) ) < (ptrdiff_t)(length) ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
@@ -630,11 +623,19 @@ pzx_read_data( const libspectrum_byte **ptr, const libspectrum_byte *end,
   }
 
   /* Allocate memory for the data; the check for *length is to avoid
-     the implementation-defined of malloc( 0 ) */
+     the implementation-defined behaviour of malloc( 0 ) */
   if( length ) {
-    *data = libspectrum_malloc( ( length ) * sizeof( **data ) );
+    *data = libspectrum_new( libspectrum_byte, length );
     /* Copy the block data across, and move along */
-    memcpy( *data, *ptr, length ); *ptr += length;
+    if( width == sizeof( libspectrum_word ) ) {
+      int i;
+      libspectrum_word *dst = (libspectrum_word *) *data;
+      for( i = 0; i < count; i++ ) {
+        dst[i] = libspectrum_read_word( ptr );
+      }
+    } else {
+      memcpy( *data, *ptr, length ); *ptr += length;
+    }
   } else {
     *data = NULL;
   }
@@ -649,21 +650,20 @@ pzx_read_string( const libspectrum_byte **ptr, const libspectrum_byte *end,
   size_t length = 0;
   char *ptr2;
   size_t buffer_size = 64;
-  char *buffer =
-    libspectrum_malloc( buffer_size * sizeof( char ) );
+  char *buffer = libspectrum_new( char, buffer_size );
 
   while( **ptr != '\0' && *ptr < end ) {
     if( length == buffer_size ) {
       buffer_size *= 2;
-      buffer = libspectrum_realloc( buffer, buffer_size * sizeof( char ) );
+      buffer = libspectrum_renew( char, buffer, buffer_size );
     }
     *(buffer + length++) = **ptr; (*ptr)++;
   }
 
-  /* Advance past the null terminator if it isn't the end of the block */
-  if( **ptr == '\0' && *ptr < end ) (*ptr)++;
-  
-  *dest = libspectrum_malloc( (length + 1) * sizeof( libspectrum_byte ) );
+  /* Advance past the null terminator discarding any garbage */
+  *ptr = end;
+
+  *dest = libspectrum_new( char, (length + 1) );
 
   strncpy( *dest, buffer, length );
 

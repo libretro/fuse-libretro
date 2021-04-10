@@ -1,8 +1,6 @@
 /* uidisplay.h: Low-level display routines
    Copyright (c) 2000-2003 Philip Kendall
 
-   $Id: uidisplay.h 3666 2008-06-10 20:43:46Z fredm $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

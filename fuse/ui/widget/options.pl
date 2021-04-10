@@ -1,9 +1,7 @@
 #!/usr/bin/perl -w
 
 # options.pl: generate options dialog boxes
-# Copyright (c) 2001-2013 Philip Kendall, Fredrick Meunier
-
-# $Id: options.pl 4969 2013-05-19 16:21:14Z zubzero $
+# Copyright (c) 2001-2015 Philip Kendall, Fredrick Meunier
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,14 +67,14 @@ typedef struct widget_option_entry {
   int index;
   input_key key;		/* Which key to activate this option */
   const char *suffix;
-  const char **options;
+  const char * const *options;
 
   widget_option_click_fn click;
   widget_option_draw_fn draw;
 } widget_option_entry;
 
 static void
-widget_combo_click( const char *title, const char **options, char **current, int def )
+widget_combo_click( const char *title, const char * const *options, char **current, int def )
 \{
   int error, i;
   widget_select_t sel;
@@ -91,7 +89,7 @@ widget_combo_click( const char *title, const char **options, char **current, int
   }
   sel.count = i;
 
-  error = widget_do( WIDGET_TYPE_SELECT, &sel );
+  error = widget_do_select( &sel );
 
   if( !error && sel.result >= 0 ) \{
     if( *current ) free( *current );
@@ -100,7 +98,7 @@ widget_combo_click( const char *title, const char **options, char **current, int
 \}
 
 static int
-option_enumerate_combo( const char **options, char *value, int def ) {
+option_enumerate_combo( const char * const *options, char *value, int def ) {
   int i;
   if( value != NULL ) {
     for( i = 0; options[i] != NULL; i++) {
@@ -130,7 +128,7 @@ foreach( @dialogs ) {
 		$combo_sets{$widget->{data1}} = "widget_$widget->{value}_combo";
 
 		print << "CODE";
-static const char *widget_$widget->{value}_combo[] = {
+static const char * const widget_$widget->{value}_combo[] = {
 CODE
 		foreach( split /\|/, $widget->{data1} ) {
 		    print << "CODE";
@@ -232,7 +230,7 @@ int widget_options_print_value( int left_edge, int width, int number, int value 
 int widget_options_print_entry( int left_edge, int width, int number, const char *prefix, int value,
 				const char *suffix );
 int widget_options_print_combo( int left_edge, int width, int number, const char *prefix,
-				const char **options, const char *value, int def );
+				const char * const *options, const char *value, int def );
 
 static int widget_options_print_label( int left_edge, int width, int number, const char *string );
 static int widget_options_print_data( int left_edge, int menu_width, int number, const char *string, int tcolor );
@@ -341,7 +339,7 @@ widget_options_print_entry( int left_edge, int width, int number, const char *pr
 
 int
 widget_options_print_combo( int left_edge, int width, int number, const char *prefix,
-			    const char **option, const char *value, int def )
+			    const char * const *option, const char *value, int def )
 {
   int i = 0;
   const char *c;
@@ -364,6 +362,7 @@ int
 widget_options_finish( widget_finish_state finished )
 {
   int error;
+  int needs_hard_reset;
 
   /* If we exited normally, actually set the options */
   if( finished == WIDGET_FINISHED_OK ) {
@@ -375,11 +374,10 @@ widget_options_finish( widget_finish_state finished )
     /* Apply new options */
     settings_copy( &settings_current, &widget_options_settings );
 
-    int needs_hard_reset = periph_postcheck();
+    needs_hard_reset = periph_postcheck();
 
     if( needs_hard_reset ) {
-      error = widget_do( WIDGET_TYPE_QUERY,
-                         "Some options need to reset the machine. Reset?" );
+      error = widget_do_query( "Some options need to reset the machine. Reset?" );
       if( !error && !widget_query.confirm )
         settings_copy( &settings_current, &original_settings );
       else
@@ -423,7 +421,7 @@ widget_calculate_option_width(widget_option_entry *menu)
     if( ptr->suffix ) total_width += widget_stringwidth(ptr->suffix)+4*8;
     if( ptr->options ) {
       int combo_width = 0;
-      const char **options = ptr->options;
+      const char * const *options = ptr->options;
       while( *options != NULL ) {
         if( combo_width < widget_stringwidth( *options ) )
           combo_width = widget_stringwidth( *options );
@@ -493,9 +491,10 @@ widget_$widget->{value}_click( void )
 
   text_data.title = "$title";
   text_data.allow = WIDGET_INPUT_DIGIT;
+  text_data.max_length = $widget->{data1};
   snprintf( text_data.text, 40, "%d",
             widget_options_settings.$widget->{value} );
-  widget_do( WIDGET_TYPE_TEXT, &text_data );
+  widget_do_text( &text_data );
 
   if( widget_text_text ) \{
     widget_options_settings.$widget->{value} = atoi( widget_text_text );
@@ -567,14 +566,11 @@ CODE
 void
 widget_$_->{name}_keyhandler( input_key key )
 \{
-  widget_text_t text_data;
   int new_highlight_line = 0;
   int cursor_pressed = 0;
   widget_option_entry *ptr;
   int menu_width = widget_calculate_option_width(options_$_->{name});
   int menu_left_edge_x = DISPLAY_WIDTH_COLS/2-menu_width/2;
-
-  text_data = text_data;	/* Keep gcc happy */
 
   switch( key ) \{
 
@@ -629,7 +625,6 @@ widget_$_->{name}_keyhandler( input_key key )
     options_$_->{name}\[highlight_line+1\].click();
     options_$_->{name}\[highlight_line+1\].draw( menu_left_edge_x, menu_width, options_$_->{name} + highlight_line + 1, &widget_options_settings );
     return;
-    break;
 
   case INPUT_KEY_Return:
   case INPUT_KEY_KP_Enter:
@@ -638,7 +633,6 @@ widget_$_->{name}_keyhandler( input_key key )
     widget_$_->{name}_running = 0;
     display_refresh_all();
     return;
-    break;
 
   default:	/* Keep gcc happy */
     break;

@@ -1,7 +1,7 @@
 /* kempmouse.c: Kempston mouse emulation
-   Copyright (c) 2004-2008 Darren Salt, Fredrick Meunier
-
-   $Id: kempmouse.c 4926 2013-05-05 07:58:18Z sbaldovi $
+   Copyright (c) 2004-2016 Darren Salt, Fredrick Meunier, Philip Kendall
+   Copyright (c) 2015 Stuart Brady
+   Copyright (c) 2016 Sergio Baldoví
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,22 +27,23 @@
 
 #include <libspectrum.h>
 
+#include "infrastructure/startup_manager.h"
 #include "kempmouse.h"
 #include "module.h"
 #include "periph.h"
 #include "settings.h"
 #include "ui/ui.h"
 
-static void kempmouse_from_snapshot( libspectrum_snap *snap );
+static void kempmouse_snapshot_enabled( libspectrum_snap *snap );
 static void kempmouse_to_snapshot( libspectrum_snap *snap );
 
 static module_info_t kempmouse_module_info = {
 
-  NULL,
-  NULL,
-  NULL,
-  kempmouse_from_snapshot,
-  kempmouse_to_snapshot,
+  /* .reset = */ NULL,
+  /* .romcs = */ NULL,
+  /* .snapshot_enabled = */ kempmouse_snapshot_enabled,
+  /* .snapshot_from = */ NULL,
+  /* .snapshot_to = */ kempmouse_to_snapshot,
 
 };
 
@@ -53,9 +54,9 @@ static struct {
 
 #define READ(name,item) \
   static libspectrum_byte \
-  read_##name( libspectrum_word port GCC_UNUSED, int *attached ) \
+  read_##name( libspectrum_word port GCC_UNUSED, libspectrum_byte *attached ) \
   { \
-    *attached = 1; \
+    *attached = 0xff; /* TODO: check this */ \
     return kempmouse.item; \
   }
 
@@ -71,17 +72,28 @@ static const periph_port_t kempmouse_ports[] = {
 };
 
 static const periph_t kempmouse_periph = {
-  &settings_current.kempston_mouse,
-  kempmouse_ports,
-  1,
-  NULL
+  /* .option = */ &settings_current.kempston_mouse,
+  /* .ports = */ kempmouse_ports,
+  /* .hard_reset = */ 1,
+  /* .activate = */ NULL,
 };
 
-void
-kempmouse_init( void )
+static int
+kempmouse_init( void *context )
 {
   module_register( &kempmouse_module_info );
   periph_register( PERIPH_TYPE_KEMPSTON_MOUSE, &kempmouse_periph );
+
+  return 0;
+}
+
+void
+kempmouse_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_KEMPMOUSE, dependencies,
+                            ARRAY_SIZE( dependencies ), kempmouse_init, NULL,
+                            NULL );
 }
 
 void
@@ -98,10 +110,10 @@ kempmouse_update( int dx, int dy, int btn, int down )
 }
 
 static void
-kempmouse_from_snapshot( libspectrum_snap *snap )
+kempmouse_snapshot_enabled( libspectrum_snap *snap )
 {
-  settings_current.kempston_mouse =
-    libspectrum_snap_kempston_mouse_active( snap );
+  if( libspectrum_snap_kempston_mouse_active( snap ) )
+    settings_current.kempston_mouse = 1;
 }
 
 static void

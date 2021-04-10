@@ -1,7 +1,6 @@
 /* scld.c: Routines for handling the Timex SCLD
-   Copyright (c) 2002-2011 Fredrick Meunier, Philip Kendall, Witold Filipczyk
-
-   $Id: scld.c 4926 2013-05-05 07:58:18Z sbaldovi $
+   Copyright (c) 2002-2016 Fredrick Meunier, Philip Kendall, Witold Filipczyk
+   Copyright (c) 2015 Stuart Brady
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,8 +33,9 @@
 #include "compat.h"
 #include "dck.h"
 #include "display.h"
+#include "infrastructure/startup_manager.h"
 #include "machine.h"
-#include "memory.h"
+#include "memory_pages.h"
 #include "module.h"
 #include "periph.h"
 #include "scld.h"
@@ -57,16 +57,16 @@ static void scld_to_snapshot( libspectrum_snap *snap );
 
 static module_info_t scld_module_info = {
 
-  scld_reset,
-  NULL,
-  NULL,
-  scld_from_snapshot,
-  scld_to_snapshot,
+  /* .reset = */ scld_reset,
+  /* .romcs = */ NULL,
+  /* .snapshot_enabled = */ NULL,
+  /* .snapshot_from = */ scld_from_snapshot,
+  /* .snapshot_to = */ scld_to_snapshot,
 
 };
 
-static libspectrum_byte scld_dec_read( libspectrum_word port, int *attached );
-static libspectrum_byte scld_hsr_read( libspectrum_word port, int *attached );
+static libspectrum_byte scld_dec_read( libspectrum_word port, libspectrum_byte *attached );
+static libspectrum_byte scld_hsr_read( libspectrum_word port, libspectrum_byte *attached );
 
 static const periph_port_t scld_ports[] = {
   { 0x00ff, 0x00f4, scld_hsr_read, scld_hsr_write },
@@ -75,23 +75,34 @@ static const periph_port_t scld_ports[] = {
 };
 
 static const periph_t scld_periph = {
-  NULL,
-  scld_ports,
-  0,
-  NULL
+  /* .option = */ NULL,
+  /* .ports = */ scld_ports,
+  /* .hard_reset = */ 0,
+  /* .activate = */ NULL,
 };
 
-void
-scld_init( void )
+static int
+scld_init( void *context )
 {
   module_register( &scld_module_info );
   periph_register( PERIPH_TYPE_SCLD, &scld_periph );
+
+  return 0;
+}
+
+void
+scld_register_startup( void )
+{
+  startup_manager_module dependencies[] = { STARTUP_MANAGER_MODULE_SETUID };
+  startup_manager_register( STARTUP_MANAGER_MODULE_SCLD, dependencies,
+                            ARRAY_SIZE( dependencies ), scld_init, NULL,
+                            NULL );
 }
 
 static libspectrum_byte
-scld_dec_read( libspectrum_word port GCC_UNUSED, int *attached )
+scld_dec_read( libspectrum_word port GCC_UNUSED, libspectrum_byte *attached )
 {
-  *attached = 1;
+  *attached = 0xff; /* TODO: check this */
 
   return scld_last_dec.byte;
 }
@@ -147,9 +158,9 @@ scld_hsr_write( libspectrum_word port GCC_UNUSED, libspectrum_byte b )
 }
 
 static libspectrum_byte
-scld_hsr_read( libspectrum_word port GCC_UNUSED, int *attached )
+scld_hsr_read( libspectrum_word port GCC_UNUSED, libspectrum_byte *attached )
 {
-  *attached = 1;
+  *attached = 0xff; /* TODO: check this */
 
   return scld_last_hsr;
 }
@@ -221,6 +232,9 @@ scld_dock_exrom_from_snapshot( memory_page *dest, int page_num, int writable,
     page->page = data + page->offset;
     page->save_to_snapshot = 1;
   }
+
+  /* Reset contention for pages */
+  scld_set_exrom_dock_contention();
 }
 
 static void
@@ -290,12 +304,7 @@ scld_to_snapshot( libspectrum_snap *snap )
          in the 8Kb chunk apply to all the pages */
 
       if( exrom_base->save_to_snapshot || exrom_base->writable ) {
-        buffer = malloc( 0x2000 * sizeof( libspectrum_byte ) );
-        if( !buffer ) {
-          ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__,
-                    __LINE__ );
-          return;
-        }
+        buffer = libspectrum_new( libspectrum_byte, 0x2000 );
 
         libspectrum_snap_set_exrom_ram( snap, i, exrom_base->writable );
         for( j = 0; j < MEMORY_PAGES_IN_8K; j++ ) {
@@ -306,12 +315,7 @@ scld_to_snapshot( libspectrum_snap *snap )
       }
 
       if( dock_base->save_to_snapshot || dock_base->writable ) {
-        buffer = malloc( 0x2000 * sizeof( libspectrum_byte ) );
-        if( !buffer ) {
-          ui_error( UI_ERROR_ERROR, "Out of memory at %s:%d", __FILE__,
-                    __LINE__ );
-          return;
-        }
+        buffer = libspectrum_new( libspectrum_byte, 0x2000 );
 
         libspectrum_snap_set_dock_ram( snap, i, dock_base->writable );
         for( j = 0; j < MEMORY_PAGES_IN_8K; j++ ) {
@@ -338,5 +342,19 @@ scld_home_map_16k( libspectrum_word address, memory_page source[],
   for( i = 0; i < MEMORY_PAGES_IN_16K; i++ ) {
     int page = ( address >> MEMORY_PAGE_SIZE_LOGARITHM ) + i;
     timex_home[ page ] = &source[ page_num * MEMORY_PAGES_IN_16K + i ];
+  }
+}
+
+/* Set contention for SCLD, contended in home, Dock and Exrom in the 0x4000 -
+   0x7FFF range */
+void
+scld_set_exrom_dock_contention( void )
+{
+  int i;
+  const int page_num = 1;
+
+  for( i = 0; i < MEMORY_PAGES_IN_16K; i++ ) {
+    timex_exrom[ page_num * MEMORY_PAGES_IN_16K + i ].contended = 1;
+    timex_dock[ page_num * MEMORY_PAGES_IN_16K + i ].contended = 1;
   }
 }

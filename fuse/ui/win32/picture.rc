@@ -1,8 +1,6 @@
 /* picture.rc: Win32 resource file for the keyboard picture
    Copyright (c) 2008 Marek Januszewski
 
-   $Id: picture.rc 4785 2012-12-07 23:56:40Z sbaldovi $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -23,13 +21,18 @@
 
 */
 
+#include <windows.h>
+#include <commctrl.h>
+
 #include "picture.h"
 
-IDD_PICTURE     DIALOG DISCARDABLE 16, 16, 160, 138
+IDD_PICTURE     DIALOG DISCARDABLE 0, 0, 50, 28
 STYLE           DS_MODALFRAME | WS_POPUP | WS_CAPTION
-                | WS_SYSMENU
+                | WS_SYSMENU | WS_THICKFRAME | WS_CLIPCHILDREN
 EXSTYLE         WS_EX_APPWINDOW
 CAPTION         "Fuse - Keyboard"
+FONT 8, "Ms Shell Dlg 2"
 BEGIN
-  DEFPUSHBUTTON "Close", IDCLOSE, 108, 122, 50, 14
+  CONTROL       "", IDC_PICTURE_FRAME, WC_STATIC, SS_OWNERDRAW, 0, 0, 1, 1
+  DEFPUSHBUTTON "Close", IDCLOSE, 0, 7, 50, 14
 END

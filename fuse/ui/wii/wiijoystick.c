@@ -1,8 +1,6 @@
 /* wiijoystick.c: routines for dealing with the Wiimote as a joystick
    Copyright (c) 2008-2009 Bjoern Giesler, Marek Januszewski
 
-   $Id: wiijoystick.c 3994 2009-04-04 20:17:42Z specu $
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

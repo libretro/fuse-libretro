@@ -1,8 +1,6 @@
 Some brief instructions on adding another user interface to Fuse
 ================================================================
 
-Version: $Id: ui.txt 3032 2007-06-28 22:48:54Z zubzero $
-
 In order to add a new user interface (UI) to Fuse, you need to
 implement:
 
@@ -29,7 +27,7 @@ Initialise all of the UI-specific bits except the display (keyboard, etc).
 
 `ui_event()' is called at the start of every emulated Spectrum frame,
 and is the opportunity for the UI actions to happen. Some of the
-current UIs, for example the GTK+ UI use this to do most of their
+current UIs, for example the GTK UI use this to do most of their
 processing such as reading the keyboard and the like, whilst others,
 for example the SVGAlib UI do much less here.
 

@@ -1,7 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl Copyright (c) 1999-2012 Philip Kendall
-
-dnl $Id: configure.ac 4986 2013-05-24 19:03:20Z zubzero $
+dnl Copyright (c) 1999-2021 Philip Kendall
 
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -22,12 +20,12 @@ dnl
 dnl E-mail: philip-fuse@shadowmagic.org.uk
 
 dnl Package version
-m4_define([libspectrum_version], [1.1.1])
+m4_define([libspectrum_version], [1.5.0])
 
 dnl Product full version
 m4_define([libspectrum_major_version], [1])
-m4_define([libspectrum_minor_version], [1])
-m4_define([libspectrum_micro_version], [1])
+m4_define([libspectrum_minor_version], [5])
+m4_define([libspectrum_micro_version], [0])
 m4_define([libspectrum_nano_version],  [0])
 m4_define([libspectrum_full_version],
           [libspectrum_major_version.libspectrum_minor_version.libspectrum_micro_version.libspectrum_nano_version])
@@ -35,7 +33,7 @@ m4_define([libspectrum_rc_version],
           [libspectrum_major_version,libspectrum_minor_version,libspectrum_micro_version,libspectrum_nano_version])
 
 dnl Package info
-m4_define([libspectrum_copyright], ["(c) 1999-2013 Philip Kendall and others"])
+m4_define([libspectrum_copyright], ["(c) 1999-2021 Philip Kendall and others"])
 m4_define([libspectrum_url],
           [http://fuse-emulator.sourceforge.net/libspectrum.php])
 m4_define([libspectrum_bugreport],
@@ -48,8 +46,12 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CANONICAL_HOST
 
+PKG_PROG_PKG_CONFIG
+PKG_INSTALLDIR
+
 dnl Use automake to produce `Makefile.in'
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([1.11 subdir-objects])
+AM_SILENT_RULES([yes])
 
 dnl Substitutions for .in files
 LIBSPECTRUM_FULL_VERSION=libspectrum_full_version
@@ -126,12 +128,15 @@ AC_ARG_WITH(zlib,
 if test "$withval" = no; then zlib=no; else zlib=yes; fi,
 zlib=yes)
 AC_MSG_RESULT($zlib)
+have_zlib="no"
 if test "$zlib" = yes; then
   AC_CHECK_HEADERS(
     zlib.h,
-    AC_SEARCH_LIBS(compress2, z zdll)
+    [AC_SEARCH_LIBS(compress2, z zdll)
+     have_zlib="yes"]
   )
 fi
+AM_CONDITIONAL([HAVE_ZLIB], [test "$ac_cv_header_zlib_h" = yes])
 
 dnl Check whether to use libgcrypt
 AC_MSG_CHECKING(whether to use libgcrypt)
@@ -140,8 +145,11 @@ AC_ARG_WITH(libgcrypt,
 if test "$withval" = no; then libgcrypt=no; else libgcrypt=yes; fi,
 libgcrypt=yes)
 AC_MSG_RESULT($libgcrypt)
+have_libgcrypt="no"
 if test "$libgcrypt" = yes; then
-  AC_CHECK_HEADERS(gcrypt.h,LIBS="$LIBS -lgcrypt")
+  AC_CHECK_HEADERS(gcrypt.h,
+  [LIBS="$LIBS -lgcrypt"
+   have_libgcrypt="yes"])
 fi
 
 dnl Check whether to use libbz2 (1.0 or greater)
@@ -151,34 +159,41 @@ AC_ARG_WITH(bzip2,
 if test "$withval" = no; then bzip2=no; else bzip2=yes; fi,
 bzip2=yes)
 AC_MSG_RESULT($bzip2)
+have_bzip2="no"
 if test "$bzip2" = yes; then
   AC_CHECK_HEADER(
     bzlib.h,
-    AC_CHECK_LIB(bz2,BZ2_bzDecompressInit)
+    [AC_CHECK_LIB(bz2,BZ2_bzDecompressInit)
+     have_bzip2="yes"]
   )
 fi
 
-dnl Either find glib or use the replacement
-AC_MSG_CHECKING(whether to use glib)
-AC_ARG_WITH(glib,
-[  --without-glib          don't use glib],
-if test "$withval" = no; then glib=no; else glib=yes; fi,
-glib=yes)
-AC_MSG_RESULT($glib)
-AS_IF([test "$glib" = yes], [
+dnl Either find GLib or use the replacement
+AC_MSG_CHECKING(whether to use internal GLib replacement)
+AC_ARG_WITH(fake-glib,
+[  --with-fake-glib        use internal GLib replacement],
+if test "$withval" = no; then myglib=no; else myglib=yes; fi,
+myglib=no)
+AC_MSG_RESULT($myglib)
+AS_IF([test "$myglib" = no], [
   PKG_CHECK_MODULES(
     GLIB,
     glib-2.0,
-    AC_DEFINE([HAVE_LIB_GLIB], 1, [Defined if we've got glib]),
-    glib="no"
+    AC_DEFINE([HAVE_LIB_GLIB], 1, [Defined if we've got GLib]),
+    AC_MSG_ERROR([GLib not found])
   )
 ])
+AS_IF([test "$myglib" = yes], [
+  AC_CHECK_HEADERS(
+    stdatomic.h, [stdatomic_available=yes])
+])
 
-AM_CONDITIONAL(USE_MYGLIB, test "$glib" = no)
+AM_CONDITIONAL(USE_MYGLIB, test "$myglib" = yes)
+AM_CONDITIONAL(HAVE_LOCK, test "$stdatomic_available" = yes)
 
 dnl If it appears we're using gcc as our compiler, turn on warnings
-if test "$ac_cv_prog_gcc" = yes; then
-  CFLAGS="$CFLAGS -Wall"
+if test "$ac_cv_c_compiler_gnu" = yes; then
+  CFLAGS="$CFLAGS -Wall -Wwrite-strings"
   dnl And possibly lots of warnings
   AC_MSG_CHECKING(whether lots of warnings requested)
   AC_ARG_ENABLE(warnings,
@@ -191,7 +206,7 @@ if test "$ac_cv_prog_gcc" = yes; then
   warnings=no)
   AC_MSG_RESULT($warnings)
   if test "$warnings" = yes; then
-      CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Winline -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Waggregate-return -W -Wsign-compare"
+      CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Winline -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Waggregate-return -W -Wsign-compare"
   fi
 fi
 
@@ -202,17 +217,20 @@ AC_ARG_WITH(libaudiofile,
 if test "$withval" = no; then libaudiofile=no; else libaudiofile=yes; fi,
 libaudiofile=yes)
 AC_MSG_RESULT($libaudiofile)
+have_libaudiofile="no"
 AS_IF([test "$libaudiofile" = yes], [
   PKG_CHECK_MODULES(
     AUDIOFILE,
     audiofile,
-    AC_DEFINE([HAVE_LIB_AUDIOFILE], 1, [Defined if we've got audiofile]),
+    [AC_DEFINE([HAVE_LIB_AUDIOFILE], 1, [Defined if we've got audiofile])
+     have_libaudiofile="yes"],
     [true]
   )
   if test -z "$AUDIOFILE_LIBS"; then
     AM_PATH_AUDIOFILE(
       0.2.3,
-      AC_DEFINE([HAVE_LIB_AUDIOFILE], 1, [Defined if we've got audiofile])
+      [AC_DEFINE([HAVE_LIB_AUDIOFILE], 1, [Defined if we've got audiofile])
+       have_libaudiofile="yes"],
     )
   fi
 ])
@@ -220,6 +238,22 @@ AS_IF([test "$libaudiofile" = yes], [
 AC_CONFIG_FILES([
   Makefile
   libspectrum.qpg
+  libspectrum.pc
 ])
 
 AC_OUTPUT
+
+dnl Status summary
+echo ""
+echo "*******************************************"
+echo "*** libspectrum is ready to be compiled ***"
+echo "*******************************************"
+echo ""
+echo "zlib support: $have_zlib"
+echo "bzip2 support: $have_bzip2"
+echo "libgcrypt support: $have_libgcrypt"
+echo "libaudiofile support: $have_libaudiofile"
+echo "Internal GLib replacement: $myglib"
+echo ""
+echo "Type 'make' to compile libspectrum"
+echo ""

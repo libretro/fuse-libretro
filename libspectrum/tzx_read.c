@@ -1,7 +1,5 @@
 /* tzx_read.c: Routines for reading .tzx files
-   Copyright (c) 2001-2007 Philip Kendall, Darren Salt
-
-   $Id: tzx_read.c 4436 2011-05-14 14:10:07Z fredm $
+   Copyright (c) 2001-2015 Philip Kendall, Darren Salt
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 */
 
-#include <config.h>
+#include "config.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -33,7 +31,7 @@
 #include "internals.h"
 
 /* The .tzx file signature (first 8 bytes) */
-const char *libspectrum_tzx_signature = "ZXTape!\x1a";
+const char * const libspectrum_tzx_signature = "ZXTape!\x1a";
 
 /*** Local function prototypes ***/
 
@@ -298,6 +296,7 @@ tzx_read_turbo_block( libspectrum_tape *tape, const libspectrum_byte **ptr,
 {
   libspectrum_tape_block* block;
   size_t length; libspectrum_byte *data;
+  libspectrum_byte bits_in_last_byte;
   libspectrum_error error;
 
   /* Check there's enough left in the buffer for all the metadata */
@@ -330,7 +329,10 @@ tzx_read_turbo_block( libspectrum_tape *tape, const libspectrum_byte **ptr,
   libspectrum_tape_block_set_pilot_pulses( block,
 					   (*ptr)[0] + (*ptr)[1] * 0x100 );
   (*ptr) += 2;
-  libspectrum_tape_block_set_bits_in_last_byte( block, **ptr ); (*ptr)++;
+
+  bits_in_last_byte = **ptr;
+  (*ptr)++;
+
   libspectrum_set_pause_ms               ( block,
 					   (*ptr)[0] + (*ptr)[1] * 0x100 );
   (*ptr) += 2;
@@ -338,6 +340,18 @@ tzx_read_turbo_block( libspectrum_tape *tape, const libspectrum_byte **ptr,
   /* Read the data in */
   error = tzx_read_data( ptr, end, &length, 3, &data );
   if( error ) { libspectrum_free( block ); return error; }
+
+  if( bits_in_last_byte == 0 && length >= 1 ) {
+    bits_in_last_byte = 8;
+    length -= 1;
+  }
+
+  if( bits_in_last_byte > 8 ) {
+    bits_in_last_byte = 8;
+  }
+
+  libspectrum_tape_block_set_bits_in_last_byte( block, bits_in_last_byte );
+
   libspectrum_tape_block_set_data_length( block, length );
   libspectrum_tape_block_set_data( block, data );
 
@@ -406,7 +420,7 @@ tzx_read_pulses_block( libspectrum_tape *tape, const libspectrum_byte **ptr,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
-  lengths = libspectrum_malloc( count * sizeof( *lengths ) );
+  lengths = libspectrum_new( libspectrum_dword, count );
 
   /* Copy the data across */
   for( i = 0; i < count; i++ ) {
@@ -425,7 +439,7 @@ tzx_read_pure_data( libspectrum_tape *tape, const libspectrum_byte **ptr,
 {
   libspectrum_tape_block* block;
   size_t length; libspectrum_byte *data;
-
+  libspectrum_byte bits_in_last_byte;
   libspectrum_error error;
 
   /* Check there's enough left in the buffer for all the metadata */
@@ -446,13 +460,27 @@ tzx_read_pure_data( libspectrum_tape *tape, const libspectrum_byte **ptr,
   libspectrum_tape_block_set_bit1_length( block,
 					  (*ptr)[0] + (*ptr)[1] * 0x100 );
   (*ptr) += 2;
-  libspectrum_tape_block_set_bits_in_last_byte( block, **ptr ); (*ptr)++;
+
+  bits_in_last_byte = **ptr;
+  (*ptr)++;
+
   libspectrum_set_pause_ms( block, (*ptr)[0] + (*ptr)[1] * 0x100 );
   (*ptr) += 2;
 
   /* And the actual data */
   error = tzx_read_data( ptr, end, &length, 3, &data );
   if( error ) { libspectrum_free( block ); return error; }
+
+  if( bits_in_last_byte == 0 && length > 1 ) {
+    bits_in_last_byte = 8;
+    length -= 1;
+  }
+
+  if( bits_in_last_byte > 8 ) {
+    bits_in_last_byte = 8;
+  }
+
+  libspectrum_tape_block_set_bits_in_last_byte( block, bits_in_last_byte );
   libspectrum_tape_block_set_data_length( block, length );
   libspectrum_tape_block_set_data( block, data );
 
@@ -467,6 +495,7 @@ tzx_read_raw_data (libspectrum_tape *tape, const libspectrum_byte **ptr,
 {
   libspectrum_tape_block* block;
   size_t length; libspectrum_byte *data;
+  libspectrum_byte bits_in_last_byte;
   libspectrum_error error;
 
   /* Check there's enough left in the buffer for all the metadata */
@@ -482,12 +511,24 @@ tzx_read_raw_data (libspectrum_tape *tape, const libspectrum_byte **ptr,
   libspectrum_tape_block_set_bit_length( block,
 					 (*ptr)[0] + (*ptr)[1] * 0x100 );
   libspectrum_set_pause_ms( block, (*ptr)[2] + (*ptr)[3] * 0x100 );
-  libspectrum_tape_block_set_bits_in_last_byte( block, (*ptr)[4] );
+
+  bits_in_last_byte = (*ptr)[4];
   (*ptr) += 5;
 
   /* And the actual data */
   error = tzx_read_data( ptr, end, &length, 3, &data );
   if( error ) { libspectrum_free( block ); return error; }
+
+  if( bits_in_last_byte == 0 && length >= 1 ) {
+    bits_in_last_byte = 8;
+    length -= 1;
+  }
+
+  if( bits_in_last_byte > 8 ) {
+    bits_in_last_byte = 8;
+  }
+
+  libspectrum_tape_block_set_bits_in_last_byte( block, bits_in_last_byte );
   libspectrum_tape_block_set_data_length( block, length );
   libspectrum_tape_block_set_data( block, data );
 
@@ -571,8 +612,8 @@ tzx_read_generalised_data( libspectrum_tape *tape,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
-  symbols = libspectrum_malloc( symbol_count * sizeof( *symbols ) );
-  repeats = libspectrum_malloc( symbol_count * sizeof( *repeats ) );
+  symbols = libspectrum_new( libspectrum_byte, symbol_count );
+  repeats = libspectrum_new( libspectrum_word, symbol_count );
 
   for( i = 0; i < symbol_count; i++ ) {
     symbols[ i ] = **ptr; (*ptr)++;
@@ -602,9 +643,9 @@ tzx_read_generalised_data( libspectrum_tape *tape,
   data_count = ( ( bits_per_symbol * symbol_count ) + 7 ) / 8;
   data_size = data_count * sizeof( *data );
 
-  data = libspectrum_malloc( data_size );
+  data = libspectrum_new( libspectrum_byte, data_size );
 
-  if( *ptr + data_size > end || *ptr + data_size < *ptr ) {
+  if( end - (*ptr) < data_size ) {
     libspectrum_free( data );
     libspectrum_tape_block_free( block );
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
@@ -647,8 +688,9 @@ tzx_read_pause( libspectrum_tape *tape, const libspectrum_byte **ptr,
 
   /* Get the pause length */
   libspectrum_set_pause_ms( block, (*ptr)[0] + (*ptr)[1] * 0x100 );
-  /* TZX format spec says pause is low */
-  libspectrum_tape_block_set_level( block, 0 );
+  /* Pause blocks should change the pulse level to ensure that the
+   * last edge is properly finished, so set the block level to -1 */
+  libspectrum_tape_block_set_level( block, -1 );
   (*ptr) += 2;
 
   libspectrum_tape_append_block( tape, block );
@@ -772,10 +814,10 @@ tzx_read_select( libspectrum_tape *tape, const libspectrum_byte **ptr,
   libspectrum_tape_block_set_count( block, count );
 
   /* Allocate memory */
-  offsets = libspectrum_malloc( count * sizeof( *offsets ) );
+  offsets = libspectrum_new( int, count );
   libspectrum_tape_block_set_offsets( block, offsets );
 
-  descriptions = libspectrum_malloc( count * sizeof( *descriptions ) );
+  descriptions = libspectrum_new( char *, count );
   libspectrum_tape_block_set_texts( block, descriptions );
 
   /* Read in the data */
@@ -945,10 +987,10 @@ tzx_read_archive_info( libspectrum_tape *tape, const libspectrum_byte **ptr,
   libspectrum_tape_block_set_count( block, count );
 
   /* Allocate memory */
-  ids = libspectrum_malloc( count * sizeof( *ids ) );
+  ids = libspectrum_new( int, count );
   libspectrum_tape_block_set_ids( block, ids );
 
-  strings = libspectrum_malloc( count * sizeof( *strings ) );
+  strings = libspectrum_new( char *, count );
   libspectrum_tape_block_set_texts( block, strings );
 
   for( i = 0; i < count; i++ ) {
@@ -1014,13 +1056,13 @@ tzx_read_hardware( libspectrum_tape *tape, const libspectrum_byte **ptr,
   }
 
   /* Allocate memory */
-  types = libspectrum_malloc( count * sizeof( *types ) );
+  types = libspectrum_new( int, count );
   libspectrum_tape_block_set_types( block, types );
 
-  ids = libspectrum_malloc( count * sizeof( *ids ) );
+  ids = libspectrum_new( int, count );
   libspectrum_tape_block_set_ids( block, ids );
 
-  values = libspectrum_malloc( count * sizeof( *values ) );
+  values = libspectrum_new( int, count );
   libspectrum_tape_block_set_values( block, values );
 
   /* Actually read in all the data */
@@ -1054,7 +1096,7 @@ tzx_read_custom( libspectrum_tape *tape, const libspectrum_byte **ptr,
   block = libspectrum_tape_block_alloc( LIBSPECTRUM_TAPE_BLOCK_CUSTOM );
 
   /* Get the description */
-  description = libspectrum_malloc( 17 * sizeof( libspectrum_byte ) );
+  description = libspectrum_new( char, 17 );
   memcpy( description, *ptr, 16 ); (*ptr) += 16; description[16] = '\0';
   libspectrum_tape_block_set_text( block, description );
 
@@ -1124,9 +1166,9 @@ tzx_read_data( const libspectrum_byte **ptr, const libspectrum_byte *end,
   }
 
   /* Allocate memory for the data; the check for *length is to avoid
-     the implementation-defined of malloc( 0 ) */
+     the implementation-defined behaviour of malloc( 0 ) */
   if( *length || padding ) {
-    *data = libspectrum_malloc( ( *length + padding ) * sizeof( **data ) );
+    *data = libspectrum_new( libspectrum_byte, *length + padding );
     /* Copy the block data across, and move along */
     memcpy( *data, *ptr, *length ); *ptr += *length;
   } else {
