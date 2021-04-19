@@ -27,7 +27,11 @@
 #define FUSE_COMPAT_H
 
 #include <stdio.h>
+
+#ifndef VITA
 #include <dirent.h>
+#endif
+
 #include <stdlib.h>
 #include <sys/types.h>
 
@@ -131,11 +135,13 @@ int compat_get_next_path( path_context *ctx );
 
 typedef FILE* compat_fd;
 
-#ifndef GEKKO
-typedef DIR* compat_dir;
-#else                           /* #ifndef GEKKO */
+#if defined( GEKKO )
 typedef DIR_ITER* compat_dir;
-#endif                          /* #ifndef GEKKO */
+#elif defined( VITA )
+typedef void* compat_dir;
+#else
+typedef DIR* compat_dir;
+#endif
 
 extern const compat_fd COMPAT_FILE_OPEN_FAILED;
 
