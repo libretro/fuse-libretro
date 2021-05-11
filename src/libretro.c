@@ -673,13 +673,25 @@ bool retro_load_game(const struct retro_game_info *info)
 
          const char* ext;
          libspectrum_id_t type = identify_file_get_ext(tape_data, tape_size, &ext);
+         libspectrum_class_t class;
+         libspectrum_identify_class(&class, type);
 
          char filename[32];
          snprintf(filename, sizeof(filename), "*%s", ext);
          filename[sizeof(filename) - 1] = 0;
 
+         // autoload is on by default
+         int autoload = 1;
+
+         if (!strcmp(settings_current.start_machine, machine_get_id(LIBSPECTRUM_MACHINE_SCORP)) &&
+             class == LIBSPECTRUM_CLASS_TAPE)
+         {
+            // Disable autoload for tapes on Scorpion 256 (it doesn't work)
+            autoload = 0;
+         }
+
          fuse_emulation_pause();
-         utils_open_file(filename, 1, &type);
+         utils_open_file(filename, autoload, &type);
          display_refresh_all();
          fuse_emulation_unpause();
       }
