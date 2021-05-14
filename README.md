@@ -1,7 +1,6 @@
 # fuse-libretro
 
-**fuse-libretro** is an *work in progress* port of the [Fuse Unix Spectrum Emulator](http://fuse-emulator.sourceforge.net/) to [libretro](http://www.libretro.com/). It's being developed on Windows with MinGW (32 bits) and tested on RetroArch 1.0.0.3-beta frontend, but it's known to compile and run on
-Linux x86/x64 and ARM. **fuse-libretro** has been tested with some [Lakka](http://www.lakka.tv/) builds.
+**fuse-libretro** is a perpetual *work in progress* port of the [Fuse Unix Spectrum Emulator](http://fuse-emulator.sourceforge.net/) to [libretro](http://www.libretro.com/). The port was originally developed on Windows with MinGW (32 bits), but it's known to compile and run on Linux x86/x64 and ARM and other systems. **fuse-libretro** has been tested with the latest RetroArch releases and some [Lakka](http://www.lakka.tv/) builds.
 
 ## Games
 
@@ -26,9 +25,9 @@ There are hundreds of free, legally available ZX Spectrum games at [World of Spe
 1. Pentagon 1024 (needs `128p-0.rom`, `128p-1.rom`, `gluck.rom`, and `trdos.rom`)
 1. Scorpion 256K (needs `256s-0.rom`, `256s-1.rom`, `256s-2.rom`, and `256s-3.rom`)
 
-The last four machines need additional ROMs to work. Create a `fuse` folder inside the `<system>` folder, download the required ROMs and put them into that folder.
+The last four machines need additional ROMs to work. Create a `fuse` folder inside the `system` folder, download the required ROMs and put them into that folder.
 
-The port correctly loads and runs ~~some~~ many games I have around. Most of them are 48K tapes, but I've successfully loaded one RZX file, one SCL file, and one TRD file.
+The port correctly loads and runs many games in all supported formats. If you wish to report an issue with a specific game, please include a link to the exact file you used (e.g., `.tap`, `.tzx`, etc.) 
 
 ## Core Options
 
@@ -70,7 +69,7 @@ If you set a joystick along with the keyboard, the joystick will work just fine 
 
 ## Supported Formats
 
-Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, `z80`, `rzx`, `scl` and `trd` files. This decision is somewhat arbitrary (it depends if I can find a file that I can be sure is not corrupted), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
+Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, `z80`, `rzx`, `scl`, `trd`, and `dsk` files. This decision is somewhat arbitrary (it depends if I can find a file that I can be sure is not corrupted), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
 
 ## Save States
 
@@ -88,8 +87,8 @@ Supported.
 
 Versions that are being used to build and test **fuse-libretro**:
 
-* Fuse 1.1.1
-* libspectrum 1.1.1
+* [Fuse 1.6.0](https://sourceforge.net/p/fuse-emulator/fuse/ci/fuse-1.6.0/)
+* [libspectrum 1.5.0+](https://sourceforge.net/p/fuse-emulator/libspectrum/ci/8c4f2c4260e0717777116065e96c0efbe3c39119/)
 * zlib 1.2.8
 * bzip2 1.0.6
 
