@@ -506,7 +506,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk";
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -615,6 +615,9 @@ static libspectrum_id_t identify_file_get_ext(const void* data, size_t size, con
       case LIBSPECTRUM_ID_TAPE_PZX:      *ext = ".pzx"; break;
       case LIBSPECTRUM_ID_DISK_SCL:      *ext = ".scl"; break;
       case LIBSPECTRUM_ID_DISK_TRD:      *ext = ".trd"; break;
+      case LIBSPECTRUM_ID_DISK_DSK:
+      case LIBSPECTRUM_ID_DISK_CPC:
+      case LIBSPECTRUM_ID_DISK_ECPC:     *ext = ".dsk"; break;
       default:                           *ext = "";     break;
    }
 
@@ -680,15 +683,32 @@ bool retro_load_game(const struct retro_game_info *info)
          snprintf(filename, sizeof(filename), "*%s", ext);
          filename[sizeof(filename) - 1] = 0;
 
+         /*
+         ** Deal with a number of special cases to make experience smoother
+         */
+
          // autoload is on by default
          int autoload = 1;
 
+         // Disable autoload for tapes on Scorpion 256 (it doesn't work)
          if (!strcmp(settings_current.start_machine, machine_get_id(LIBSPECTRUM_MACHINE_SCORP)) &&
              class == LIBSPECTRUM_CLASS_TAPE)
          {
-            // Disable autoload for tapes on Scorpion 256 (it doesn't work)
             autoload = 0;
          }
+
+         // If we have a .dsk image, check if it has more than 40 tracks (e.g. a 720KB disk image)
+         // .dsk file format: http://cpctech.cpc-live.com/docs/dsk.html
+         if (class == LIBSPECTRUM_CLASS_DISK_PLUS3 && ((uint8_t *)tape_data)[0x30] > 40)
+         {  
+            // If yes, we need to change the drive type on the fly, as the default +3 drive only supports 40 tracks
+            settings_current.drive_plus3a_type = utils_safe_strdup("Double-sided 80 track");
+            specplus3_765_reset();
+         }
+
+         /*
+         ** Load the file and launch the emulation
+         */
 
          fuse_emulation_pause();
          utils_open_file(filename, autoload, &type);
