@@ -205,21 +205,25 @@ display_init( int *argc, char ***argv )
 static int
 display_init_wrapper( void *context )
 {
+  /* The Wii has an explicit call to display_init for now */
+  #ifndef GEKKO
+
   display_startup_context *typed_context =
     (display_startup_context*) context;
 
   return display_init( typed_context->argc, typed_context->argv );
+  
+  #else
+  return 0;
+  #endif                          /* #ifndef GEKKO */
 }
 
 void
 display_register_startup( display_startup_context *context )
 {
-  /* The Wii has an explicit call to display_init for now */
-#ifndef GEKKO
   startup_manager_register_no_dependencies( STARTUP_MANAGER_MODULE_DISPLAY,
                                             display_init_wrapper, context,
                                             NULL );
-#endif                          /* #ifndef GEKKO */
 }
 
 /* Mark as 'dirty' the pixels which have been changed by a write to
