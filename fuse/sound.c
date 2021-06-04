@@ -313,7 +313,8 @@ sound_init( const char *device )
 
   sound_enabled = sound_enabled_ever = 1;
 
-  sound_channels = ( sound_stereo_ay != SOUND_STEREO_AY_NONE ? 2 : 1 );
+  /* retroarch expects 2 channels regardless of whether the audio is mono or not */
+  sound_channels = 2;
 
   /* Adjust relative processor speed to deal with adjusting sound generation
      frequency against emulation speed (more flexible than adjusting generated
@@ -710,7 +711,13 @@ sound_frame( void )
     blip_buffer_read_samples( right_buf, samples + 1, count, 1 );
     count <<= 1;
   } else {
-    count = blip_buffer_read_samples( left_buf, samples, sound_framesiz, BLIP_BUFFER_DEF_STEREO );
+    long i;
+    count = blip_buffer_read_samples( left_buf, samples, sound_framesiz, 1 );
+    for (i = 0; i < count; ++i)
+    {
+      samples[i*2+1] = samples[i*2];
+    }
+    count <<= 1;
   }
 
   if( settings_current.sound ) 
