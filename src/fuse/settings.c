@@ -12,7 +12,6 @@ int settings_init(int *first_arg, int argc, char **argv)
 {
    int res = fuse_settings_init(first_arg, argc, argv);
   
-   settings_current.auto_load = 1;
    settings_current.detect_loader = 1;
    
    settings_current.printer = 0;

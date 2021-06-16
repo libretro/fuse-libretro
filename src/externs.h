@@ -39,6 +39,7 @@ extern unsigned input_devices[MAX_PADS];
 extern int64_t keyb_send;
 extern int64_t keyb_hold_time;
 extern input_event_t keyb_event;
+extern int8_t keyb_shift;
 extern int select_pressed;
 extern int keyb_overlay;
 extern unsigned keyb_x;

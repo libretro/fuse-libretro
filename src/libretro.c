@@ -104,6 +104,7 @@ unsigned input_devices[MAX_PADS];
 int64_t keyb_send;
 int64_t keyb_hold_time;
 input_event_t keyb_event;
+int8_t keyb_shift;
 int select_pressed;
 int keyb_overlay;
 unsigned keyb_x;
@@ -268,6 +269,7 @@ static const struct retro_variable core_vars[] =
 {
    { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
    { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
+   { "fuse_auto_load", "Tape Auto Load; enabled|disabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
    { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
@@ -375,8 +377,7 @@ int update_variables(int force)
       }
    }
 
-   settings_current.fastload = coreopt(env_cb, core_vars, "fuse_fast_load", NULL) != 1;
-   settings_current.accelerate_loader = settings_current.fastload;
+   settings_current.auto_load = coreopt(env_cb, core_vars, "fuse_auto_load", NULL) != 1;
 
    if (coreopt(env_cb, core_vars, "fuse_fast_load", NULL) == 0)
    {
@@ -688,7 +689,7 @@ bool retro_load_game(const struct retro_game_info *info)
          */
 
          // autoload is on by default
-         int autoload = 1;
+         int autoload = settings_current.auto_load;
 
          // Disable autoload for tapes on Scorpion 256 (it doesn't work)
          if (!strcmp(settings_current.start_machine, machine_get_id(LIBSPECTRUM_MACHINE_SCORP)) &&

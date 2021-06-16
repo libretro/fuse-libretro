@@ -5,6 +5,11 @@
 #include <input.h>
 #include <ui/ui.h>
 
+enum keyb_states {
+   CAPS_SHIFT_PRESSED = 0x01,
+   SYMBOL_SHIFT_PRESSED = 0x02
+};
+
 static int64_t get_time_usec()
 {
    return (int64_t)( total_time_ms * 1000.0 );
@@ -86,6 +91,15 @@ int ui_event(void)
    {
        keyb_event.type = INPUT_EVENT_KEYRELEASE;
        input_event(&keyb_event);
+       // Also release shift keys
+       input_event_t shift_event;
+       shift_event.type = INPUT_EVENT_KEYRELEASE;
+       shift_event.types.key.native_key = INPUT_KEY_Shift_L;
+       shift_event.types.key.spectrum_key = INPUT_KEY_Shift_L;
+       input_event(&shift_event);
+       shift_event.types.key.native_key = INPUT_KEY_Control_R;
+       shift_event.types.key.spectrum_key = INPUT_KEY_Control_R;
+       input_event(&shift_event);
        keyb_send = 0;
    }
 
@@ -276,14 +290,30 @@ int ui_event(void)
                         case RETRO_DEVICE_ID_JOYPAD_A:
                            if (keyb_send == 0)
                            {
-                              keyb_overlay = false;
-                              
                               keyb_event.type = INPUT_EVENT_KEYPRESS;
                               keyb_event.types.key.native_key = keyb_layout[keyb_y][keyb_x];
                               keyb_event.types.key.spectrum_key = keyb_layout[keyb_y][keyb_x];
                               input_event(&keyb_event);
-                              
-                              keyb_send = get_time_usec() + keyb_hold_time;
+
+                              switch (keyb_event.types.key.spectrum_key)
+                              {
+                              case INPUT_KEY_Shift_L:
+                                 keyb_shift |= CAPS_SHIFT_PRESSED;
+                                 break;
+                              case INPUT_KEY_Control_R:
+                                 keyb_shift |= SYMBOL_SHIFT_PRESSED;
+                                 break;
+                              default:
+                                 keyb_shift = 0;
+                                 break;
+                              }
+
+                              if ((keyb_shift == (CAPS_SHIFT_PRESSED | SYMBOL_SHIFT_PRESSED)) || !keyb_shift)
+                              {
+                                 keyb_send = get_time_usec() + keyb_hold_time;
+                                 keyb_overlay = false;
+                                 keyb_shift = 0;
+                              }
                            }
                            return 0;
                      }
