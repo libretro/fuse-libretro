@@ -7,7 +7,6 @@ int sound_lowlevel_init(const char *device, int *freqptr, int *stereoptr)
 {
    (void)device;
    *freqptr = 44100;
-   *stereoptr = 1;
    return 0;
 }
 
