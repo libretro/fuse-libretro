@@ -432,7 +432,18 @@ else ifeq ($(platform), vita)
 	STATIC_LINKING = 1
 	CFLAGS += -DVITA -ftree-vectorize -mfloat-abi=hard -ffast-math -fsingle-precision-constant -funroll-loops -fno-short-enums
 	CXXFLAGS += -DVITA -ftree-vectorize -mfloat-abi=hard -ffast-math -fsingle-precision-constant -funroll-loops -fno-short-enums
-
+	
+# RETROFW
+else ifeq ($(platform), retrofw)
+	TARGET := $(TARGET_NAME)_libretro.so
+	CC = /opt/retrofw-toolchain/usr/bin/mipsel-linux-gcc
+	CXX = /opt/retrofw-toolchain/usr/bin/mipsel-linux-g++
+	AR = /opt/retrofw-toolchain/usr/bin/mipsel-linux-ar
+	fpic := -fPIC
+	SHARED := -shared -Wl,-version-script=build/link.T -Wl,-no-undefined
+	CFLAGS += -fomit-frame-pointer -march=mips32 -mtune=mips32 -mhard-float
+	CXXFLAGS += -fomit-frame-pointer -march=mips32 -mtune=mips32 -mhard-float	
+	
 # Windows
 else
 	TARGET := $(TARGET_NAME)_libretro.dll
