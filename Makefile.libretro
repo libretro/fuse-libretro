@@ -443,6 +443,17 @@ else ifeq ($(platform), retrofw)
 	SHARED := -shared -Wl,-version-script=build/link.T -Wl,-no-undefined
 	CFLAGS += -fomit-frame-pointer -march=mips32 -mtune=mips32 -mhard-float
 	CXXFLAGS += -fomit-frame-pointer -march=mips32 -mtune=mips32 -mhard-float	
+
+# MIYOO
+else ifeq ($(platform), miyoo)
+	TARGET := $(TARGET_NAME)_libretro.so
+   CC = /opt/miyoo/usr/bin/arm-linux-gcc
+   CXX = /opt/miyoo/usr/bin/arm-linux-g++
+   AR = /opt/miyoo/usr/bin/arm-linux-ar
+	fpic := -fPIC
+	SHARED := -shared -Wl,-version-script=build/link.T -Wl,-no-undefined
+	CFLAGS += -fomit-frame-pointer -march=armv5te -mtune=arm926ej-s
+	CXXFLAGS += -fomit-frame-pointer -march=armv5te -mtune=arm926ej-s
 	
 # Windows
 else
