@@ -86,6 +86,10 @@ include:
   # OpenDingux
   - project: 'libretro-infrastructure/ci-templates'
     file: '/dingux-mips32.yml'
+  
+  # OpenDingux (ARM)
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/dingux-arm32.yml'
 
   #################################### MISC ##################################
 
@@ -228,3 +232,8 @@ libretro-build-retrofw-mips32:
     - .libretro-retrofw-mips32-make-default
     - .core-defs
     
+# Miyoo
+libretro-build-miyoo-arm32:
+  extends:
+    - .libretro-miyoo-arm32-make-default
+    - .core-defs
