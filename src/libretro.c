@@ -268,7 +268,7 @@ keysyms_map_t keysyms_map[] = {
 static const struct retro_variable core_vars[] =
 {
    { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
-   { "fuse_size_border", "Size Video Border; full|medium|small|minium|none" },
+   { "fuse_size_border", "Size Video Border; full|medium|small|minimum|none" },
    { "fuse_auto_load", "Tape Auto Load; enabled|disabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
