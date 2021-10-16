@@ -85,7 +85,7 @@ static retro_input_poll_t input_poll_cb;
 static uint16_t image_buffer_2[MAX_WIDTH * MAX_HEIGHT];
 static unsigned first_pixel;
 static unsigned soft_width, soft_height;
-static int hide_border;
+static int size_border;
 static int keyb_transparent;
 static const machine_t* machine;
 static double frame_time;
@@ -268,7 +268,7 @@ keysyms_map_t keysyms_map[] = {
 static const struct retro_variable core_vars[] =
 {
    { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
-   { "fuse_hide_border", "Hide Video Border; disabled|enabled" },
+   { "fuse_size_border", "Size Video Border; full|medium|small|minimum|none" },
    { "fuse_auto_load", "Tape Auto Load; enabled|disabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
@@ -333,10 +333,25 @@ int update_variables(int force)
          hard_width = width;
          hard_height = height;
 
-         hide_border = coreopt(env_cb, core_vars, "fuse_hide_border", NULL);
-         hide_border += hide_border < 0;
+         size_border = coreopt(env_cb, core_vars, "fuse_size_border", NULL);
+         size_border += size_border < 0;
 
-         if (hide_border)
+         if (size_border == 1)
+         {
+            soft_width = machine->is_timex ? 576 : 288;
+            soft_height = machine->is_timex ? 432 : 216;
+         }
+         else if (size_border == 2)
+         {
+            soft_width = machine->is_timex ? 544 : 272;
+            soft_height = machine->is_timex ? 408 : 204;
+         }
+         else if (size_border == 3)
+         {
+            soft_width = machine->is_timex ? 528 : 264;
+            soft_height = machine->is_timex ? 396 : 198;
+         }
+         else if (size_border == 4)
          {
             soft_width = machine->is_timex ? 512 : 256;
             soft_height = machine->is_timex ? 384 : 192;
@@ -354,14 +369,29 @@ int update_variables(int force)
    else
    {
       // When reloading content, this is already done as part of the machine change
-      int option = coreopt(env_cb, core_vars, "fuse_hide_border", NULL);
+      int option = coreopt(env_cb, core_vars, "fuse_size_border", NULL);
       option += option < 0;
 
-      if (option != hide_border || force)
+      if (option != size_border || force)
       {
-         hide_border = option;
+         size_border = option;
 
-         if (hide_border)
+         if (size_border == 1)
+         {
+            soft_width = machine->is_timex ? 576 : 288;
+            soft_height = machine->is_timex ? 432 : 216;
+         }
+         else if (size_border == 2)
+         {
+            soft_width = machine->is_timex ? 544 : 272;
+            soft_height = machine->is_timex ? 408 : 204;
+         }
+         else if (size_border == 3)
+         {
+            soft_width = machine->is_timex ? 528 : 264;
+            soft_height = machine->is_timex ? 396 : 198;
+         }
+         else if (size_border == 4)
          {
             soft_width = machine->is_timex ? 512 : 256;
             soft_height = machine->is_timex ? 384 : 192;
@@ -985,7 +1015,7 @@ void retro_run(void)
          struct retro_game_geometry geometry;
 
          // Here we use the "soft" resolution that is changed according to the
-         // fuse_hide_border variable
+         // fuse_size_border variable
          geometry.base_width = soft_width;
          geometry.base_height = soft_height;
 
