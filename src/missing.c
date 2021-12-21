@@ -1,4 +1,4 @@
-#if defined( VITA ) || defined( __CELLOS_LV2__ )
+#if defined( __CELLOS_LV2__ )
 
 #include <stddef.h>
 
@@ -19,14 +19,9 @@ int chdir( const char* path)
   return 0;
 }
 
-#endif
-
-#ifdef __CELLOS_LV2__
-
 int isatty(int fd)
 {
   (void)fd;
   return 1;
 }
-
 #endif
