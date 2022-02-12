@@ -71,6 +71,12 @@ char *amiga_asl( char *title, BOOL is_saving );
 
 #endif /* ifdef AMIGA */
 
+#ifdef __PS3__
+#include <sys/stat.h>
+#define chdir(a) 0
+#define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
+#endif
+
 struct widget_dirent **widget_filenames; /* Filenames in the current
 					    directory */
 size_t widget_numfiles;	  /* The number of files in the current

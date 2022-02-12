@@ -18,7 +18,7 @@
 #  define ZLIB_INTERNAL
 #endif
 
-#if defined(_IOS_ARM64) || defined(EMSCRIPTEN) || defined(__CELLOS_LV2__)
+#if defined(_IOS_ARM64) || defined(EMSCRIPTEN) || defined(__PS3__) || defined(__PSL1GHT__)
 #include <unistd.h>
 #endif
 

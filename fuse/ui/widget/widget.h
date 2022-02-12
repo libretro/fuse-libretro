@@ -118,11 +118,56 @@ typedef struct widget_error_t {
   const char *message;
 } widget_error_t;
 
+#ifndef __PS3__
 typedef struct widget_filesel_data widget_filesel_data;
 typedef struct widget_picture_data widget_picture_data;
 typedef struct widget_text_t widget_text_t;
 typedef struct widget_select_t widget_select_t;
 typedef struct widget_roms_info widget_roms_info;
+#else
+typedef struct widget_filesel_data {
+  int exit_all_widgets;
+  const char *title;
+} widget_filesel_data;
+typedef struct widget_picture_data {
+  const char *filename;
+  libspectrum_byte *screen;
+  int border;
+} widget_picture_data;
+typedef enum widget_text_input_allow {
+  WIDGET_INPUT_ASCII,
+  WIDGET_INPUT_DIGIT,
+  WIDGET_INPUT_ALPHA,
+  WIDGET_INPUT_ALNUM
+} widget_text_input_allow;
+typedef struct widget_text_t {
+  const char *title;
+  widget_text_input_allow allow; 
+  unsigned int max_length;
+  char text[40];
+} widget_text_t;
+
+typedef struct widget_roms_info {
+
+  int initialised;
+
+  const char *title;
+  size_t start, count;
+  int is_peripheral;
+
+} widget_roms_info;
+typedef struct widget_select_t {
+
+  const char *title;	/* Dialog title */
+  const char * const *options;	/* The available options */
+  size_t count;		/* The number of options */
+  size_t current;	/* Which option starts active? */
+
+  int result;		/* What was selected? ( -1 if dialog cancelled ) */
+  int finish_all;	/* close all widget or not */
+
+} widget_select_t;
+#endif 
 
 /* File selector (load) */
 static inline int widget_do_fileselector( widget_filesel_data *data )

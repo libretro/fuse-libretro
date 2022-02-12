@@ -12,8 +12,8 @@ const char *compat_get_temp_path(void)
 
 const char *compat_get_config_path(void)
 {
-#ifdef __CELLOS_LV2__
-   return "/dev_hdd0/game/SSNE10000/USRDIR/cores/system";
+#ifdef __PS3__
+   return "/dev_hdd0/game/RETROARCH/USRDIR/system";
 #else
    return "";
 #endif
