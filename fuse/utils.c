@@ -403,7 +403,13 @@ utils_read_auxiliary_file( const char *filename, utils_file *file,
   int error;
   compat_fd fd;
 
+#ifdef __PS3__
+  char fullpath[256];
+  sprintf(fullpath, "%s/%s", compat_get_config_path(),filename);
+  fd = utils_find_auxiliary_file( fullpath, type );
+#else
   fd = utils_find_auxiliary_file( filename, type );
+#endif
   if( fd == COMPAT_FILE_OPEN_FAILED ) return -1;
 
   error = utils_read_fd( fd, filename, file );

@@ -35,7 +35,9 @@
 #include "debugger/debugger.h"
 #include "event.h"
 #include "infrastructure/startup_manager.h"
+#ifndef __PS3__
 #include "memory.h"
+#endif
 #include "module.h"
 #include "multiface.h"
 #include "options.h"

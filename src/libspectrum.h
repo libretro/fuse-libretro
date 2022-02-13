@@ -69,6 +69,14 @@ extern "C" {
 
 #endif				/* #ifdef _WIN32 */
 
+#ifdef __PS3__
+#include <fcntl.h>
+#define F_OK 0
+#define W_OK 2
+#define R_OK 4
+int access(const char *fpath, int /*mode*/);
+#endif
+
 #ifdef __GNUC__
 #define DEPRECATED __attribute__((deprecated))
 #else                           /* #ifdef __GNUC__ */

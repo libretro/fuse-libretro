@@ -105,10 +105,12 @@ typedef struct widget_dirent {
   char *name;
 } widget_dirent;
 
+#ifndef __PS3__
 typedef struct widget_filesel_data {
   int exit_all_widgets;
   const char *title;
 } widget_filesel_data;
+#endif
 
 extern struct widget_dirent **widget_filenames;
 extern size_t widget_numfiles;
@@ -138,11 +140,13 @@ void widget_machine_keyhandler( input_key key );
 
 /* Keyboard picture */
 
+#ifndef __PS3__
 typedef struct widget_picture_data {
   const char *filename;
   libspectrum_byte *screen;
   int border;
 } widget_picture_data;
+#endif
 
 int widget_picture_draw( void* data );
 void widget_picture_keyhandler( input_key key );
@@ -162,6 +166,7 @@ scaler_type widget_select_scaler( int (*selector)( scaler_type ) );
 
 /* The generalised selector widget */
 
+#ifndef __PS3__
 typedef struct widget_select_t {
 
   const char *title;	/* Dialog title */
@@ -173,6 +178,7 @@ typedef struct widget_select_t {
   int finish_all;	/* close all widget or not */
 
 } widget_select_t;
+#endif
 
 int widget_select_draw( void *data );
 void widget_select_keyhandler( input_key key );
@@ -186,6 +192,7 @@ int widget_browse_finish( widget_finish_state finished );
 
 /* The text entry widget */
 
+#ifndef __PS3__
 typedef enum widget_text_input_allow {
   WIDGET_INPUT_ASCII,
   WIDGET_INPUT_DIGIT,
@@ -199,6 +206,7 @@ typedef struct widget_text_t {
   unsigned int max_length;
   char text[40];
 } widget_text_t;
+#endif
 
 int widget_text_draw( void* data );
 void widget_text_keyhandler( input_key key );
@@ -242,6 +250,7 @@ void widget_about_keyhandler( input_key key );
 
 /* The ROM selector widget */
 
+#ifndef __PS3__
 typedef struct widget_roms_info {
 
   int initialised;
@@ -251,6 +260,7 @@ typedef struct widget_roms_info {
   int is_peripheral;
 
 } widget_roms_info;
+#endif
 
 int widget_roms_draw( void *data );
 void widget_roms_keyhandler( input_key key );

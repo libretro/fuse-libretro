@@ -1,4 +1,4 @@
-#if defined( __CELLOS_LV2__ )
+#if defined( __PS3__ )
 
 #include <stddef.h>
 
@@ -24,4 +24,5 @@ int isatty(int fd)
   (void)fd;
   return 1;
 }
+
 #endif
