@@ -544,24 +544,21 @@ void retro_set_environment(retro_environment_t cb)
 {
    env_cb = cb;
 
-   static const struct retro_controller_description controllers[] = {
+   static const struct retro_controller_description controllers_and_kb[] = {
       { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
       { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
       { "Sinclair 1 Joystick", RETRO_DEVICE_SINCLAIR1_JOYSTICK },
       { "Sinclair 2 Joystick", RETRO_DEVICE_SINCLAIR2_JOYSTICK },
       { "Timex 1 Joystick", RETRO_DEVICE_TIMEX1_JOYSTICK },
       { "Timex 2 Joystick", RETRO_DEVICE_TIMEX2_JOYSTICK },
-      { "Fuller Joystick", RETRO_DEVICE_FULLER_JOYSTICK }
-   };
-
-   static const struct retro_controller_description keyboards[] = {
-      { "Sinclair Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD },
+      { "Fuller Joystick", RETRO_DEVICE_FULLER_JOYSTICK },
+      { "Sinclair Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD }
    };
 
    static const struct retro_controller_info ports[MAX_PADS + 1] = {
-      { controllers, sizeof(controllers) / sizeof(controllers[0]) }, // port 1
-      { controllers, sizeof(controllers) / sizeof(controllers[0]) }, // port 2
-      { keyboards,   sizeof(keyboards)   / sizeof(keyboards[0])   }, // port 3
+      { controllers_and_kb, sizeof(controllers_and_kb) / sizeof(controllers_and_kb[0]) }, // port 1
+      { controllers_and_kb, sizeof(controllers_and_kb) / sizeof(controllers_and_kb[0]) }, // port 2
+      { controllers_and_kb, sizeof(controllers_and_kb) / sizeof(controllers_and_kb[0]) }, // port 3
       { NULL, 0 }
    };
 
