@@ -262,6 +262,10 @@ keysyms_map_t keysyms_map[] = {
    { RETROK_RMETA,     INPUT_KEY_Meta_R      },
    { RETROK_LSUPER,    INPUT_KEY_Super_L     },
    { RETROK_RSUPER,    INPUT_KEY_Super_R     },
+   { RETROK_UP,        INPUT_KEY_Up          },
+   { RETROK_DOWN,      INPUT_KEY_Down        },
+   { RETROK_RIGHT,     INPUT_KEY_Right       },
+   { RETROK_LEFT,      INPUT_KEY_Left        },
    { 0, 0 }    // End marker: DO NOT MOVE!
 };
 
