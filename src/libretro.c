@@ -549,14 +549,15 @@ void retro_set_environment(retro_environment_t cb)
    env_cb = cb;
 
    static const struct retro_controller_description controllers_and_kb[] = {
-      { "Cursor Joystick", RETRO_DEVICE_CURSOR_JOYSTICK },
-      { "Kempston Joystick", RETRO_DEVICE_KEMPSTON_JOYSTICK },
+      { "Core defined Input",  RETRO_DEVICE_AUTO_CFG           },
+      { "Cursor Joystick",     RETRO_DEVICE_CURSOR_JOYSTICK    },
+      { "Kempston Joystick",   RETRO_DEVICE_KEMPSTON_JOYSTICK  },
       { "Sinclair 1 Joystick", RETRO_DEVICE_SINCLAIR1_JOYSTICK },
       { "Sinclair 2 Joystick", RETRO_DEVICE_SINCLAIR2_JOYSTICK },
-      { "Timex 1 Joystick", RETRO_DEVICE_TIMEX1_JOYSTICK },
-      { "Timex 2 Joystick", RETRO_DEVICE_TIMEX2_JOYSTICK },
-      { "Fuller Joystick", RETRO_DEVICE_FULLER_JOYSTICK },
-      { "Sinclair Keyboard", RETRO_DEVICE_SPECTRUM_KEYBOARD }
+      { "Timex 1 Joystick",    RETRO_DEVICE_TIMEX1_JOYSTICK    },
+      { "Timex 2 Joystick",    RETRO_DEVICE_TIMEX2_JOYSTICK    },
+      { "Fuller Joystick",     RETRO_DEVICE_FULLER_JOYSTICK    },
+      { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  }
    };
 
    static const struct retro_controller_info ports[MAX_PADS + 1] = {
@@ -594,7 +595,7 @@ void retro_init(void)
    active_cheats = NULL;
 
    // Set default controllers
-   retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK );
+   retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK   );
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
 }
@@ -1081,6 +1082,10 @@ void retro_deinit(void)
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
    log_cb(RETRO_LOG_INFO, "port %u device %08x\n", port, device);
+
+   if (device == RETRO_DEVICE_AUTO_CFG)
+      return;
+
    switch (device)
    {
       case RETRO_DEVICE_CURSOR_JOYSTICK:

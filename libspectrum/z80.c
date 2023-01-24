@@ -396,6 +396,11 @@ read_header( const libspectrum_byte *buffer, libspectrum_snap *snap,
     *version = 1;
 
     libspectrum_snap_set_joystick_active_count( snap, 1 );
+#ifdef __LIBRETRO__
+    libspectrum_snap_set_joystick_inputs( snap, 0,
+                                        LIBSPECTRUM_JOYSTICK_INPUT_KEYBOARD |
+                                        LIBSPECTRUM_JOYSTICK_INPUT_JOYSTICK_1 );
+#endif
     error = get_joystick_type_v1( snap, ( header[29] & 0xc0 ) >> 6 );
     if( error ) return error;
 

@@ -756,6 +756,11 @@ ui_confirm_joystick( libspectrum_joystick libspectrum_type, int inputs )
   int error;
   char title[80];
 
+#ifdef __LIBRETRO__
+  if(( !settings_current.joy_prompt ) && (inputs & LIBSPECTRUM_JOYSTICK_INPUT_JOYSTICK_1))
+      return UI_CONFIRM_JOYSTICK_JOYSTICK_1;
+#endif
+
   if( !settings_current.joy_prompt ) return UI_CONFIRM_JOYSTICK_NONE;
 
   snprintf( title, sizeof( title ), "Configure %s joystick",
