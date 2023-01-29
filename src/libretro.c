@@ -79,6 +79,9 @@ static const machine_t machine_list[] =
 
 static int fuse_init_called = 0;
 
+static unsigned msg_interface_version = 0;
+static int display_joystick_type;
+
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
 
@@ -297,6 +300,31 @@ static const struct retro_variable core_vars[] =
    { "fuse_joypad_r3",      "Joypad R3 button mapping; " SPECTRUMKEYS },
    { NULL, NULL },
 };
+
+void Retro_Msg(const char * msg_str)
+{
+   if (msg_interface_version >= 1)
+   {
+      struct retro_message_ext msg = {
+         msg_str,
+         3000,
+         3,
+         RETRO_LOG_WARN,
+         RETRO_MESSAGE_TARGET_ALL,
+         RETRO_MESSAGE_TYPE_NOTIFICATION,
+         -1
+      };
+      env_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &msg);
+   }
+   else
+   {
+      struct retro_message msg = {
+         msg_str,
+         180
+      };
+      env_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &msg);
+   }
+}
 
 int update_variables(int force)
 {
@@ -590,6 +618,9 @@ void retro_init(void)
       log_cb = log.log;
    }
 
+   msg_interface_version = 0;
+   env_cb(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &msg_interface_version);
+
    machine = machine_list;
    total_time_ms = 0.0;
    active_cheats = NULL;
@@ -598,6 +629,8 @@ void retro_init(void)
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK   );
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
+   
+   display_joystick_type = FALSE;
 }
 
 static libspectrum_id_t identify_file(const void* data, size_t size)
@@ -1001,6 +1034,15 @@ void retro_run(void)
 {
    bool updated = false;
 
+   if (display_joystick_type == TRUE)
+   {
+      char title[80];
+      snprintf( title, sizeof( title ), "Configure port 1 as %s joystick",
+         libspectrum_joystick_name( settings_current.joystick_1_output ));
+      Retro_Msg(title);
+      display_joystick_type = FALSE;
+   }
+
    if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
    {
       int flags = update_variables(0);
@@ -1084,7 +1126,11 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
    log_cb(RETRO_LOG_INFO, "port %u device %08x\n", port, device);
 
    if (device == RETRO_DEVICE_AUTO_CFG)
+   {
+      if (port == 0)
+         display_joystick_type = TRUE;
       return;
+   }
 
    switch (device)
    {
