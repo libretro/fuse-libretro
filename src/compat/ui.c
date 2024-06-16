@@ -170,9 +170,9 @@ int ui_event(void)
 
                if (is_down)
                {
-                  if (!joypad_state[port][id])
+                  if (!joyp_state[port][id])
                   {
-                     joypad_state[port][id] = true;
+                     joyp_state[port][id] = true;
 
                      if (keyboard_event)
                      {
@@ -194,9 +194,9 @@ int ui_event(void)
                }
                else
                {
-                  if (joypad_state[port][id])
+                  if (joyp_state[port][id])
                   {
-                     joypad_state[port][id] = false;
+                     joyp_state[port][id] = false;
                  
                      if (keyboard_event)
                      {
@@ -277,9 +277,9 @@ int ui_event(void)
                
                if (is_down)
                {
-                  if (!joypad_state[0][id])
+                  if (!joyp_state[0][id])
                   {
-                     joypad_state[0][id] = true;
+                     joyp_state[0][id] = true;
                      
                      switch (map[id])
                      {
@@ -321,9 +321,9 @@ int ui_event(void)
                }
                else
                {
-                  if (joypad_state[0][id])
+                  if (joyp_state[0][id])
                   {
-                     joypad_state[0][id] = false;
+                     joyp_state[0][id] = false;
                   }
                }
             }

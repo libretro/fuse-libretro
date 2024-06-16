@@ -112,7 +112,7 @@ int select_pressed;
 int keyb_overlay;
 unsigned keyb_x;
 unsigned keyb_y;
-bool joypad_state[MAX_PADS][16];
+bool joyp_state[MAX_PADS][16];
 bool keyb_state[RETROK_LAST];
 void*  snapshot_buffer;
 size_t snapshot_size;
@@ -709,7 +709,7 @@ bool retro_load_game(const struct retro_game_info *info)
    }
 
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
-   memset(joypad_state, 0, sizeof(joypad_state));
+   memset(joyp_state, 0, sizeof(joyp_state));
    memset(keyb_state, 0, sizeof(keyb_state));
    hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;
