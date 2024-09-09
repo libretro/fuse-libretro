@@ -81,6 +81,7 @@ static int fuse_init_called = 0;
 
 static unsigned msg_interface_version = 0;
 static int display_joystick_type;
+static int display_emulation_speed;
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -275,6 +276,7 @@ keysyms_map_t keysyms_map[] = {
 static const struct retro_variable core_vars[] =
 {
    { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
+   { "fuse_emulation_speed", "Emulation speed percentage (needs content load); 100|150|200|300|50"},
    { "fuse_size_border", "Size Video Border; full|medium|small|minimum|none" },
    { "fuse_auto_load", "Tape Auto Load; enabled|disabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
@@ -283,6 +285,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
+   { "fuse_display_joystick_type", "Display joystick type at startup; enabled|disabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
    { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
@@ -439,6 +442,12 @@ int update_variables(int force)
       }
    }
 
+   {
+      const char* value;
+      int option = coreopt(env_cb, core_vars, "fuse_emulation_speed", &value);
+      settings_current.emulation_speed = option >= 0 ? atoi(value) : 100;
+   }
+
    settings_current.auto_load = coreopt(env_cb, core_vars, "fuse_auto_load", NULL) != 1;
 
    if (coreopt(env_cb, core_vars, "fuse_fast_load", NULL) == 0)
@@ -486,6 +495,14 @@ int update_variables(int force)
       const char* value;
       int option = coreopt(env_cb, core_vars, "fuse_key_hold_time", &value);
       keyb_hold_time = option >= 0 ? strtoll(value, NULL, 10) * 1000LL : 500000LL;
+   }
+
+
+   if (coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL) == 0)
+   {
+      display_joystick_type = TRUE;
+   } else {
+      display_joystick_type = FALSE;
    }
 
    const char* value;
@@ -595,10 +612,8 @@ void retro_set_environment(retro_environment_t cb)
       { NULL, 0 }
    };
 
-   // This seem to be broken right now, as info is NULL in retro_load_game
-   // even when we load a game via the frontend after booting to BASIC.
-   //bool yes = true;
-   //cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, (void*)&yes);
+   bool yes = true;
+   cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &yes);
 
    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
@@ -631,6 +646,7 @@ void retro_init(void)
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
    
    display_joystick_type = FALSE;
+   display_emulation_speed = TRUE;
 }
 
 static libspectrum_id_t identify_file(const void* data, size_t size)
@@ -726,7 +742,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
    if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
    {
-      if (info->size != 0)
+      if (info && info->size != 0)
       {
          tape_size = info->size;
          tape_data = malloc(tape_size);
@@ -1036,11 +1052,23 @@ void retro_run(void)
 
    if (display_joystick_type == TRUE)
    {
-      char title[80];
-      snprintf( title, sizeof( title ), "Configure port 1 as %s joystick",
-         libspectrum_joystick_name( settings_current.joystick_1_output ));
-      Retro_Msg(title);
+      for (int port = 0; port < MAX_PADS; port++) {
+         int joystick_type = get_joystick(input_devices[port]);
+         if (joystick_type != 0) {
+            char title[80];
+            snprintf(title, sizeof(title), "Port %d configured as %s joystick", port + 1,
+               libspectrum_joystick_name(joystick_type));
+            Retro_Msg(title);
+         }
+      }
       display_joystick_type = FALSE;
+   }
+
+   if (display_emulation_speed == TRUE) {
+      char title[80];
+      snprintf(title, sizeof(title), "Emulation speed configured to %d%%", settings_current.emulation_speed);
+      Retro_Msg(title);
+      display_emulation_speed = FALSE;
    }
 
    if (env_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
