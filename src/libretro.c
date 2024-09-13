@@ -1052,7 +1052,8 @@ void retro_run(void)
 
    if (display_joystick_type == TRUE)
    {
-      for (int port = 0; port < MAX_PADS; port++) {
+      int port;
+      for (port = 0; port < MAX_PADS; port++) {
          int joystick_type = get_joystick(input_devices[port]);
          if (joystick_type != 0) {
             char title[80];
