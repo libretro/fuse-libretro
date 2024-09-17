@@ -34,6 +34,9 @@ int snapshot_read_buffer( const unsigned char *buffer, size_t length,
 
 int snapshot_copy_from( libspectrum_snap *snap );
 
+#ifdef __LIBRETO__
+int snapshot_update( void );
+#endif
 int snapshot_write( const char *filename );
 int snapshot_copy_to( libspectrum_snap *snap );
 

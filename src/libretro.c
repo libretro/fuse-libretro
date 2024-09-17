@@ -1209,22 +1209,22 @@ void retro_reset(void)
 size_t retro_serialize_size(void)
 {
    fuse_emulation_pause();
-   snapshot_write("dummy.szx"); // filename is only used to get the snapshot type
+   snapshot_update();
    fuse_emulation_unpause();
    return snapshot_size;
 }
 
 bool retro_serialize(void *data, size_t size)
 {
-   bool res = false;
+   snapshot_update();
 
    if (size <= snapshot_size)
    {
       memcpy(data, snapshot_buffer, snapshot_size);
-      res = true;
+      return true;
    }
 
-   return res;
+   return false;
 }
 
 bool retro_unserialize(const void *data, size_t size)

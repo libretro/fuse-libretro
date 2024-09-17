@@ -111,6 +111,53 @@ snapshot_copy_from( libspectrum_snap *snap )
   return 0;
 }
 
+#ifdef __LIBRETRO__
+int snapshot_update()
+{
+
+  libspectrum_id_t type;
+  libspectrum_snap *snap;
+  unsigned char *buffer;
+  size_t length;
+  int flags;
+  int error;
+
+  type = LIBSPECTRUM_ID_SNAPSHOT_SZX;
+  snap = libspectrum_snap_alloc();
+  error = snapshot_copy_to(snap);
+  if (error) { libspectrum_snap_free(snap); return error; }
+  flags = 0;
+  length = 0;
+  buffer = NULL;
+  error = libspectrum_snap_write( &buffer, &length, &flags, snap, type, fuse_creator, 0 );
+  if (error) { libspectrum_snap_free(snap); return error; }
+
+  error = libspectrum_snap_free(snap);
+  if (error) return 1;
+
+  if (snapshot_size < length) {
+      void* new_buffer;
+      new_buffer = realloc(snapshot_buffer, length);
+
+      if (!new_buffer)
+      {
+         free(snapshot_buffer);
+         snapshot_buffer = NULL;
+         snapshot_size = 0;
+         libspectrum_free(buffer);
+         return 1;
+      }
+      snapshot_buffer = new_buffer;
+      snapshot_size = length;
+   }
+
+  memcpy(snapshot_buffer, buffer, length);
+  libspectrum_free(buffer);
+  return 0;
+
+}
+#endif
+
 int snapshot_write( const char *filename )
 {
   libspectrum_id_t type;

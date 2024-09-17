@@ -131,7 +131,7 @@
 #define PACKAGE_BUGREPORT "http://sourceforge.net/p/fuse-emulator/bugs/"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "fuse"
+#define PACKAGE_NAME "Fuse"
 
 /* Define to the full name and version of this package. */
 #define PACKAGE_STRING "fuse 1.6.0"
