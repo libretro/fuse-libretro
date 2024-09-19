@@ -68,6 +68,7 @@ void z80_do_opcodes(void);
 int event_do_events(void);
 int fuse_emulation_pause(void);
 int fuse_emulation_unpause(void);
+int snapshot_update(void);
 int snapshot_write(const char* filename);
 int snapshot_read_buffer(const unsigned char* buffer, size_t length, libspectrum_id_t type);
 
