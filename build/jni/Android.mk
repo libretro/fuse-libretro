@@ -22,6 +22,6 @@ $(shell cp $(CORE_DIR)/src/config_libspectrum.h $(CORE_DIR)/libspectrum/config.h
 include $(CLEAR_VARS)
 LOCAL_MODULE    := retro
 LOCAL_SRC_FILES := $(SOURCES_C)
-LOCAL_CFLAGS    := $(COREFLAGS)
+LOCAL_CFLAGS    := $(COREFLAGS) -D__LIBRETRO__
 LOCAL_LDFLAGS   := -Wl,-version-script=$(CORE_DIR)/build/link.T
 include $(BUILD_SHARED_LIBRARY)
