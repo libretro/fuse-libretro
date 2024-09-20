@@ -112,7 +112,7 @@ snapshot_copy_from( libspectrum_snap *snap )
 }
 
 #ifdef __LIBRETRO__
-int snapshot_update()
+int snapshot_update(void)
 {
 
   libspectrum_id_t type;
@@ -154,7 +154,6 @@ int snapshot_update()
   memcpy(snapshot_buffer, buffer, length);
   libspectrum_free(buffer);
   return 0;
-
 }
 #endif
 
