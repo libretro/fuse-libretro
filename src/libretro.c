@@ -78,6 +78,8 @@ static const machine_t machine_list[] =
 };
 
 static int fuse_init_called = 0;
+static int forced_machine_at_init = 0;
+static int forced_machine_idx = 0;
 
 static unsigned msg_interface_version = 0;
 static int display_joystick_type;
@@ -285,7 +287,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
-   { "fuse_display_joystick_type", "Display joystick type at startup; enabled|disabled" },
+   { "fuse_display_joystick_type", "Display joystick type and emulation speed at startup; enabled|disabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
    { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
@@ -338,6 +340,10 @@ int update_variables(int force)
       // Only change the machine when reloading content
       int option = coreopt(env_cb, core_vars, "fuse_machine", NULL);
       option += option < 0;
+
+      if (forced_machine_at_init)
+         option = forced_machine_idx;
+
       const machine_t *new_machine = machine_list + option;
 
       if (new_machine != machine || force)
@@ -349,14 +355,14 @@ int update_variables(int force)
 
          settings_current.start_machine = utils_safe_strdup(new_machine->fuse_id);
 
-         if (machine == NULL || new_machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_48_NTSC)
+         if (machine == NULL || new_machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_TS2068)
          {
             // region and fps change
             flags |= UPDATE_AV_INFO;
          }
 
          machine = new_machine;
-         frame_time = 1000.0 / ( machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0 );
+         frame_time = 1000.0 / ( (machine->id == LIBSPECTRUM_MACHINE_48_NTSC|| machine->id == LIBSPECTRUM_MACHINE_TS2068) ? 60.0 : 50.0 );
          flags |= UPDATE_MACHINE;
       }
 
@@ -501,8 +507,10 @@ int update_variables(int force)
    if (coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL) == 0)
    {
       display_joystick_type = TRUE;
+      display_emulation_speed = TRUE;
    } else {
       display_joystick_type = FALSE;
+      display_emulation_speed = FALSE;
    }
 
    const char* value;
@@ -586,7 +594,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|zip";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|zip";
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -700,6 +708,7 @@ static libspectrum_id_t identify_file_get_ext(const void* data, size_t size, con
       case LIBSPECTRUM_ID_DISK_DSK:
       case LIBSPECTRUM_ID_DISK_CPC:
       case LIBSPECTRUM_ID_DISK_ECPC:     *ext = ".dsk"; break;
+      case LIBSPECTRUM_ID_CARTRIDGE_DCK: *ext = ".dck"; break;
       default:                           *ext = "";     break;
    }
 
@@ -738,6 +747,19 @@ bool retro_load_game(const struct retro_game_info *info)
       "fuse",
    };
 
+   /* Special case TS2068 .dck */
+   /* We force TC2068 */
+   if (info && info->size != 0)
+   {
+      const char *ext_f = strrchr(info->path, '.');
+      if (ext_f != NULL && strcmp(ext_f, ".dck") == 0)
+      {
+         forced_machine_at_init = 1;
+         /* LIBSPECTRUM_MACHINE_TS2068 position in machine_list */
+         forced_machine_idx = 10;
+      }
+   }
+   
    fuse_init_called = 1;
 
    if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
@@ -757,9 +779,21 @@ bool retro_load_game(const struct retro_game_info *info)
          memcpy(tape_data, info->data, tape_size);
 
          const char* ext;
-         libspectrum_id_t type = identify_file_get_ext(tape_data, tape_size, &ext);
+         libspectrum_id_t type;
          libspectrum_class_t class;
-         libspectrum_identify_class(&class, type);
+
+         
+         if (forced_machine_at_init && forced_machine_idx == 10)  /* LIBSPECTRUM_MACHINE_TS2068 position in machine_list */
+         {
+            type = LIBSPECTRUM_ID_CARTRIDGE_DCK;
+            class = LIBSPECTRUM_CLASS_CARTRIDGE_TIMEX;
+            ext = ".dck";
+         }
+         else
+         {
+            type = identify_file_get_ext(tape_data, tape_size, &ext);
+            libspectrum_identify_class(&class, type);
+         }
 
          char filename[32];
          snprintf(filename, sizeof(filename), "*%s", ext);
