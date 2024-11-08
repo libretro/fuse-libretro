@@ -2545,6 +2545,15 @@ read_chunk( libspectrum_snap *snap, libspectrum_word version,
   error = read_chunk_header( id, &data_length, buffer, end );
   if( error ) return error;
 
+#ifdef __LIBRETRO__
+  /* Hack to keep all snapshots with the same size*/
+  if (memcmp(id, "\xFF\xFF\xFF\xFF", 4) == 0)
+  {
+    *buffer = end;
+    return LIBSPECTRUM_ERROR_NONE;
+  }
+#endif
+
   if( end - *buffer < data_length ) {
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_CORRUPT,
