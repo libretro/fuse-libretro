@@ -1254,6 +1254,8 @@ bool retro_serialize(void *data, size_t size)
 
    if (size <= snapshot_size)
    {
+      // update snapshot_buffer (fuse_emulation_pause cause sound clipping at netplay)
+      snapshot_write("dummy.szx"); // filename is only used to get the snapshot type
       memcpy(data, snapshot_buffer, snapshot_size);
       return true;
    }
