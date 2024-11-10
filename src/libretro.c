@@ -590,7 +590,7 @@ void retro_get_system_info(struct retro_system_info *info)
 #ifndef GIT_VERSION
    memcpy(version + sizeof(PACKAGE_VERSION), fuse_githash, 7);
 #endif
-   info->library_name = PACKAGE_NAME;
+   info->library_name = "Fuse"; // must be the same as in fuse_libretro.info
    info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
