@@ -80,6 +80,7 @@ static const machine_t machine_list[] =
 static int fuse_init_called = 0;
 static int forced_machine_at_init = 0;
 static int forced_machine_idx = 0;
+static int auto_size_savestate = 1;
 
 static unsigned msg_interface_version = 0;
 static int display_joystick_type;
@@ -288,6 +289,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
    { "fuse_display_joystick_type", "Display joystick type and emulation speed at startup; enabled|disabled" },
+   { "fuse_auto_size_savestate", "Use Auto Size for Savestates. For Netplay 'Off' is recommended; enabled|disabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
    { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
@@ -513,6 +515,11 @@ int update_variables(int force)
       display_emulation_speed = FALSE;
    }
 
+   if (coreopt(env_cb, core_vars, "fuse_auto_size_savestate", NULL) == 0)
+      auto_size_savestate = TRUE;
+   else
+      auto_size_savestate = FALSE;
+
    const char* value;
    int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );
    joymap[ RETRO_DEVICE_ID_JOYPAD_UP ] = spectrum_keys_map[option];
@@ -594,7 +601,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|zip";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|sna|szx|zip";
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -657,59 +664,48 @@ void retro_init(void)
    display_emulation_speed = TRUE;
 }
 
-static libspectrum_id_t identify_file(const void* data, size_t size)
+static libspectrum_id_t identify_file(const char* filename, const void* data, size_t size)
 {
    libspectrum_id_t type;
-   libspectrum_error error = libspectrum_identify_file(&type, NULL, (const unsigned char*)data, size);
+   libspectrum_error error = libspectrum_identify_file(&type, filename, (const unsigned char*)data, size);
 
-   if (type != LIBSPECTRUM_ID_UNKNOWN)
-   {
+   if (error == LIBSPECTRUM_ERROR_NONE && type != LIBSPECTRUM_ID_UNKNOWN)
       return type;
-   }
-
-   libspectrum_snap* snap = libspectrum_snap_alloc();
-   error = libspectrum_snap_read(snap, (const libspectrum_byte*)data, size, LIBSPECTRUM_ID_SNAPSHOT_Z80, NULL);
-   libspectrum_snap_free(snap);
-
-   if (error == LIBSPECTRUM_ERROR_NONE)
-   {
-      return LIBSPECTRUM_ID_SNAPSHOT_Z80;
-   }
 
    // Default to TRD, we won't be able to load TRD files otherwise
    return LIBSPECTRUM_ID_DISK_TRD;
 }
 
-static libspectrum_id_t identify_file_get_ext(const void* data, size_t size, const char** ext)
+static libspectrum_id_t identify_file_get_ext(const char* filename, const void* data, size_t size, const char** ext)
 {
-   libspectrum_id_t type = identify_file(data, size);
+   libspectrum_id_t type = identify_file(filename, data, size);
 
    switch (type)
    {
-      case LIBSPECTRUM_ID_RECORDING_RZX: *ext = ".rzx"; break;
-      case LIBSPECTRUM_ID_SNAPSHOT_SNA:  *ext = ".sna"; break;
-      case LIBSPECTRUM_ID_SNAPSHOT_Z80:  *ext = ".z80"; break;
-      case LIBSPECTRUM_ID_TAPE_TAP:      // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
-      case LIBSPECTRUM_ID_TAPE_WARAJEVO: *ext = ".tap"; break;
-      case LIBSPECTRUM_ID_TAPE_TZX:      *ext = ".tzx"; break;
-      case LIBSPECTRUM_ID_SNAPSHOT_SP:   *ext = ".sp";  break;
-      case LIBSPECTRUM_ID_SNAPSHOT_SNP:  *ext = ".snp"; break;
-      case LIBSPECTRUM_ID_SNAPSHOT_ZXS:  *ext = ".zxs"; break;
-      case LIBSPECTRUM_ID_SNAPSHOT_SZX:  *ext = ".szx"; break;
-      case LIBSPECTRUM_ID_TAPE_CSW:      *ext = ".csw"; break;
-      case LIBSPECTRUM_ID_TAPE_Z80EM:    *ext = ".raw"; break;
-      case LIBSPECTRUM_ID_TAPE_WAV:      *ext = ".wav"; break;
-      case LIBSPECTRUM_ID_TAPE_SPC:      *ext = ".spc"; break;
-      case LIBSPECTRUM_ID_TAPE_STA:      *ext = ".sta"; break;
-      case LIBSPECTRUM_ID_TAPE_LTP:      *ext = ".ltp"; break;
-      case LIBSPECTRUM_ID_TAPE_PZX:      *ext = ".pzx"; break;
-      case LIBSPECTRUM_ID_DISK_SCL:      *ext = ".scl"; break;
-      case LIBSPECTRUM_ID_DISK_TRD:      *ext = ".trd"; break;
+      case LIBSPECTRUM_ID_RECORDING_RZX:  *ext = ".rzx"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SNA:   *ext = ".sna"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_Z80:   *ext = ".z80"; break;
+      case LIBSPECTRUM_ID_TAPE_TAP:       // has same extension as LIBSPECTRUM_ID_TAPE_WARAJEVO
+      case LIBSPECTRUM_ID_TAPE_WARAJEVO:  *ext = ".tap"; break;
+      case LIBSPECTRUM_ID_TAPE_TZX:       *ext = ".tzx"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SP:    *ext = ".sp";  break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SNP:   *ext = ".snp"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_ZXS:   *ext = ".zxs"; break;
+      case LIBSPECTRUM_ID_SNAPSHOT_SZX:   *ext = ".szx"; break;
+      case LIBSPECTRUM_ID_TAPE_CSW:       *ext = ".csw"; break;
+      case LIBSPECTRUM_ID_TAPE_Z80EM:     *ext = ".raw"; break;
+      case LIBSPECTRUM_ID_TAPE_WAV:       *ext = ".wav"; break;
+      case LIBSPECTRUM_ID_TAPE_SPC:       *ext = ".spc"; break;
+      case LIBSPECTRUM_ID_TAPE_STA:       *ext = ".sta"; break;
+      case LIBSPECTRUM_ID_TAPE_LTP:       *ext = ".ltp"; break;
+      case LIBSPECTRUM_ID_TAPE_PZX:       *ext = ".pzx"; break;
+      case LIBSPECTRUM_ID_DISK_SCL:       *ext = ".scl"; break;
+      case LIBSPECTRUM_ID_DISK_TRD:       *ext = ".trd"; break;
       case LIBSPECTRUM_ID_DISK_DSK:
       case LIBSPECTRUM_ID_DISK_CPC:
-      case LIBSPECTRUM_ID_DISK_ECPC:     *ext = ".dsk"; break;
-      case LIBSPECTRUM_ID_CARTRIDGE_DCK: *ext = ".dck"; break;
-      default:                           *ext = "";     break;
+      case LIBSPECTRUM_ID_DISK_ECPC:      *ext = ".dsk"; break;
+      case LIBSPECTRUM_ID_CARTRIDGE_DCK:  *ext = ".dck"; break;
+      default:                            *ext = "";     break;
    }
 
    return type;
@@ -779,6 +775,7 @@ bool retro_load_game(const struct retro_game_info *info)
          memcpy(tape_data, info->data, tape_size);
 
          const char* ext;
+         const char* filename_load_game = info->path;
          libspectrum_id_t type;
          libspectrum_class_t class;
 
@@ -789,9 +786,9 @@ bool retro_load_game(const struct retro_game_info *info)
             class = LIBSPECTRUM_CLASS_CARTRIDGE_TIMEX;
             ext = ".dck";
          }
-         else
+         else 
          {
-            type = identify_file_get_ext(tape_data, tape_size, &ext);
+            type = identify_file_get_ext(filename_load_game, tape_data, tape_size, &ext);
             libspectrum_identify_class(&class, type);
          }
 
@@ -1227,8 +1224,9 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
 void retro_reset(void)
 {
+
    const char* ext;
-   libspectrum_id_t type = identify_file_get_ext(tape_data, tape_size, &ext);
+   libspectrum_id_t type = identify_file_get_ext(NULL, tape_data, tape_size, &ext);
 
    char filename[32];
    snprintf(filename, sizeof(filename), "*%s", ext);
@@ -1242,23 +1240,63 @@ void retro_reset(void)
 
 size_t retro_serialize_size(void)
 {
-   fuse_emulation_pause();
-   snapshot_update();
-   fuse_emulation_unpause();
-   return snapshot_size;
+   if (auto_size_savestate) {
+      fuse_emulation_pause();
+      snapshot_update();
+      fuse_emulation_unpause();
+      return snapshot_size;
+   }
+   else
+   {
+      /* Hack to keep all snapshots with a fixed size (double of normal snapshot size)*/
+      if (machine->id == LIBSPECTRUM_MACHINE_48       ||
+         machine->id == LIBSPECTRUM_MACHINE_48_NTSC   ||
+         machine->id == LIBSPECTRUM_MACHINE_TC2048    ||
+         machine->id == LIBSPECTRUM_MACHINE_16)
+         return 2 * 64 * 1024;
+      else if (machine->id == LIBSPECTRUM_MACHINE_128 ||
+         machine->id == LIBSPECTRUM_MACHINE_PLUS2     ||
+         machine->id == LIBSPECTRUM_MACHINE_PLUS2A    ||
+         machine->id == LIBSPECTRUM_MACHINE_PLUS3     ||
+         machine->id == LIBSPECTRUM_MACHINE_PLUS3E    ||
+         machine->id == LIBSPECTRUM_MACHINE_TC2068    ||
+         machine->id == LIBSPECTRUM_MACHINE_TS2068    ||
+         machine->id == LIBSPECTRUM_MACHINE_TS2068    ||
+         machine->id == LIBSPECTRUM_MACHINE_SE        ||
+         machine->id == LIBSPECTRUM_MACHINE_PENT)
+         return 2 * 128 * 1024;
+      else if (machine->id == LIBSPECTRUM_MACHINE_SCORP)
+         return 2 * 256 * 1024;
+      else if (machine->id == LIBSPECTRUM_MACHINE_PENT512)
+         return 2 * 512 * 1024;
+      else
+         return 2 * 1024 * 1024;
+   }
 }
 
 bool retro_serialize(void *data, size_t size)
 {
    snapshot_update();
 
-   if (size <= snapshot_size)
+   if (auto_size_savestate)
    {
-      memcpy(data, snapshot_buffer, snapshot_size);
-      return true;
+      if (size <= snapshot_size)
+      {
+         memcpy(data, snapshot_buffer, snapshot_size);
+         return true;
+      }  
+      log_cb(RETRO_LOG_WARN, "Data size is not enough for snapshot\n");
+      return false;
    }
 
-   return false;
+   if (size < snapshot_size)
+   {
+      log_cb(RETRO_LOG_WARN, "Snapshot size is larger than fixed size\n");
+      return false;
+   }
+   memcpy(data, snapshot_buffer, snapshot_size);
+   memset(data + snapshot_size, 0xFF, size - snapshot_size);
+   return true;
 }
 
 bool retro_unserialize(const void *data, size_t size)
