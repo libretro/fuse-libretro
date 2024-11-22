@@ -72,6 +72,9 @@ static const char * const frame_count_name = "frames";
 
 /* Count of frames since last reset */
 static libspectrum_dword frames_since_reset;
+#ifdef __LIBRETRO__
+static libspectrum_word last_floating_bus_amstrad_value = 0xff;
+#endif
 
 static void
 spectrum_reset( int hard_reset )
@@ -228,7 +231,11 @@ spectrum_contend_delay_76543210( libspectrum_dword time )
 
 /* What happens if we read from an unattached port? */
 libspectrum_byte
+#ifdef __LIBRETRO__
+spectrum_unattached_port(libspectrum_word port)
+#else
 spectrum_unattached_port( void )
+#endif
 {
   int line, tstates_through_line, column;
 
@@ -263,7 +270,7 @@ spectrum_unattached_port( void )
   column = ( ( tstates_through_line -
 	       machine_current->timings.left_border ) / 8 ) * 2;
 
-  switch( tstates_through_line % 8 ) {
+  switch( tstates_through_line % 8) {
 
     /* The pattern of bytes returned here is the same as documented by
        Ramsoft in their 'Floating bus technical guide' at
@@ -296,7 +303,128 @@ spectrum_unattached_port( void )
 }
 
 libspectrum_byte
+#ifdef __LIBRETRO__
+spectrum_unattached_port_none( libspectrum_word port )
+#else
 spectrum_unattached_port_none( void )
+#endif
 {
+#ifdef __LIBRETRO__
+  /* Make compiler happy */
+  (void) port;
+#endif
   return 0xff;
 }
+
+
+#ifdef __LIBRETRO__
+/**
+ *  References:
+ *   http://sky.relative-path.com/zx/floating_bus.html
+ *   https://sourceforge.net/p/fuse-emulator/bugs/360/
+ *   https://www.usebox.net/jjm/blog/zx-spectrum-floating-bus/
+ *   https://softspectrum48.weebly.com/notes/category/floating-bus
+ *   https://sinclair.wiki.zxnet.co.uk/wiki/Floating_bus
+ * 
+ *  Not implemented and not really necessary to run the games:
+ *   - Check if 128k paging is enabled
+ *   - Return value = 0xff or last value that was written to, or read from, contended memory duringle idle intervals
+ * 
+ *  Tested with all known games:
+ * 
+ *   - A Yankee in Irak 1.3.3
+ *   - Mr. Kung Fu 1.3 +2a/+3 version 
+ *   - MONJAS 1.6 - Spanish
+ *   - MONJAS 1.6 - English
+ *   - Hell Yeah! v210131
+ *   - Sidewize  +2A:+3 fix by Ast. A. Moore
+ */
+libspectrum_byte
+spectrum_unattached_port_amstrad( libspectrum_word port )
+{
+
+  int game = 1;
+  int line, tstates_through_line, column;
+
+   /* Check port pattern 1 + (4 * n) */
+  if (port <= 1 || port > 0x1000 || ((port - 1) & 3) != 0)
+  {
+    last_floating_bus_amstrad_value = 0xff;
+    return 0xff;
+  }
+
+  /* Return 0xff (idle bus) if we're in the top border */
+  if( tstates < machine_current->line_times[ DISPLAY_BORDER_HEIGHT ] )
+  {
+    last_floating_bus_amstrad_value = 0xff;
+    return last_floating_bus_amstrad_value;
+  }
+    
+  /* Work out which line we're on, relative to the top of the screen */
+  line = ( (libspectrum_signed_dword)tstates -
+	   machine_current->line_times[ DISPLAY_BORDER_HEIGHT ] ) /
+    machine_current->timings.tstates_per_line;
+
+  /* Idle bus if we're in the lower border */
+  if( line >= DISPLAY_HEIGHT )
+  {
+    last_floating_bus_amstrad_value = 0xff;
+    return (game) ? 0xff : last_floating_bus_amstrad_value;
+  }
+  /* Work out where we are in this line, remembering that line_times[] holds
+     the first pixel we display, not the start of where the Spectrum produced
+     the left border */
+  tstates_through_line = tstates -
+    machine_current->line_times[ DISPLAY_BORDER_HEIGHT + line ] +
+    ( machine_current->timings.left_border - DISPLAY_BORDER_WIDTH_COLS * 4 );
+
+  /* Idle bus if we're in the left border */
+  if( tstates_through_line < machine_current->timings.left_border )
+    return (game) ? 0xff : last_floating_bus_amstrad_value;
+
+  /* Or the right border or retrace */
+  if( tstates_through_line >= machine_current->timings.left_border +
+                              machine_current->timings.horizontal_screen  )
+    return (game) ? 0xff : last_floating_bus_amstrad_value;
+
+
+
+  column = ( ( tstates_through_line -
+	       machine_current->timings.left_border ) / 8 ) * 2;
+
+  switch( (tstates_through_line - game) % 8 ) {
+
+    /* The pattern of bytes returned here is the same as documented by
+       Ramsoft in their 'Floating bus technical guide' at
+       http://web.archive.org/web/20080509193736/http://www.ramsoft.bbk.org/floatingbus.html
+
+       However, the timings used are based on the first byte being
+       returned at 14338 (48K) and 14364 (128K) respectively, not
+       14347 and 14368 as used by Ramsoft.
+
+       In contrast to previous versions of this code, Arkanoid and
+       Sidewize now work. */
+
+    /* Attribute bytes */
+    case 5: column++;
+    case 3:
+      last_floating_bus_amstrad_value = RAM[ memory_current_screen ][ display_attr_start[line] + column ] | 0x01;
+      return last_floating_bus_amstrad_value;
+
+    /* Screen data */
+    case 4: column++;
+    case 2:
+      last_floating_bus_amstrad_value = RAM[ memory_current_screen ][ display_line_start[line] + column ] | 0x01;
+      return last_floating_bus_amstrad_value;
+
+    /* Idle bus */
+    case 0: case 1: case 6: case 7:
+      return (game) ? 0xff : last_floating_bus_amstrad_value;
+
+  }
+
+  return (game) ? 0xff : last_floating_bus_amstrad_value;
+
+}
+#endif
+
