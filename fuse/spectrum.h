@@ -72,8 +72,14 @@ libspectrum_byte spectrum_contend_delay_none( libspectrum_dword time );
 libspectrum_byte spectrum_contend_delay_65432100( libspectrum_dword time );
 libspectrum_byte spectrum_contend_delay_76543210( libspectrum_dword time );
 
+#ifdef __LIBRETRO__
+libspectrum_byte spectrum_unattached_port( libspectrum_word port );
+libspectrum_byte spectrum_unattached_port_none( libspectrum_word port );
+libspectrum_byte spectrum_unattached_port_amstrad( libspectrum_word port );
+#else
 libspectrum_byte spectrum_unattached_port( void );
 libspectrum_byte spectrum_unattached_port_none( void );
+#endif
 
 /* Miscellaneous stuff */
 

@@ -154,8 +154,11 @@ floating_bus_test( void )
     RAM[ memory_current_screen ][ offset ] = offset % 0x100;
 
   for( tstates = 0; tstates < ULA_CONTENTION_SIZE; tstates++ )
+#ifdef __LIBRETRO__
+    checksum += machine_current->unattached_port((libspectrum_word) 0xff) * ( tstates + 1 );
+#else
     checksum += machine_current->unattached_port() * ( tstates + 1 );
-
+#endif
   if( settings_current.late_timings ) {
     switch( machine_current->machine ) {
     case LIBSPECTRUM_MACHINE_16:

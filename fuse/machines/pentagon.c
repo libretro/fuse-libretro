@@ -86,8 +86,11 @@ pentagon_select_ff_read( libspectrum_word port, libspectrum_byte *attached )
 
   data = beta_sp_read( port, &tmpattached );
   if( !tmpattached )
+#ifdef __LIBRETRO__
+    data = spectrum_unattached_port(port);
+#else
     data = spectrum_unattached_port();
-
+#endif
   *attached = 0xff; /* TODO: check this */
   return data;
 }

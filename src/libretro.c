@@ -77,6 +77,131 @@ static const machine_t machine_list[] =
    { LIBSPECTRUM_MACHINE_SCORP,    "scorpion",     0 },
 };
 
+#define BGR16(color) rgb32_to_bgr16(color)
+#define rgb32_to_bgr16(color) rgbc32_to_bgr16((color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0x0000FF))
+#define rgbc32_to_bgr16(red, green, blue) ((blue & 0b11111000) << 8) | ((green & 0b11111100) << 3) | (red >> 3)
+#define RGB16(color) rgb32_to_rgb16(color)
+#define rgb32_to_rgb16(color) rgbc32_to_rgb16((color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0x0000FF))
+#define rgbc32_to_rgb16(red, green, blue) ((red & 0b11111000) << 8) | ((green & 0b11111100) << 3) | (blue >> 3)
+#define G3R3B2_TO_RGB565(color) \
+    ((((color >> 5) & 0x7) << 13) & 0x7C00) | \
+    ((((color >> 2) & 0x7) << 8) & 0x03E0) | \
+    (((((color & 0x3) << 1) | (((color & 0x3) & 0x1) | (((color & 0x3) >> 1) & 0x1))) << 2) & 0x001F)
+
+
+enum PALETTES {
+   PALETTE_FUSE = 0,
+   PALETTE_ZX_SPECTRUM_WIKIPEDIA,
+   PALETTE_BLACK_AND_WHITE_TV,
+   PALETTE_GREEN_MONOCHROME,
+   PALETTE_AMBAR_MONOCHROME,
+   PALETTE_C64,
+   PALETTE_CGA_4,
+   PALETTE_CGA_8,
+   PALETTE_CGA_16,
+   PALETTE_INVERTED,
+   PALETTE_COUNT
+};
+
+static uint16_t palettes[PALETTE_COUNT][16] = {
+   [PALETTE_FUSE] =  {
+      0x0000, 0x0018, 0xc000, 0xc018,
+      0x0600, 0x0618, 0xc600, 0xc618,
+      0x0000, 0x001f, 0xf800, 0xf81f,
+      0x07e0, 0x07ff, 0xffe0, 0xffff,
+   },
+   [PALETTE_ZX_SPECTRUM_WIKIPEDIA] = {
+      RGB16(0x000000),RGB16(0x0000D7),RGB16(0xD70000),RGB16(0xD700D7),
+      RGB16(0x00D700),RGB16(0x00D7D7),RGB16(0xD7D700),RGB16(0xD7D7D7),
+      RGB16(0x000000),RGB16(0x0000FF),RGB16(0xFF0000),RGB16(0xFF00FF),
+      RGB16(0x00FF00),RGB16(0x00FFFF),RGB16(0xFFFF00),RGB16(0xffffff),
+   },
+   [PALETTE_BLACK_AND_WHITE_TV] =  {
+      0x0000, 0x10a2, 0x39c7, 0x4a69,
+      0x738e, 0x8430, 0xad55, 0xbdf7,
+      0x0000, 0x18e3, 0x4a69, 0x6b4d,
+      0x94b2, 0xb596, 0xe71c, 0xffff,
+   },
+   [PALETTE_GREEN_MONOCHROME] = {  /* From ZX Spin */
+      rgbc32_to_rgb16(0,0,0), /* black */
+      rgbc32_to_rgb16(0,33,0), /* blue */
+      rgbc32_to_rgb16(0,62,0), /* red */
+      rgbc32_to_rgb16(0,85,0), /* magenta*/
+      rgbc32_to_rgb16(0,115,0), /* green*/
+      rgbc32_to_rgb16(0,136,0), /* cyan*/
+      rgbc32_to_rgb16(0,168,0), /* yellow*/
+      rgbc32_to_rgb16(0,181,0), /* white */
+      rgbc32_to_rgb16(0,0,0), /* bright black */
+      rgbc32_to_rgb16(0,52,0), /* bright blue */
+      rgbc32_to_rgb16(0,81,0), /* bright red */
+      rgbc32_to_rgb16(0,113,0), /* bright magenta*/
+      rgbc32_to_rgb16(0,154,0), /* bright green*/
+      rgbc32_to_rgb16(0,185,0), /* bright cyan*/
+      rgbc32_to_rgb16(0,237,0), /* bright yellow*/
+      rgbc32_to_rgb16(0,255,0)  /* bright white*/
+   },
+   [PALETTE_AMBAR_MONOCHROME] = {  /* From ZX Spin */
+      rgbc32_to_rgb16(0,0,0), /* black */
+      rgbc32_to_rgb16(34,24,0), /* blue */
+      rgbc32_to_rgb16(62,44,0), /* red */
+      rgbc32_to_rgb16(86,61,0), /* magenta*/
+      rgbc32_to_rgb16(116,82,0), /* green*/
+      rgbc32_to_rgb16(136,96,0), /* cyan*/
+      rgbc32_to_rgb16(168,119,0), /* yellow*/
+      rgbc32_to_rgb16(182,128,0), /* white */
+      rgbc32_to_rgb16(0,0,0), /* bright black */
+      rgbc32_to_rgb16(52,37,0), /* bright blue */
+      rgbc32_to_rgb16(82,58,0), /* bright red */
+      rgbc32_to_rgb16(114,80,0), /* bright magenta*/
+      rgbc32_to_rgb16(154,109,0), /* bright green*/
+      rgbc32_to_rgb16(186,131,0), /* bright cyan*/
+      rgbc32_to_rgb16(238,168,0), /* bright yellow*/
+      rgbc32_to_rgb16(255,180,1)  /* bright white*/
+   },
+   [PALETTE_C64] = {
+      RGB16(0x000000), /* black */
+      RGB16(0x40318D), /* blue */
+      RGB16(0x883932), /* red */
+      RGB16(0x8B5429), /* magenta*/
+      RGB16(0x55A049), /* green*/
+      RGB16(0x67B6BD), /* cyan*/
+      RGB16(0x574200), /* yellow*/
+      RGB16(0x9F9F9F), /* white */
+      RGB16(0x000000), /* bright black */
+      RGB16(0x7869C4), /* bright blue */
+      RGB16(0xB86962), /* bright red */
+      RGB16(0x8B5429), /* bright magenta*/
+      RGB16(0x94E089), /* bright green*/
+      RGB16(0x9F9F9F), /* bright cyan*/
+      RGB16(0xBFCE72), /* bright yellow*/
+      RGB16(0xFFFFFF), /* bright white*/
+   },
+   [PALETTE_CGA_4] = {
+      RGB16(0x000000),RGB16(0x55ffff),RGB16(0xff55ff),RGB16(0xff55ff),
+      RGB16(0x55ffff),RGB16(0x55ffff),RGB16(0xffffff),RGB16(0xffffff),
+      RGB16(0x000000),RGB16(0x55ffff),RGB16(0xff55ff),RGB16(0xff55ff),
+      RGB16(0x55ffff),RGB16(0x55ffff),RGB16(0xffffff),RGB16(0xffffff),
+   },
+   [PALETTE_CGA_8] = {
+      RGB16(0x000000),  RGB16(0xAAAA), RGB16(0xAA00AA), RGB16(0xAA00AA),
+      RGB16(0xAAAA),RGB16(0xAAAA),RGB16(0xAAAAAA),RGB16(0xAAAAAA),
+      RGB16(0x000000),RGB16(0x55ffff),RGB16(0xff55ff),RGB16(0xff55ff),
+      RGB16(0x55ffff),RGB16(0x55ffff),RGB16(0xffffff),RGB16(0xffffff),
+   },
+   [PALETTE_CGA_16] = {
+      RGB16(0x000000),  RGB16(0x0000AA), RGB16(0xAA0000), RGB16(0xAA00AA),
+      RGB16(0x00AA00),RGB16(0x00AAAA),RGB16(0xAA5500),RGB16(0xAAAAAA),
+      RGB16(0x000000),RGB16(0x5555FF),RGB16(0xFF5555),RGB16(0xFF55FF),
+      RGB16(0x55FF55),RGB16(0x55FFFF),RGB16(0xFFFF55),RGB16(0xffffff),
+   },
+   [PALETTE_INVERTED] = {
+      RGB16(0xffffff),RGB16(0xFEFF31),RGB16(0x30FEFF),RGB16(0x30FE31),
+      RGB16(0xFF30EA),RGB16(0xFE3030),RGB16(0x3030EA),RGB16(0x303030),
+      RGB16(0xffffff),RGB16(0xFDFF02),RGB16(0x00FDFE),RGB16(0x00FD02),
+      RGB16(0xFF00E3),RGB16(0xFD0000),RGB16(0xFD0000),RGB16(0x000000),
+   },
+};
+
 static int fuse_init_called = 0;
 static int forced_machine_at_init = 0;
 static int forced_machine_idx = 0;
@@ -97,6 +222,7 @@ static int keyb_transparent;
 static const machine_t* machine;
 static double frame_time;
 static cheat_t* active_cheats;
+static int current_palette = PALETTE_FUSE;
 
 // allow access to variables declared here
 double total_time_ms;
@@ -123,6 +249,7 @@ size_t snapshot_size;
 void* tape_data;
 size_t tape_size;
 int joymap[16];
+uint16_t *palette = palettes[PALETTE_FUSE];
 
 static const struct { unsigned x; unsigned y; } keyb_positions[4] = {
    { 32, 40 }, { 40, 88 }, { 48, 136 }, { 32, 184 }
@@ -281,6 +408,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
    { "fuse_emulation_speed", "Emulation speed percentage (needs content load); 100|150|200|300|50"},
    { "fuse_size_border", "Size Video Border; full|medium|small|minimum|none" },
+   { "fuse_palette", "Colour Palette; Fuse Standard|ZX Standard|B&W TV|Green Monochrome|Ambar Monochrome|C64|CGA 4 colours|CGA 8 colours|CGA 16 colours|Inverted colours"},
    { "fuse_auto_load", "Tape Auto Load; enabled|disabled" },
    { "fuse_fast_load", "Tape Fast Load; enabled|disabled" },
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
@@ -454,6 +582,19 @@ int update_variables(int force)
       const char* value;
       int option = coreopt(env_cb, core_vars, "fuse_emulation_speed", &value);
       settings_current.emulation_speed = option >= 0 ? atoi(value) : 100;
+   }
+
+   {
+      int option = coreopt(env_cb, core_vars, "fuse_palette", NULL);
+      option += option < 0;
+      if (option>=0 && option<=PALETTE_COUNT-1 && current_palette!=option)
+      {
+         current_palette = option;
+         palette = palettes[current_palette];
+         display_refresh_all();
+      }
+         
+      
    }
 
    settings_current.auto_load = coreopt(env_cb, core_vars, "fuse_auto_load", NULL) != 1;

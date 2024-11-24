@@ -34,7 +34,11 @@
 #include "peripherals/specdrum.h"
 #include "spectrum.h"
 
+#ifdef __LIBRETRO__
+typedef libspectrum_byte (*spectrum_unattached_port_fn)( libspectrum_word port );
+#else
 typedef libspectrum_byte (*spectrum_unattached_port_fn)( void );
+#endif
 
 /* How long do things take to happen; fields are pulled from libspectrum
    via the libspectrum_timings_* functions */

@@ -346,8 +346,11 @@ readport_internal( libspectrum_word port )
   if( callback_info.attached != 0xff )
     callback_info.value =
       periph_merge_floating_bus( callback_info.value, callback_info.attached,
+#ifdef __LIBRETRO__
+                                 machine_current->unattached_port(port) );
+#else
                                  machine_current->unattached_port() );
-
+#endif
   /* If we're RZX recording, store this byte */
   if( rzx_recording ) rzx_store_byte( callback_info.value );
 

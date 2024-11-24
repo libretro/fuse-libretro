@@ -49,7 +49,11 @@ specplus3e_init( fuse_machine_info *machine )
   machine->ram.contend_delay_no_mreq = spectrum_contend_delay_none;
   machine->ram.valid_pages	     = 8;
 
+ #ifdef __LIBRETRO__
+  machine->unattached_port = spectrum_unattached_port_amstrad;
+#else
   machine->unattached_port = spectrum_unattached_port_none;
+#endif
 
   machine->shutdown = specplus3_shutdown;
 

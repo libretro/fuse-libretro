@@ -54,6 +54,7 @@ extern void* tape_data;
 extern size_t tape_size;
 extern int joymap[16];
 extern keysyms_map_t keysyms_map[];
+extern uint16_t *palette;
 
 int update_variables(int);
 int fuse_ui_error_specific(ui_error_level, const char*);
