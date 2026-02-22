@@ -208,6 +208,8 @@ static int forced_machine_idx = 0;
 static int auto_size_savestate = 1;
 
 static unsigned msg_interface_version = 0;
+static int show_joystick_type_at_startup;
+static int show_emulation_speed_at_startup;
 static int display_joystick_type;
 static int display_emulation_speed;
 
@@ -634,13 +636,23 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
    },
    {
       "fuse_display_joystick_type",
-      "Display joystick type and emulation speed at startup",
+      "Display joystick type at startup",
       NULL,
       NULL,
       NULL,
       "advanced",
       { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
-      "enabled"
+      "disabled"
+   },
+   {
+      "fuse_display_emulation_speed",
+      "Display emulation speed at startup",
+      NULL,
+      NULL,
+      NULL,
+      "advanced",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
    },
    {
       "fuse_auto_size_savestate",
@@ -823,7 +835,8 @@ static const struct retro_variable core_vars[] =
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
-   { "fuse_display_joystick_type", "Display joystick type and emulation speed at startup; enabled|disabled" },
+   { "fuse_display_joystick_type", "Display joystick type at startup; enabled|disabled" },
+   { "fuse_display_emulation_speed", "Display emulation speed at startup; enabled|disabled" },
    { "fuse_auto_size_savestate", "Use Auto Size for Savestates. For Netplay 'Off' is recommended; enabled|disabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
@@ -1055,14 +1068,18 @@ int update_variables(int force)
    }
 
 
-   if (coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL) == 0)
    {
-      display_joystick_type = TRUE;
-      display_emulation_speed = TRUE;
-   } else {
-      display_joystick_type = FALSE;
-      display_emulation_speed = FALSE;
+      int joystick_option = coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL);
+      show_joystick_type_at_startup = joystick_option != 1;
    }
+
+   {
+      int speed_option = coreopt(env_cb, core_vars, "fuse_display_emulation_speed", NULL);
+      show_emulation_speed_at_startup = speed_option != 1;
+   }
+
+   display_joystick_type = show_joystick_type_at_startup;
+   display_emulation_speed = show_emulation_speed_at_startup;
 
    if (coreopt(env_cb, core_vars, "fuse_auto_size_savestate", NULL) == 0)
       auto_size_savestate = TRUE;
@@ -1218,9 +1235,11 @@ void retro_init(void)
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK   );
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
-   
+
+   show_joystick_type_at_startup = TRUE;
+   show_emulation_speed_at_startup = TRUE;
    display_joystick_type = FALSE;
-   display_emulation_speed = TRUE;
+   display_emulation_speed = FALSE;
 }
 
 static libspectrum_id_t identify_file(const char* filename, const void* data, size_t size)
@@ -1647,7 +1666,7 @@ void retro_run(void)
          int joystick_type = get_joystick(input_devices[port]);
          if (joystick_type != 0) {
             char title[80];
-            snprintf(title, sizeof(title), "Port %d configured as %s joystick", port + 1,
+            snprintf(title, sizeof(title), "Port %d set as %s joystick", port + 1,
                libspectrum_joystick_name(joystick_type));
             Retro_Msg(title);
          }
@@ -1657,7 +1676,7 @@ void retro_run(void)
 
    if (display_emulation_speed == TRUE) {
       char title[80];
-      snprintf(title, sizeof(title), "Emulation speed configured to %d%%", settings_current.emulation_speed);
+      snprintf(title, sizeof(title), "Emulation speed set to %d%%", settings_current.emulation_speed);
       Retro_Msg(title);
       display_emulation_speed = FALSE;
    }
@@ -1746,7 +1765,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
    if (device == RETRO_DEVICE_AUTO_CFG)
    {
-      if (port == 0)
+      if (port == 0 && show_joystick_type_at_startup == TRUE)
          display_joystick_type = TRUE;
       return;
    }
