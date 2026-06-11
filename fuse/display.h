@@ -39,8 +39,8 @@
 #define DISPLAY_HEIGHT        ( DISPLAY_HEIGHT_ROWS * 8 )
 
 /* The width and height of the (emulated) border */
-#define DISPLAY_BORDER_WIDTH_COLS  4
-#define DISPLAY_BORDER_HEIGHT_COLS 3
+#define DISPLAY_BORDER_WIDTH_COLS  6
+#define DISPLAY_BORDER_HEIGHT_COLS 6   /* PAL hardware: 48px top+bottom border → 288 total lines (192+48+48) */
 
 /* The width and height of the (emulated) border */
 /* Each main screen column can produce 16 pixels in hires mode */
