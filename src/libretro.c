@@ -496,8 +496,10 @@ int update_variables(int force)
          flags |= UPDATE_MACHINE;
       }
 
-      unsigned width = machine->is_timex ? 640 : 320;
-      unsigned height = machine->is_timex ? 480 : 240;
+      unsigned width = machine->is_timex ? 640 : 352;
+      /* Full PAL frame: 48 top + 192 active + 48 bottom = 288 lines.
+         Matches the actual Ferranti ULA hardware timing (312 total, 24 retrace). */
+      unsigned height = machine->is_timex ? 480 : 288;
 
       if (width != hard_width || height != hard_height || force)
       {
@@ -509,26 +511,31 @@ int update_variables(int force)
 
          if (size_border == 1)
          {
+            /* medium: 32px each side → 192+64 = 256 */
             soft_width = machine->is_timex ? 576 : 288;
-            soft_height = machine->is_timex ? 432 : 216;
+            soft_height = machine->is_timex ? 432 : 256;
          }
          else if (size_border == 2)
          {
+            /* small: 24px each side → 192+48 = 240 */
             soft_width = machine->is_timex ? 544 : 272;
-            soft_height = machine->is_timex ? 408 : 204;
+            soft_height = machine->is_timex ? 408 : 240;
          }
          else if (size_border == 3)
          {
+            /* minimum: 8px each side → 192+16 = 208 */
             soft_width = machine->is_timex ? 528 : 264;
-            soft_height = machine->is_timex ? 396 : 198;
+            soft_height = machine->is_timex ? 396 : 208;
          }
          else if (size_border == 4)
          {
+            /* none: 192 active lines only */
             soft_width = machine->is_timex ? 512 : 256;
             soft_height = machine->is_timex ? 384 : 192;
          }
          else
          {
+            /* full: complete PAL frame, 288 lines */
             soft_width = hard_width;
             soft_height = hard_height;
          }
@@ -550,17 +557,17 @@ int update_variables(int force)
          if (size_border == 1)
          {
             soft_width = machine->is_timex ? 576 : 288;
-            soft_height = machine->is_timex ? 432 : 216;
+            soft_height = machine->is_timex ? 432 : 256;
          }
          else if (size_border == 2)
          {
             soft_width = machine->is_timex ? 544 : 272;
-            soft_height = machine->is_timex ? 408 : 204;
+            soft_height = machine->is_timex ? 408 : 240;
          }
          else if (size_border == 3)
          {
             soft_width = machine->is_timex ? 528 : 264;
-            soft_height = machine->is_timex ? 396 : 198;
+            soft_height = machine->is_timex ? 396 : 208;
          }
          else if (size_border == 4)
          {
@@ -1062,7 +1069,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
-   info->geometry.aspect_ratio = 0.0f;
+   /* PAL DAR: 360x288 → 1.25. NTSC/Timex keeps 4:3. */
+   info->geometry.aspect_ratio = (machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_TS2068)
+      ? (4.0f / 3.0f)
+      : (360.0f / 288.0f);
    info->timing.fps = machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
 }
@@ -1129,25 +1139,43 @@ static void render_video(void)
          }
          else
          {
-            if (keyb_transparent)
+            /* keyboard_overlay is always 320x240; copy row-by-row centering
+               it horizontally within the hard_width buffer (e.g. 368 wide). */
             {
-               const uint16_t* src1 = keyboard_overlay;
-               const uint16_t* src2 = image_buffer;
-               const uint16_t* end = src1 + sizeof(keyboard_overlay) / sizeof(keyboard_overlay[0]);
-               uint16_t* dest = image_buffer_2;
+               const int OVR_W = 320;
+               const int OVR_H = 240;
+               const int x_off = (hard_width - OVR_W) / 2;
+               const int y_off = (hard_height - OVR_H) / 2;
+               int oy;
 
-               do
+               /* copy the game frame so borders show through */
+               memcpy(image_buffer_2, image_buffer, hard_width * hard_height * sizeof(uint16_t));
+
+               if (keyb_transparent)
                {
-                  uint32_t src1_pixel = *src1++ & 0xe79c;
-                  uint32_t src2_pixel = *src2++ & 0xe79c;
-
-                  *dest++ = (src1_pixel * 3 + src2_pixel) >> 2;
+                  for (oy = 0; oy < OVR_H; oy++)
+                  {
+                     const uint16_t* src1 = keyboard_overlay + oy * OVR_W;
+                     const uint16_t* src2 = image_buffer    + (oy + y_off) * hard_width + x_off;
+                     uint16_t*       dest = image_buffer_2  + (oy + y_off) * hard_width + x_off;
+                     int ox;
+                     for (ox = 0; ox < OVR_W; ox++)
+                     {
+                        uint32_t s1 = *src1++ & 0xe79c;
+                        uint32_t s2 = *src2++ & 0xe79c;
+                        *dest++ = (s1 * 3 + s2) >> 2;
+                     }
+                  }
                }
-               while (src1 < end);
-            }
-            else
-            {
-               memcpy(image_buffer_2, keyboard_overlay, sizeof(keyboard_overlay));
+               else
+               {
+                  for (oy = 0; oy < OVR_H; oy++)
+                  {
+                     memcpy(image_buffer_2 + (oy + y_off) * hard_width + x_off,
+                            keyboard_overlay + oy * OVR_W,
+                            OVR_W * sizeof(uint16_t));
+                  }
+               }
             }
          }
 
@@ -1167,9 +1195,10 @@ static void render_video(void)
                width = 30;
             }
          }
-
-         unsigned mult = machine->is_timex ? 2 : 1;
-         uint16_t* pixel = image_buffer_2 + (y * hard_width + x + 1) * mult;
+unsigned mult = machine->is_timex ? 2 : 1;
+         const unsigned x_off = (hard_width - 320) / 2;
+         const unsigned y_off = (hard_height - 240) / 2;
+         uint16_t* pixel = image_buffer_2 + ((y + y_off) * hard_width + (x + x_off) + 1) * mult;
          unsigned i, j;
 
          for (j = mult; j > 0; --j )
@@ -1266,7 +1295,9 @@ void retro_run(void)
 
          geometry.max_width = MAX_WIDTH;
          geometry.max_height = MAX_HEIGHT;
-         geometry.aspect_ratio = 0.0f;
+         geometry.aspect_ratio = (machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_TS2068)
+            ? (4.0f / 3.0f)
+            : (360.0f / 288.0f);
 
          env_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
       }
