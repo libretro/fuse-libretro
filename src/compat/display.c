@@ -14,11 +14,7 @@ int uidisplay_init(int width, int height)
       width = 320;
    }
    
-   if (height != 240)
-   {
-      log_cb(RETRO_LOG_ERROR, "Invalid value for the display height: %d\n", height);
-      height = 240;
-   }
+   /* Height varies: 192 (no border) up to 288 (full PAL border, 48+192+48). */
    
    //soft_width = (unsigned)width;
    //soft_height = (unsigned)height;
