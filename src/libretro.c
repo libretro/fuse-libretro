@@ -20,6 +20,8 @@
 #include <peripherals/disk/opus.h>
 #include <peripherals/disk/disciple.h>
 #include <pokefinder/pokemem.h>
+#include <periph.h>
+#include <machine.h>
 
 #include "ui/uimedia.h"
 
@@ -1377,15 +1379,33 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
    // whenever any port is configured as a mouse, disable it otherwise
    {
       unsigned p;
-      settings_current.kempston_mouse = 0;
+      int kempston_mouse = 0;
 
       for (p = 0; p < MAX_PADS; p++)
       {
          if (input_devices[p] == RETRO_DEVICE_MOUSE)
          {
-            settings_current.kempston_mouse = 1;
+            kempston_mouse = 1;
             break;
          }
+      }
+
+      if (settings_current.kempston_mouse != kempston_mouse)
+      {
+         settings_current.kempston_mouse = kempston_mouse;
+
+         // Flipping settings_current.kempston_mouse alone does nothing:
+         // Fuse only (de)registers a peripheral's I/O ports when
+         // periph_update() runs (normally done by each machine's own
+         // init(), on snapshot load, etc; there is no automatic hook for
+         // "an option changed while already running"). Before fuse_init()
+         // has run there is no machine/peripheral table yet to update -
+         // retro_init()'s default controller setup would crash here.
+         // Kempston Mouse is also registered with hard_reset=1 (like
+         // desktop Fuse's own settings dialog), so toggling it for real
+         // needs a machine reset to actually remap the I/O ports.
+         if (fuse_init_called && periph_update())
+            machine_reset(1);
       }
    }
 }
