@@ -1382,9 +1382,7 @@ void retro_reset(void)
 size_t retro_serialize_size(void)
 {
    if (auto_size_savestate) {
-      fuse_emulation_pause();
       snapshot_update();
-      fuse_emulation_unpause();
       return snapshot_size;
    }
    else
