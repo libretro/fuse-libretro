@@ -763,8 +763,8 @@ void retro_set_environment(retro_environment_t cb)
       { "Timex 1 Joystick",    RETRO_DEVICE_TIMEX1_JOYSTICK    },
       { "Timex 2 Joystick",    RETRO_DEVICE_TIMEX2_JOYSTICK    },
       { "Fuller Joystick",     RETRO_DEVICE_FULLER_JOYSTICK    },
-      { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  },
-      { "Kempston Mouse",      RETRO_DEVICE_MOUSE              }
+      { "Kempston Mouse",      RETRO_DEVICE_KEMPSTON_MOUSE     },
+      { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  }
    };
 
    static const struct retro_controller_info ports[MAX_PADS + 1] = {
@@ -806,7 +806,7 @@ void retro_init(void)
    // (see fuse_init() -> ui_mouse_grab()); our ui_mouse_grab() stub in
    // src/compat/mouse.c always succeeds, so this keeps ui_mouse_grabbed set
    // and ui_mouse_button()/ui_mouse_motion() active whenever a port is
-   // configured as RETRO_DEVICE_MOUSE.
+   // configured as RETRO_DEVICE_KEMPSTON_MOUSE.
    ui_mouse_present = 1;
 
    // Set default controllers
@@ -1389,7 +1389,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
       for (p = 0; p < MAX_PADS; p++)
       {
-         if (input_devices[p] == RETRO_DEVICE_MOUSE)
+         if (input_devices[p] == RETRO_DEVICE_KEMPSTON_MOUSE)
          {
             kempston_mouse = 1;
             break;
