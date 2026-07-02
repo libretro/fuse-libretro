@@ -21,7 +21,6 @@
 #include <peripherals/disk/disciple.h>
 #include <pokefinder/pokemem.h>
 #include <periph.h>
-#include <machine.h>
 
 #include "ui/uimedia.h"
 
@@ -212,6 +211,7 @@ static int auto_size_savestate = 1;
 static unsigned msg_interface_version = 0;
 static int display_joystick_type;
 static int display_emulation_speed;
+static int kempston_mouse_needs_periph_update = 0;
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -1235,6 +1235,12 @@ void retro_run(void)
 {
    bool updated = false;
 
+   if (kempston_mouse_needs_periph_update)
+   {
+      kempston_mouse_needs_periph_update = 0;
+      periph_update();
+   }
+
    if (display_joystick_type == TRUE)
    {
       int port;
@@ -1401,11 +1407,18 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          // "an option changed while already running"). Before fuse_init()
          // has run there is no machine/peripheral table yet to update -
          // retro_init()'s default controller setup would crash here.
-         // Kempston Mouse is also registered with hard_reset=1 (like
-         // desktop Fuse's own settings dialog), so toggling it for real
-         // needs a machine reset to actually remap the I/O ports.
-         if (fuse_init_called && periph_update())
-            machine_reset(1);
+         //
+         // Do NOT call periph_update()/machine_reset() synchronously here:
+         // frontends (RetroArch included) apply saved port/remap config
+         // right after retro_load_game() returns, before the first
+         // retro_run(). Resetting the machine at that point - before Fuse's
+         // event queue has processed a single frame - leaves the next
+         // frame interrupt event unscheduled, so retro_run()'s "wait until
+         // some_audio" loop spins forever and the frontend hangs. Defer to
+         // the top of retro_run() instead, exactly like UPDATE_MACHINE
+         // (model changes) already does.
+         if (fuse_init_called)
+            kempston_mouse_needs_periph_update = 1;
       }
    }
 }
