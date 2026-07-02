@@ -418,6 +418,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
    { "fuse_display_joystick_type", "Display joystick type and emulation speed at startup; enabled|disabled" },
    { "fuse_auto_size_savestate", "Use Auto Size for Savestates. For Netplay 'Off' is recommended; enabled|disabled" },
+   { "fuse_mouse_swap_buttons", "Kempston Mouse Swap Buttons; disabled|enabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
    { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
@@ -661,6 +662,8 @@ int update_variables(int force)
    else
       auto_size_savestate = FALSE;
 
+   settings_current.mouse_swap_buttons = coreopt(env_cb, core_vars, "fuse_mouse_swap_buttons", NULL) == 1;
+
    const char* value;
    int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );
    joymap[ RETRO_DEVICE_ID_JOYPAD_UP ] = spectrum_keys_map[option];
@@ -758,7 +761,8 @@ void retro_set_environment(retro_environment_t cb)
       { "Timex 1 Joystick",    RETRO_DEVICE_TIMEX1_JOYSTICK    },
       { "Timex 2 Joystick",    RETRO_DEVICE_TIMEX2_JOYSTICK    },
       { "Fuller Joystick",     RETRO_DEVICE_FULLER_JOYSTICK    },
-      { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  }
+      { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  },
+      { "Kempston Mouse",      RETRO_DEVICE_MOUSE              }
    };
 
    static const struct retro_controller_info ports[MAX_PADS + 1] = {
@@ -796,11 +800,18 @@ void retro_init(void)
    total_time_ms = 0.0;
    active_cheats = NULL;
 
+   // Always report a mouse as available so Fuse auto-grabs it at startup
+   // (see fuse_init() -> ui_mouse_grab()); our ui_mouse_grab() stub in
+   // src/compat/mouse.c always succeeds, so this keeps ui_mouse_grabbed set
+   // and ui_mouse_button()/ui_mouse_motion() active whenever a port is
+   // configured as RETRO_DEVICE_MOUSE.
+   ui_mouse_present = 1;
+
    // Set default controllers
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK   );
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
-   
+
    display_joystick_type = FALSE;
    display_emulation_speed = TRUE;
 }
@@ -1360,6 +1371,22 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
             input_devices[port] = device;
          }
          break;
+   }
+
+   // Kempston Mouse is a single peripheral, not per-port; enable it in Fuse
+   // whenever any port is configured as a mouse, disable it otherwise
+   {
+      unsigned p;
+      settings_current.kempston_mouse = 0;
+
+      for (p = 0; p < MAX_PADS; p++)
+      {
+         if (input_devices[p] == RETRO_DEVICE_MOUSE)
+         {
+            settings_current.kempston_mouse = 1;
+            break;
+         }
+      }
    }
 }
 
