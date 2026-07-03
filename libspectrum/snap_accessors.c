@@ -80,6 +80,13 @@ struct libspectrum_snap {
   libspectrum_byte out_ay_registerport;
   libspectrum_byte ay_registers[ 16 ];
 
+#ifdef __LIBRETRO__
+  /* TurboSound: second AY-3-8912 chip */
+  int turbosound_active;
+  libspectrum_byte out_ay2_registerport;
+  libspectrum_byte ay2_registers[ 16 ];
+#endif
+
   /* Timex-specific bits */
   libspectrum_byte out_scld_hsr;
   libspectrum_byte out_scld_dec;
@@ -367,6 +374,14 @@ libspectrum_snap_alloc( void )
   libspectrum_snap_set_out_ay_registerport( snap, 0x0e );
   for( i = 0; i < 16; i++ )
     libspectrum_snap_set_ay_registers( snap, i, 0 );
+
+#ifdef __LIBRETRO__
+  /* TurboSound: second AY-3-8912 chip */
+  libspectrum_snap_set_turbosound_active( snap, 0 );
+  libspectrum_snap_set_out_ay2_registerport( snap, 0 );
+  for( i = 0; i < 16; i++ )
+    libspectrum_snap_set_ay2_registers( snap, i, 0 );
+#endif
 
   /* Timex-specific bits */
   libspectrum_snap_set_out_scld_hsr( snap, 0 );
@@ -1138,6 +1153,46 @@ libspectrum_snap_set_ay_registers( libspectrum_snap *snap, int idx, libspectrum_
 {
   snap->ay_registers[idx] = ay_registers;
 }
+
+#ifdef __LIBRETRO__
+
+int
+libspectrum_snap_turbosound_active( libspectrum_snap *snap )
+{
+  return snap->turbosound_active;
+}
+
+void
+libspectrum_snap_set_turbosound_active( libspectrum_snap *snap, int turbosound_active )
+{
+  snap->turbosound_active = turbosound_active;
+}
+
+libspectrum_byte
+libspectrum_snap_out_ay2_registerport( libspectrum_snap *snap )
+{
+  return snap->out_ay2_registerport;
+}
+
+void
+libspectrum_snap_set_out_ay2_registerport( libspectrum_snap *snap, libspectrum_byte out_ay2_registerport )
+{
+  snap->out_ay2_registerport = out_ay2_registerport;
+}
+
+libspectrum_byte
+libspectrum_snap_ay2_registers( libspectrum_snap *snap, int idx )
+{
+  return snap->ay2_registers[idx];
+}
+
+void
+libspectrum_snap_set_ay2_registers( libspectrum_snap *snap, int idx, libspectrum_byte ay2_registers )
+{
+  snap->ay2_registers[idx] = ay2_registers;
+}
+
+#endif /* #ifdef __LIBRETRO__ */
 
 libspectrum_byte
 libspectrum_snap_out_scld_hsr( libspectrum_snap *snap )

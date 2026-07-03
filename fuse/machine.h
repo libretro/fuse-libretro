@@ -81,6 +81,9 @@ typedef struct fuse_machine_info {
 						  attached to anything */
 
   ayinfo ay;		/* The AY-3-8912 chip */
+#ifdef __LIBRETRO__
+  ayinfo ay2;		/* Second AY-3-8912 chip (TurboSound) */
+#endif
 
   specdrum_info specdrum; /* SpecDrum settings */
 

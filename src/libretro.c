@@ -14,6 +14,7 @@
 #include <spectrum.h>
 #include <keyboard.h>
 #include <machines/specplus3.h>
+#include <peripherals/ay.h>
 #include <peripherals/disk/beta.h>
 #include <peripherals/disk/plusd.h>
 #include <peripherals/if1.h>
@@ -414,6 +415,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_load_sound", "Tape Load Sound; enabled|disabled" },
    { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
+   { "fuse_turbosound", "TurboSound (2x AY-8910); disabled|enabled" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
    { "fuse_display_joystick_type", "Display joystick type and emulation speed at startup; enabled|disabled" },
@@ -660,6 +662,8 @@ int update_variables(int force)
       auto_size_savestate = TRUE;
    else
       auto_size_savestate = FALSE;
+
+   ay_turbosound_enabled = coreopt(env_cb, core_vars, "fuse_turbosound", NULL) == 1;
 
    const char* value;
    int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );

@@ -43,4 +43,12 @@ void ay_dataport_write( libspectrum_word port, libspectrum_byte b );
 
 void ay_state_from_snapshot( libspectrum_snap *snap );
 
+#ifdef __LIBRETRO__
+/* TurboSound: a second AY-3-8912 chip, selected via the classic NedoPC
+   protocol (see ay.c). Controlled by a core option; off by default. */
+extern int ay_turbosound_enabled;
+
+void ay2_state_from_snapshot( libspectrum_snap *snap );
+#endif
+
 #endif			/* #ifndef FUSE_AY_H */

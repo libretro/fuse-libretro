@@ -80,6 +80,11 @@ libspectrum_byte out_plus3_memoryport 0 0x08 /* Used for both the +3's and the S
 libspectrum_byte out_ay_registerport 0 0x0e
 libspectrum_byte ay_registers 16
 
+/* TurboSound: second AY-3-8912 chip (fuse-libretro only) */
+int turbosound_active
+libspectrum_byte out_ay2_registerport
+libspectrum_byte ay2_registers 16
+
 /* Timex-specific bits */
 libspectrum_byte out_scld_hsr
 libspectrum_byte out_scld_dec
