@@ -71,6 +71,10 @@ If you set a joystick along with the keyboard, the joystick will work just fine 
 
 Fuse can load a number of different file formats. For now, **fuse-libretro** only loads `tzx`, `tap`, `z80`, `rzx`, `scl`, `trd`, and `dsk` files. This decision is somewhat arbitrary (it depends if I can find a file that I can be sure is not corrupted), so feel free to bug me to add other extensions. Please do so via issues here on GitHub.
 
+### Multi-disk games
+
+Some Beta 128 disk interface games (TR-DOS `.trd`/`.scl`) span more than one disk and prompt you to swap disks mid-game (e.g. *Black Raven*, *UFO 2: Devils of Abyss*). Load these via an `.m3u` playlist listing each disk image path on its own line, and use your frontend's Disk Control menu (in RetroArch: Quick Menu > Disk Control) to eject and swap to the next disk when the game asks for it.
+
 ## Save States
 
 Supported.

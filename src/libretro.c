@@ -14,7 +14,9 @@
 #include <spectrum.h>
 #include <keyboard.h>
 #include <machines/specplus3.h>
+#include <periph.h>
 #include <peripherals/disk/beta.h>
+#include <peripherals/disk/didaktik.h>
 #include <peripherals/disk/plusd.h>
 #include <peripherals/if1.h>
 #include <peripherals/disk/opus.h>
@@ -223,6 +225,23 @@ static const machine_t* machine;
 static double frame_time;
 static cheat_t* active_cheats;
 static int current_palette = PALETTE_FUSE;
+
+// Multi-disk (M3U) support: a single virtual tray for drive A, swappable at
+// runtime via the libretro disk control interface. See retro_load_game()
+// (M3U parsing), disk_control_insert_current() and the
+// retro_disk_control_ext_callback implementation below.
+#define MAX_DISK_IMAGES 16
+#define MAX_DISK_PATH_LEN 1024
+
+static char disk_image_paths[MAX_DISK_IMAGES][MAX_DISK_PATH_LEN];
+static unsigned num_disk_images = 0;
+static unsigned current_disk_index = 0;
+static bool disk_tray_ejected = false;
+
+// Cached by set_initial_image(), called by the frontend *before*
+// retro_load_game() - see the libretro.h doc comment on that callback.
+static int initial_disk_index_hint = -1;
+static char initial_disk_path_hint[MAX_DISK_PATH_LEN];
 
 // allow access to variables declared here
 double total_time_ms;
@@ -742,8 +761,19 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|sna|szx|zip";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|sna|szx|zip|m3u";
 }
+
+// Disk control interface (see the implementations and disk_control_ext_cb
+// definition further down, near retro_load_game).
+static bool RETRO_CALLCONV disk_set_eject_state(bool ejected);
+static bool RETRO_CALLCONV disk_get_eject_state(void);
+static unsigned RETRO_CALLCONV disk_get_image_index(void);
+static bool RETRO_CALLCONV disk_set_image_index(unsigned index);
+static unsigned RETRO_CALLCONV disk_get_num_images(void);
+static bool RETRO_CALLCONV disk_replace_image_index(unsigned index, const struct retro_game_info *info);
+static bool RETRO_CALLCONV disk_add_image_index(void);
+static struct retro_disk_control_ext_callback disk_control_ext_cb;
 
 void retro_set_environment(retro_environment_t cb)
 {
@@ -773,6 +803,25 @@ void retro_set_environment(retro_environment_t cb)
 
    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
+
+   unsigned dc_version = 0;
+   if (cb(RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION, &dc_version) && dc_version >= 1)
+   {
+      cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE, &disk_control_ext_cb);
+   }
+   else
+   {
+      static const struct retro_disk_control_callback disk_control_cb = {
+         disk_set_eject_state,
+         disk_get_eject_state,
+         disk_get_image_index,
+         disk_set_image_index,
+         disk_get_num_images,
+         disk_replace_image_index,
+         disk_add_image_index,
+      };
+      cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, (void*)&disk_control_cb);
+   }
 }
 
 unsigned retro_api_version(void)
@@ -852,6 +901,245 @@ static libspectrum_id_t identify_file_get_ext(const char* filename, const void* 
    return type;
 }
 
+// Parses an M3U playlist (one disk image path per line; blank lines and
+// lines starting with '#' are skipped) into disk_image_paths[]. Relative
+// entries are resolved against the M3U file's own directory, since that's
+// the standard convention - RetroArch doesn't parse M3U content for the
+// core, so any subsequent load must be able to find these paths on the
+// real filesystem (see the direct-fopen fallback in compat_file_open()).
+static void parse_m3u(const char* m3u_path, const char* data, size_t size)
+{
+   char base_dir[MAX_DISK_PATH_LEN];
+   const char* slash1 = strrchr(m3u_path, '/');
+   const char* slash2 = strrchr(m3u_path, '\\');
+   const char* slash = slash1 > slash2 ? slash1 : slash2;
+   size_t base_len = slash ? (size_t)(slash - m3u_path + 1) : 0;
+   const char* p = data;
+   const char* end = data + size;
+
+   if (base_len >= sizeof(base_dir))
+      base_len = sizeof(base_dir) - 1;
+   memcpy(base_dir, m3u_path, base_len);
+   base_dir[base_len] = 0;
+
+   num_disk_images = 0;
+
+   while (p < end && num_disk_images < MAX_DISK_IMAGES)
+   {
+      const char* line_start = p;
+      const char* newline = memchr(p, '\n', end - p);
+      size_t line_len = newline ? (size_t)(newline - line_start) : (size_t)(end - line_start);
+      char entry[MAX_DISK_PATH_LEN];
+      size_t copy_len;
+      int is_absolute;
+
+      p = newline ? newline + 1 : end;
+
+      while (line_len > 0 && (line_start[line_len - 1] == '\r' ||
+             line_start[line_len - 1] == ' ' || line_start[line_len - 1] == '\t'))
+         line_len--;
+      while (line_len > 0 && (*line_start == ' ' || *line_start == '\t'))
+      {
+         line_start++;
+         line_len--;
+      }
+
+      if (line_len == 0 || line_start[0] == '#')
+         continue;
+
+      copy_len = line_len < sizeof(entry) - 1 ? line_len : sizeof(entry) - 1;
+      memcpy(entry, line_start, copy_len);
+      entry[copy_len] = 0;
+
+      // "/foo", "\foo" or "C:\foo" style paths are already absolute
+      is_absolute = entry[0] == '/' || entry[0] == '\\' ||
+                    (copy_len > 1 && entry[1] == ':');
+
+      if (is_absolute || base_len == 0)
+      {
+         strncpy(disk_image_paths[num_disk_images], entry, MAX_DISK_PATH_LEN - 1);
+         disk_image_paths[num_disk_images][MAX_DISK_PATH_LEN - 1] = 0;
+      }
+      else
+      {
+         snprintf(disk_image_paths[num_disk_images], MAX_DISK_PATH_LEN, "%s%s", base_dir, entry);
+      }
+
+      num_disk_images++;
+   }
+}
+
+// Mounts disk_image_paths[current_disk_index] into whichever disk drive is
+// active for the current machine, without resetting it - used for runtime
+// disk swaps (as opposed to the initial content load, which does respect
+// the Tape Auto Load option and machine boot semantics).
+static bool disk_control_insert_current(void)
+{
+   libspectrum_id_t type;
+   int error;
+
+   if (num_disk_images == 0 || current_disk_index >= num_disk_images)
+      return true; // "no disk" is a valid state, not a failure
+
+   fuse_emulation_pause();
+   error = utils_open_file(disk_image_paths[current_disk_index], 0, &type);
+   fuse_emulation_unpause();
+   display_refresh_all();
+
+   return error == 0;
+}
+
+// Ejects whatever's currently in the active disk drive. Mirrors the
+// machine/peripheral dispatch utils_open_file() uses for its
+// LIBSPECTRUM_CLASS_DISK_GENERIC case, since at eject time there's no file
+// to identify a class from - only "whichever drive is live right now".
+static void disk_control_eject_current(void)
+{
+   if (machine_current->machine == LIBSPECTRUM_MACHINE_PLUS3 ||
+       machine_current->machine == LIBSPECTRUM_MACHINE_PLUS2A)
+      ui_media_drive_eject(UI_MEDIA_CONTROLLER_PLUS3, SPECPLUS3_DRIVE_A);
+   else if (machine_current->machine == LIBSPECTRUM_MACHINE_PENT    ||
+            machine_current->machine == LIBSPECTRUM_MACHINE_PENT512 ||
+            machine_current->machine == LIBSPECTRUM_MACHINE_PENT1024 ||
+            machine_current->machine == LIBSPECTRUM_MACHINE_SCORP   ||
+            periph_is_active(PERIPH_TYPE_BETA128))
+      ui_media_drive_eject(UI_MEDIA_CONTROLLER_BETA, BETA_DRIVE_A);
+   else if (periph_is_active(PERIPH_TYPE_DISCIPLE))
+      ui_media_drive_eject(UI_MEDIA_CONTROLLER_DISCIPLE, DISCIPLE_DRIVE_1);
+   else if (periph_is_active(PERIPH_TYPE_PLUSD))
+      ui_media_drive_eject(UI_MEDIA_CONTROLLER_PLUSD, PLUSD_DRIVE_1);
+   else if (periph_is_active(PERIPH_TYPE_OPUS))
+      ui_media_drive_eject(UI_MEDIA_CONTROLLER_OPUS, OPUS_DRIVE_1);
+   else if (periph_is_active(PERIPH_TYPE_DIDAKTIK80))
+      ui_media_drive_eject(UI_MEDIA_CONTROLLER_DIDAKTIK, DIDAKTIK80_DRIVE_A);
+}
+
+static bool RETRO_CALLCONV disk_set_eject_state(bool ejected)
+{
+   if (ejected == disk_tray_ejected)
+      return true;
+
+   if (ejected)
+   {
+      disk_control_eject_current();
+      disk_tray_ejected = true;
+      return true;
+   }
+
+   disk_tray_ejected = false;
+   return disk_control_insert_current();
+}
+
+static bool RETRO_CALLCONV disk_get_eject_state(void)
+{
+   return disk_tray_ejected;
+}
+
+static unsigned RETRO_CALLCONV disk_get_image_index(void)
+{
+   return current_disk_index;
+}
+
+static bool RETRO_CALLCONV disk_set_image_index(unsigned index)
+{
+   if (!disk_tray_ejected)
+      return false;
+
+   // An index >= num_disk_images means "no disk", which is valid.
+   current_disk_index = index;
+   return true;
+}
+
+static unsigned RETRO_CALLCONV disk_get_num_images(void)
+{
+   return num_disk_images;
+}
+
+static bool RETRO_CALLCONV disk_replace_image_index(unsigned index, const struct retro_game_info *info)
+{
+   if (!disk_tray_ejected || index >= num_disk_images)
+      return false;
+
+   if (!info)
+   {
+      // Remove this index, shifting later entries down.
+      unsigned i;
+      for (i = index; i + 1 < num_disk_images; i++)
+         strncpy(disk_image_paths[i], disk_image_paths[i + 1], MAX_DISK_PATH_LEN);
+      num_disk_images--;
+      if (current_disk_index > index || current_disk_index >= num_disk_images)
+         current_disk_index = current_disk_index > 0 ? current_disk_index - 1 : 0;
+      return true;
+   }
+
+   if (!info->path)
+      return false;
+
+   strncpy(disk_image_paths[index], info->path, MAX_DISK_PATH_LEN - 1);
+   disk_image_paths[index][MAX_DISK_PATH_LEN - 1] = 0;
+   return true;
+}
+
+static bool RETRO_CALLCONV disk_add_image_index(void)
+{
+   if (num_disk_images >= MAX_DISK_IMAGES)
+      return false;
+
+   disk_image_paths[num_disk_images][0] = 0;
+   num_disk_images++;
+   return true;
+}
+
+static bool RETRO_CALLCONV disk_set_initial_image(unsigned index, const char *path)
+{
+   if (!path)
+      return false;
+
+   initial_disk_index_hint = (int)index;
+   strncpy(initial_disk_path_hint, path, MAX_DISK_PATH_LEN - 1);
+   initial_disk_path_hint[MAX_DISK_PATH_LEN - 1] = 0;
+   return true;
+}
+
+static bool RETRO_CALLCONV disk_get_image_path(unsigned index, char *path, size_t len)
+{
+   if (index >= num_disk_images || disk_image_paths[index][0] == 0)
+      return false;
+
+   strncpy(path, disk_image_paths[index], len - 1);
+   path[len - 1] = 0;
+   return true;
+}
+
+static bool RETRO_CALLCONV disk_get_image_label(unsigned index, char *label, size_t len)
+{
+   const char *slash1, *slash2, *base;
+
+   if (index >= num_disk_images || disk_image_paths[index][0] == 0)
+      return false;
+
+   slash1 = strrchr(disk_image_paths[index], '/');
+   slash2 = strrchr(disk_image_paths[index], '\\');
+   base = slash1 > slash2 ? slash1 + 1 : (slash2 ? slash2 + 1 : disk_image_paths[index]);
+
+   strncpy(label, base, len - 1);
+   label[len - 1] = 0;
+   return true;
+}
+
+static struct retro_disk_control_ext_callback disk_control_ext_cb = {
+   disk_set_eject_state,
+   disk_get_eject_state,
+   disk_get_image_index,
+   disk_set_image_index,
+   disk_get_num_images,
+   disk_replace_image_index,
+   disk_add_image_index,
+   disk_set_initial_image,
+   disk_get_image_path,
+   disk_get_image_label,
+};
+
 #ifndef GIT_VERSION
 extern const char* fuse_gitstamp;
 #endif
@@ -915,65 +1203,114 @@ bool retro_load_game(const struct retro_game_info *info)
 
          memcpy(tape_data, info->data, tape_size);
 
-         const char* ext;
          const char* filename_load_game = info->path;
-         libspectrum_id_t type;
-         libspectrum_class_t class;
+         const char* m3u_ext = strrchr(filename_load_game, '.');
+         int is_m3u = m3u_ext != NULL && strcmp(m3u_ext, ".m3u") == 0;
 
-         
-         if (forced_machine_at_init && forced_machine_idx == 10)  /* LIBSPECTRUM_MACHINE_TS2068 position in machine_list */
+         num_disk_images = 0;
+         current_disk_index = 0;
+         disk_tray_ejected = false;
+
+         if (is_m3u)
          {
-            type = LIBSPECTRUM_ID_CARTRIDGE_DCK;
-            class = LIBSPECTRUM_CLASS_CARTRIDGE_TIMEX;
-            ext = ".dck";
+            // An M3U's own bytes were never a disk image - parse it into
+            // the disk list instead of running it through the normal
+            // identify/load path (which would otherwise mistake the M3U
+            // text for a raw TRD image, see identify_file()'s fallback).
+            parse_m3u(filename_load_game, (const char*)tape_data, tape_size);
+
+            if (initial_disk_index_hint >= 0 &&
+                (unsigned)initial_disk_index_hint < num_disk_images &&
+                strcmp(disk_image_paths[initial_disk_index_hint], initial_disk_path_hint) == 0)
+            {
+               current_disk_index = (unsigned)initial_disk_index_hint;
+            }
+
+            if (num_disk_images > 0)
+            {
+               libspectrum_id_t type;
+
+               fuse_emulation_pause();
+               utils_open_file(disk_image_paths[current_disk_index], settings_current.auto_load, &type);
+               display_refresh_all();
+               fuse_emulation_unpause();
+            }
          }
-         else 
+         else
          {
-            type = identify_file_get_ext(filename_load_game, tape_data, tape_size, &ext);
-            libspectrum_identify_class(&class, type);
+            const char* ext;
+            libspectrum_id_t type;
+            libspectrum_class_t class;
+
+            if (forced_machine_at_init && forced_machine_idx == 10)  /* LIBSPECTRUM_MACHINE_TS2068 position in machine_list */
+            {
+               type = LIBSPECTRUM_ID_CARTRIDGE_DCK;
+               class = LIBSPECTRUM_CLASS_CARTRIDGE_TIMEX;
+               ext = ".dck";
+            }
+            else
+            {
+               type = identify_file_get_ext(filename_load_game, tape_data, tape_size, &ext);
+               libspectrum_identify_class(&class, type);
+            }
+
+            char filename[32];
+            snprintf(filename, sizeof(filename), "*%s", ext);
+            filename[sizeof(filename) - 1] = 0;
+
+            /*
+            ** Deal with a number of special cases to make experience smoother
+            */
+
+            // autoload is on by default
+            int autoload = settings_current.auto_load;
+
+            // Disable autoload for tapes on Scorpion 256 (it doesn't work)
+            if (!strcmp(settings_current.start_machine, machine_get_id(LIBSPECTRUM_MACHINE_SCORP)) &&
+                class == LIBSPECTRUM_CLASS_TAPE)
+            {
+               autoload = 0;
+            }
+
+            // If we have a .dsk image, check if it has more than 40 tracks (e.g. a 720KB disk image)
+            // .dsk file format: http://cpctech.cpc-live.com/docs/dsk.html
+            if (class == LIBSPECTRUM_CLASS_DISK_PLUS3 && ((uint8_t *)tape_data)[0x30] > 40)
+            {
+               // If yes, we need to change the drive type on the fly, as the default +3 drive only supports 40 tracks
+               settings_current.drive_plus3a_type = utils_safe_strdup("Double-sided 80 track");
+               specplus3_765_reset();
+            }
+
+            /*
+            ** Load the file and launch the emulation
+            */
+
+            fuse_emulation_pause();
+            utils_open_file(filename, autoload, &type);
+            display_refresh_all();
+            fuse_emulation_unpause();
+
+            // Single disk image: still expose it through Disk Control, so
+            // a second disk can be added manually from the frontend's UI
+            // even without an M3U.
+            if (class == LIBSPECTRUM_CLASS_DISK_PLUS3   || class == LIBSPECTRUM_CLASS_DISK_DIDAKTIK ||
+                class == LIBSPECTRUM_CLASS_DISK_PLUSD   || class == LIBSPECTRUM_CLASS_DISK_TRDOS     ||
+                class == LIBSPECTRUM_CLASS_DISK_OPUS    || class == LIBSPECTRUM_CLASS_DISK_GENERIC)
+            {
+               strncpy(disk_image_paths[0], filename_load_game, MAX_DISK_PATH_LEN - 1);
+               disk_image_paths[0][MAX_DISK_PATH_LEN - 1] = 0;
+               num_disk_images = 1;
+            }
          }
-
-         char filename[32];
-         snprintf(filename, sizeof(filename), "*%s", ext);
-         filename[sizeof(filename) - 1] = 0;
-
-         /*
-         ** Deal with a number of special cases to make experience smoother
-         */
-
-         // autoload is on by default
-         int autoload = settings_current.auto_load;
-
-         // Disable autoload for tapes on Scorpion 256 (it doesn't work)
-         if (!strcmp(settings_current.start_machine, machine_get_id(LIBSPECTRUM_MACHINE_SCORP)) &&
-             class == LIBSPECTRUM_CLASS_TAPE)
-         {
-            autoload = 0;
-         }
-
-         // If we have a .dsk image, check if it has more than 40 tracks (e.g. a 720KB disk image)
-         // .dsk file format: http://cpctech.cpc-live.com/docs/dsk.html
-         if (class == LIBSPECTRUM_CLASS_DISK_PLUS3 && ((uint8_t *)tape_data)[0x30] > 40)
-         {  
-            // If yes, we need to change the drive type on the fly, as the default +3 drive only supports 40 tracks
-            settings_current.drive_plus3a_type = utils_safe_strdup("Double-sided 80 track");
-            specplus3_765_reset();
-         }
-
-         /*
-         ** Load the file and launch the emulation
-         */
-
-         fuse_emulation_pause();
-         utils_open_file(filename, autoload, &type);
-         display_refresh_all();
-         fuse_emulation_unpause();
       }
       else
       {
          // Load the _BASIC.z80 content to boot to BASIC
          tape_data = NULL;
          tape_size = 0;
+         num_disk_images = 0;
+         current_disk_index = 0;
+         disk_tray_ejected = false;
       }
 
       // Enable read/write on all disk drives
