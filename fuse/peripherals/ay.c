@@ -307,8 +307,12 @@ ay_from_snapshot( libspectrum_snap *snap )
   if( machine_current->capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_AY ) {
     ay_state_from_snapshot( snap );
 #ifdef __LIBRETRO__
-    if( ay_turbosound_enabled && libspectrum_snap_turbosound_active( snap ) )
-      ay2_state_from_snapshot( snap );
+    /* Restored unconditionally, like chip A above, regardless of whether
+       TurboSound is currently enabled: harmless if disabled (chip B's
+       registers just sit unused - see current_ay_chip()), and safe for
+       snapshots that predate this chunk (its accessors default to zero,
+       same as any other absent chunk's fields). */
+    ay2_state_from_snapshot( snap );
 #endif
   }
 }
@@ -327,15 +331,16 @@ ay_to_snapshot( libspectrum_snap *snap )
 				       machine_current->ay.registers[i] );
 
 #ifdef __LIBRETRO__
-  if( ay_turbosound_enabled ) {
-    libspectrum_snap_set_turbosound_active( snap, 1 );
-    libspectrum_snap_set_out_ay2_registerport(
-      snap, machine_current->ay2.current_register
-    );
-    for( i = 0; i < AY_REGISTERS; i++ )
-      libspectrum_snap_set_ay2_registers( snap, i,
-                                          machine_current->ay2.registers[i] );
-  }
+  /* Written unconditionally, like chip A above - see the write side of
+     the AY2 chunk in libspectrum/szx.c for why this must not depend on
+     the (live-toggleable) ay_turbosound_enabled option. */
+  libspectrum_snap_set_turbosound_active( snap, 1 );
+  libspectrum_snap_set_out_ay2_registerport(
+    snap, machine_current->ay2.current_register
+  );
+  for( i = 0; i < AY_REGISTERS; i++ )
+    libspectrum_snap_set_ay2_registers( snap, i,
+                                        machine_current->ay2.registers[i] );
 #endif
 }
 

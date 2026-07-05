@@ -2829,13 +2829,20 @@ libspectrum_szx_write( libspectrum_buffer *buffer, int *out_flags,
       libspectrum_snap_melodik_active( snap ) ||
       capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_AY ) {
     write_ay_chunk( buffer, block_data, snap );
-  }
 
 #ifdef __LIBRETRO__
-  if( libspectrum_snap_turbosound_active( snap ) ) {
+    /* Written under the same condition as the primary AY chip above (not
+       ay_turbosound_enabled, which can change mid-session via the
+       fuse_turbosound core option without a content reload): frontends
+       size their rewind ring buffer once from the first
+       retro_serialize_size() call and never resize it, so a snapshot
+       whose size depends on a live-toggleable option can grow after that
+       point and silently break the rewind buffer. Tying this chunk to the
+       same, session-constant condition as chip A keeps the size stable
+       regardless of whether TurboSound is actually turned on. */
     write_ay2_chunk( buffer, block_data, snap );
-  }
 #endif
+  }
 
   if( capabilities & ( LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_MEMORY |
                        LIBSPECTRUM_MACHINE_CAPABILITY_SE_MEMORY ) ) {
