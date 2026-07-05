@@ -1341,6 +1341,41 @@ void retro_deinit(void)
    }
 }
 
+// Kempston Mouse is a single peripheral, not per-port; enable it in Fuse
+// whenever any port is currently configured as a mouse, disable it
+// otherwise. This reflects live frontend port wiring, not emulated
+// machine state, so it must be re-applied after a snapshot/rewind restore
+// too - the snapshot's own kempston_mouse_active flag only reflects
+// whatever was true at the moment that particular state was captured
+// (e.g. still off, if rewound back to before the mouse was ever
+// connected), which can otherwise leave the peripheral disabled even
+// though the frontend still has a mouse wired to a port right now.
+static void sync_kempston_mouse_from_ports(void)
+{
+   unsigned p;
+   int kempston_mouse = 0;
+
+   for (p = 0; p < MAX_PADS; p++)
+   {
+      if (input_devices[p] == RETRO_DEVICE_KEMPSTON_MOUSE)
+      {
+         kempston_mouse = 1;
+         break;
+      }
+   }
+
+   if (settings_current.kempston_mouse != kempston_mouse)
+   {
+      settings_current.kempston_mouse = kempston_mouse;
+
+      // See the comment in retro_set_controller_port_device(): defer the
+      // actual periph_update() to the top of retro_run() rather than
+      // calling it here synchronously.
+      if (fuse_init_called)
+         kempston_mouse_needs_periph_update = 1;
+   }
+}
+
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
    log_cb(RETRO_LOG_INFO, "port %u device %08x\n", port, device);
@@ -1381,46 +1416,23 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          break;
    }
 
-   // Kempston Mouse is a single peripheral, not per-port; enable it in Fuse
-   // whenever any port is configured as a mouse, disable it otherwise
-   {
-      unsigned p;
-      int kempston_mouse = 0;
-
-      for (p = 0; p < MAX_PADS; p++)
-      {
-         if (input_devices[p] == RETRO_DEVICE_KEMPSTON_MOUSE)
-         {
-            kempston_mouse = 1;
-            break;
-         }
-      }
-
-      if (settings_current.kempston_mouse != kempston_mouse)
-      {
-         settings_current.kempston_mouse = kempston_mouse;
-
-         // Flipping settings_current.kempston_mouse alone does nothing:
-         // Fuse only (de)registers a peripheral's I/O ports when
-         // periph_update() runs (normally done by each machine's own
-         // init(), on snapshot load, etc; there is no automatic hook for
-         // "an option changed while already running"). Before fuse_init()
-         // has run there is no machine/peripheral table yet to update -
-         // retro_init()'s default controller setup would crash here.
-         //
-         // Do NOT call periph_update()/machine_reset() synchronously here:
-         // frontends (RetroArch included) apply saved port/remap config
-         // right after retro_load_game() returns, before the first
-         // retro_run(). Resetting the machine at that point - before Fuse's
-         // event queue has processed a single frame - leaves the next
-         // frame interrupt event unscheduled, so retro_run()'s "wait until
-         // some_audio" loop spins forever and the frontend hangs. Defer to
-         // the top of retro_run() instead, exactly like UPDATE_MACHINE
-         // (model changes) already does.
-         if (fuse_init_called)
-            kempston_mouse_needs_periph_update = 1;
-      }
-   }
+   // Flipping settings_current.kempston_mouse alone does nothing: Fuse
+   // only (de)registers a peripheral's I/O ports when periph_update() runs
+   // (normally done by each machine's own init(), on snapshot load, etc;
+   // there is no automatic hook for "an option changed while already
+   // running"). Before fuse_init() has run there is no machine/peripheral
+   // table yet to update - retro_init()'s default controller setup would
+   // crash here.
+   //
+   // Do NOT call periph_update()/machine_reset() synchronously here:
+   // frontends (RetroArch included) apply saved port/remap config right
+   // after retro_load_game() returns, before the first retro_run().
+   // Resetting the machine at that point - before Fuse's event queue has
+   // processed a single frame - leaves the next frame interrupt event
+   // unscheduled, so retro_run()'s "wait until some_audio" loop spins
+   // forever and the frontend hangs. Defer to the top of retro_run()
+   // instead, exactly like UPDATE_MACHINE (model changes) already does.
+   sync_kempston_mouse_from_ports();
 }
 
 void retro_reset(void)
@@ -1502,7 +1514,20 @@ bool retro_serialize(void *data, size_t size)
 
 bool retro_unserialize(const void *data, size_t size)
 {
-   return snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
+   bool ok = snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
+
+   // Loading a snapshot re-derives settings_current.kempston_mouse from
+   // whatever was true when that particular state was captured (see
+   // kempmouse_snapshot_enabled() in fuse/peripherals/kempmouse.c) - e.g.
+   // still off, if rewound back to before the mouse was ever connected.
+   // Port wiring is live frontend state, not emulated machine state, so
+   // re-sync it from the actual current controller assignment right after
+   // every restore (rewind or manual load) rather than leaving whatever
+   // the snapshot happened to say.
+   if (ok)
+      sync_kempston_mouse_from_ports();
+
+   return ok;
 }
 
 void retro_cheat_reset(void)
