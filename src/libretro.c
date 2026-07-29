@@ -77,6 +77,11 @@ static const machine_t machine_list[] =
    { LIBSPECTRUM_MACHINE_SCORP,    "scorpion",     0 },
 };
 
+static int machine_id_is_60hz(libspectrum_machine id)
+{
+   return id == LIBSPECTRUM_MACHINE_48_NTSC || id == LIBSPECTRUM_MACHINE_TS2068;
+}
+
 #define BGR16(color) rgb32_to_bgr16(color)
 #define rgb32_to_bgr16(color) rgbc32_to_bgr16((color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0x0000FF))
 #define rgbc32_to_bgr16(red, green, blue) ((blue & 0b11111000) << 8) | ((green & 0b11111100) << 3) | (red >> 3)
@@ -454,7 +459,7 @@ keysyms_map_t keysyms_map[] = {
    { "Space", NULL }, \
    { NULL, NULL }
 
-static const struct retro_core_option_v2_category core_option_categories[] = {
+static struct retro_core_option_v2_category core_option_categories[] = {
    { "system",   "System",   NULL },
    { "video",    "Video",    NULL },
    { "audio",    "Audio",    NULL },
@@ -463,7 +468,7 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
    { NULL, NULL, NULL },
 };
 
-static const struct retro_core_option_v2_definition core_option_definitions[] = {
+static struct retro_core_option_v2_definition core_option_definitions[] = {
    {
       "fuse_machine",
       "Model (needs content load)",
@@ -817,7 +822,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
    { NULL, NULL, NULL, NULL, NULL, NULL, { { NULL, NULL } }, NULL },
 };
 
-static const struct retro_core_options_v2 core_options_v2 = {
+static struct retro_core_options_v2 core_options_v2 = {
    core_option_categories,
    core_option_definitions
 };
@@ -835,8 +840,8 @@ static const struct retro_variable core_vars[] =
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
-   { "fuse_display_joystick_type", "Display joystick type at startup; enabled|disabled" },
-   { "fuse_display_emulation_speed", "Display emulation speed at startup; enabled|disabled" },
+   { "fuse_display_joystick_type", "Display joystick type at startup; disabled|enabled" },
+   { "fuse_display_emulation_speed", "Display emulation speed at startup; disabled|enabled" },
    { "fuse_auto_size_savestate", "Use Auto Size for Savestates. For Netplay 'Off' is recommended; enabled|disabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
@@ -905,20 +910,22 @@ int update_variables(int force)
 
          settings_current.start_machine = utils_safe_strdup(new_machine->fuse_id);
 
-         if (machine == NULL || new_machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_TS2068)
+         if (machine == NULL || machine_id_is_60hz(new_machine->id) != machine_id_is_60hz(machine->id))
          {
             // region and fps change
             flags |= UPDATE_AV_INFO;
          }
 
          machine = new_machine;
-         frame_time = 1000.0 / ( (machine->id == LIBSPECTRUM_MACHINE_48_NTSC|| machine->id == LIBSPECTRUM_MACHINE_TS2068) ? 60.0 : 50.0 );
+         frame_time = 1000.0 / (machine_id_is_60hz(machine->id) ? 60.0 : 50.0);
          flags |= UPDATE_MACHINE;
       }
 
-      bool is_pal = machine->id != LIBSPECTRUM_MACHINE_48_NTSC && machine->id != LIBSPECTRUM_MACHINE_TS2068;
+      // Fuse always renders the full PAL-sized canvas (DISPLAY_SCREEN_HEIGHT
+      // is a compile-time constant); 60Hz machines get a smaller window
+      // carved out of it below, when the border size is applied
       unsigned width = machine->is_timex ? 640 : 320;
-      unsigned height = is_pal ? (machine->is_timex ? 576 : 288) : (machine->is_timex ? 480 : 240);
+      unsigned height = machine->is_timex ? 576 : 288;
 
       if (width != hard_width || height != hard_height || force)
       {
@@ -951,7 +958,10 @@ int update_variables(int force)
          else
          {
             soft_width = hard_width;
-            soft_height = hard_height;
+            // 60Hz machines only have ~24 border lines above and below the
+            // paper area; show a 240 (480 for Timex) line window centred on
+            // the canvas so the paper stays centred with real-sized borders
+            soft_height = machine_id_is_60hz(machine->id) ? (machine->is_timex ? 480 : 240) : hard_height;
          }
 
          first_pixel = (hard_height - soft_height) / 2 * hard_width + (hard_width - soft_width) / 2;
@@ -991,7 +1001,8 @@ int update_variables(int force)
          else
          {
             soft_width = hard_width;
-            soft_height = hard_height;
+            // Same 60Hz window as above
+            soft_height = machine_id_is_60hz(machine->id) ? (machine->is_timex ? 480 : 240) : hard_height;
          }
 
          first_pixel = (hard_height - soft_height) / 2 * hard_width + (hard_width - soft_width) / 2;
@@ -1070,12 +1081,12 @@ int update_variables(int force)
 
    {
       int joystick_option = coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL);
-      show_joystick_type_at_startup = joystick_option != 1;
+      show_joystick_type_at_startup = joystick_option == 1;
    }
 
    {
       int speed_option = coreopt(env_cb, core_vars, "fuse_display_emulation_speed", NULL);
-      show_emulation_speed_at_startup = speed_option != 1;
+      show_emulation_speed_at_startup = speed_option == 1;
    }
 
    display_joystick_type = show_joystick_type_at_startup;
@@ -1236,8 +1247,8 @@ void retro_init(void)
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
 
-   show_joystick_type_at_startup = TRUE;
-   show_emulation_speed_at_startup = TRUE;
+   show_joystick_type_at_startup = FALSE;
+   show_emulation_speed_at_startup = FALSE;
    display_joystick_type = FALSE;
    display_emulation_speed = FALSE;
 }
@@ -1500,7 +1511,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
    info->geometry.aspect_ratio = 0.0f;
-   info->timing.fps = machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
+   info->timing.fps = machine_id_is_60hz(machine->id) ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
 }
 
@@ -1517,8 +1528,8 @@ static void render_video(void)
          if (machine->is_timex)
          {
             const uint16_t* src1 = keyboard_overlay;
-            const uint16_t* src2 = image_buffer + (24 * hard_width); // Offset by 24px
-            uint16_t* dest = image_buffer_2 + (24 * hard_width);    // Offset by 24px
+            const uint16_t* src2 = image_buffer + (48 * hard_width); // Centre doubled 480px overlay in 576px canvas
+            uint16_t* dest = image_buffer_2 + (48 * hard_width);     // Centre doubled 480px overlay in 576px canvas
             int x, y;
 
             if (keyb_transparent)
