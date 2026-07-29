@@ -219,6 +219,7 @@ static int show_emulation_speed_at_startup;
 static int display_joystick_type;
 static int display_emulation_speed;
 static int kempston_mouse_needs_periph_update = 0;
+static void sync_kempston_mouse_from_ports(void);
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -640,6 +641,16 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
          { NULL, NULL }
       },
       "500"
+   },
+   {
+      "fuse_mouse_swap_buttons",
+      "Kempston Mouse Swap Buttons",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
    },
    {
       "fuse_display_joystick_type",
@@ -1473,6 +1484,15 @@ bool retro_load_game(const struct retro_game_info *info)
 
       env_cb(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, &memory_map);
 
+      // Re-apply the live controller-port wiring: if a frontend assigned
+      // RETRO_DEVICE_KEMPSTON_MOUSE before retro_load_game(), fuse_init()'s
+      // settings_defaults() has just wiped settings_current.kempston_mouse
+      // (and the deferral flag was never armed because fuse_init_called was
+      // still 0); likewise, loading snapshot content re-derives the flag
+      // from the file via kempmouse_snapshot_enabled(). Port wiring is
+      // frontend state, not machine state - see retro_unserialize().
+      sync_kempston_mouse_from_ports();
+
       return true;
    }
 
@@ -1897,6 +1917,12 @@ void retro_reset(void)
    utils_open_file(filename, 1, &type);
    display_refresh_all();
    fuse_emulation_unpause();
+
+   // If the content is a snapshot, utils_open_file() went through
+   // snapshot_copy_from() and re-derived settings_current.kempston_mouse
+   // from the file, exactly like retro_unserialize() - re-apply the live
+   // controller-port wiring here too.
+   sync_kempston_mouse_from_ports();
 }
 
 size_t retro_serialize_size(void)
