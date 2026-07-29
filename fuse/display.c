@@ -619,7 +619,11 @@ copy_critical_region( int beam_x, int beam_y )
 static inline void
 get_beam_position( int *x, int *y )
 {
-  if( tstates < machine_current->line_times[ 0 ] ) {
+  /* line_times[ 0 ] can be "negative" (wrapped) on 60Hz machines, where
+     DISPLAY_BORDER_HEIGHT lines of top border start before the frame
+     interrupt; compare as signed, like spectrum.c does */
+  if( (libspectrum_signed_dword)tstates <
+      (libspectrum_signed_dword)machine_current->line_times[ 0 ] ) {
     *x = *y = -1;
     return;
   }

@@ -40,7 +40,7 @@
 
 /* The width and height of the (emulated) border */
 #define DISPLAY_BORDER_WIDTH_COLS  4
-#define DISPLAY_BORDER_HEIGHT_COLS 3
+#define DISPLAY_BORDER_HEIGHT_COLS 6
 
 /* The width and height of the (emulated) border */
 /* Each main screen column can produce 16 pixels in hires mode */

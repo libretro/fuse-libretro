@@ -8,16 +8,16 @@ int uidisplay_init(int width, int height)
 {
    log_cb(RETRO_LOG_DEBUG, "%s(%d, %d)\n", __FUNCTION__, width, height);
    
-   if (width != 320)
+   if (width != 320 && width != 640)
    {
       log_cb(RETRO_LOG_ERROR, "Invalid value for the display width: %d\n", width);
       width = 320;
    }
    
-   if (height != 240)
+   if (height != 288 && height != 576)
    {
       log_cb(RETRO_LOG_ERROR, "Invalid value for the display height: %d\n", height);
-      height = 240;
+      height = 288;
    }
    
    //soft_width = (unsigned)width;
