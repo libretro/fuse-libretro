@@ -107,7 +107,14 @@ static const entry_t* find_entry(const char *path)
    for (i = 0; i < sizeof(mem_entries) / sizeof(mem_entries[0]); i++)
    {
       size_t len2 = strlen(mem_entries[i].name);
-      
+
+      /* Suffix match. Skip entries whose name is longer than the path:
+         path + len - len2 would point before the start of the buffer, and
+         reading from it is out of bounds (asset names run up to 17 chars,
+         so a short path like "/48.rom" underflows on most of the table). */
+      if (len2 > len)
+         continue;
+
       if (!strcmp(path + len - len2, mem_entries[i].name))
       {
          return mem_entries + i;
@@ -119,8 +126,16 @@ static const entry_t* find_entry(const char *path)
 
 typedef struct
 {
+   /* Cursor into a baked-in asset or the caller's content buffer. NULL for
+      file-backed descriptors, which stream from fp instead. */
    const char* ptr;
    size_t length, remain;
+   /* Open handle for descriptors backed by a real file. Opening no longer
+      slurps the contents: compat_file_read() reads straight into the
+      caller's buffer, which avoids a second full-size allocation plus a
+      full-size memcpy per file, and makes compat_file_exists() an
+      open/close rather than a whole-file read. */
+   FILE* fp;
 }
 compat_fd_internal;
 
@@ -141,7 +156,11 @@ compat_fd compat_file_open(const char *path, int write)
       log_cb(RETRO_LOG_ERROR, "Out of memory while opening \"%s\"\n", path);
       return COMPAT_FILE_OPEN_FAILED;
    }
-    
+
+   fd->ptr = NULL;
+   fd->length = fd->remain = 0;
+   fd->fp = NULL;
+
    const entry_t* entry = find_entry(path);
 
    if (entry != NULL)
@@ -169,19 +188,11 @@ compat_fd compat_file_open(const char *path, int write)
          if (fseek(direct, 0, SEEK_END) == 0 && (size = ftell(direct)) >= 0 &&
              fseek(direct, 0, SEEK_SET) == 0)
          {
-            void* ptr = malloc(size);
+            fd->fp = direct;
+            fd->length = fd->remain = size;
 
-            if (ptr && fread(ptr, 1, size, direct) == (size_t)size)
-            {
-               fclose(direct);
-               fd->ptr = (const char*)ptr;
-               fd->length = fd->remain = size;
-
-               log_cb(RETRO_LOG_INFO, "Opened \"%s\" directly\n", path);
-               return (compat_fd)fd;
-            }
-
-            free(ptr);
+            log_cb(RETRO_LOG_INFO, "Opened \"%s\" directly\n", path);
+            return (compat_fd)fd;
          }
 
          fclose(direct);
@@ -229,28 +240,7 @@ compat_fd compat_file_open(const char *path, int write)
       return COMPAT_FILE_OPEN_FAILED;
    }
    
-   void* ptr = malloc(size);
-   
-   if (!ptr)
-   {
-      log_cb(RETRO_LOG_ERROR, "Out of memory while opening \"%s\"\n", system);
-      fclose(file);
-      free(fd);
-      return COMPAT_FILE_OPEN_FAILED;
-   }
-   
-   if (fread(ptr, 1, size, file) != size)
-   {
-      log_cb(RETRO_LOG_ERROR, "Error reading from \"%s\"\n", system);
-      free(ptr);
-      fclose(file);
-      free(fd);
-      return COMPAT_FILE_OPEN_FAILED;
-   }
-   
-   fclose(file);
-   
-   fd->ptr = (const char*)ptr;
+   fd->fp = file;
    fd->length = fd->remain = size;
    
    log_cb(RETRO_LOG_INFO, "Opened \"%s\" from the file system\n", system);
@@ -269,8 +259,17 @@ int compat_file_read(compat_fd cfd, utils_file *file)
    size_t numread;
    
    numread = file->length < fd->remain ? file->length : fd->remain;
-   memcpy(file->buffer, fd->ptr, numread);
-   fd->ptr += numread;
+
+   if (fd->fp)
+   {
+      numread = fread(file->buffer, 1, numread, fd->fp);
+   }
+   else
+   {
+      memcpy(file->buffer, fd->ptr, numread);
+      fd->ptr += numread;
+   }
+
    fd->remain -= numread;
    
    if (numread == file->length)
@@ -294,7 +293,15 @@ int compat_file_write(compat_fd cfd, const unsigned char *buffer, size_t length)
 
 int compat_file_close(compat_fd cfd)
 {
-   free(cfd);
+   compat_fd_internal *fd = (compat_fd_internal*)cfd;
+
+   if (!fd)
+      return 0;
+
+   if (fd->fp)
+      fclose(fd->fp);
+
+   free(fd);
    return 0;
 }
 
