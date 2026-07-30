@@ -33,7 +33,7 @@ void sound_init( const char *device );
 void sound_pause( void );
 void sound_unpause( void );
 void sound_end( void );
-void sound_ay_write( int reg, int val, libspectrum_dword now );
+void sound_ay_write( int chip, int reg, int val, libspectrum_dword now );
 void sound_ay_reset( void );
 void sound_specdrum_write( libspectrum_word port, libspectrum_byte val );
 void sound_covox_write( libspectrum_word port, libspectrum_byte val );
