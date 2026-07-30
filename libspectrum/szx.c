@@ -2714,6 +2714,20 @@ libspectrum_szx_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
   ctx->swap_af = 0;
 
   while( buffer < end ) {
+#ifdef __LIBRETRO__
+    /* This core pads fixed-size savestates (and auto-size states that have
+       shrunk below the frontend's frozen buffer size) with 0xFF - see
+       retro_serialize(). A pad tail of 8+ bytes is caught as the fake
+       0xFFFFFFFF chunk id inside read_chunk(), but a tail shorter than a
+       chunk header would fail read_chunk_header(); accept any all-0xFF
+       tail as clean end-of-snapshot. Chunk ids are ASCII fourCCs, so a
+       0xFF lead byte can never start a real chunk. */
+    if( *buffer == 0xFF ) {
+      const libspectrum_byte *pad = buffer;
+      while( pad < end && *pad == 0xFF ) pad++;
+      if( pad == end ) break;
+    }
+#endif
     error = read_chunk( snap, version, &buffer, end, ctx );
     if( error ) {
       libspectrum_free( ctx );
