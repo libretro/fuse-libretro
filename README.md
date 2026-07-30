@@ -42,6 +42,7 @@ The core options available on the frontend are:
 * TurboSound (disabled|enabled): Emulates a second AY-8910 chip (classic NedoPC protocol), giving 6 sound channels instead of 3. Only used by software written for it
 * Transparent Keyboard Overlay (enabled|disabled): If the keyboard overlay is transparent or opaque
 * Time to Release Key in ms (100|300|500|1000): How much time to keep a key pressed before releasing it (used when a key is pressed using the keyboard overlay)
+* Kempston Mouse Swap Buttons (disabled|enabled): Swaps the left and right Kempston Mouse button mapping
 
 ## Input Devices
 
@@ -67,6 +68,10 @@ There are some conflicts in the way the input devices interact because of the us
 * For keyboard games: Set users 1 and 2 to none, and user 3 to Sinclair Keyboard. You won't have any joystick and the embedded keyboard won't work, but the entire physical keyboard will be available for you to type in those text adventure commands.
 
 If you set a joystick along with the keyboard, the joystick will work just fine except for the bindings to RETURN and SPACE, and the keyboard won't register the keys assigned to the Cursor joystick, or to the L1 and R1 buttons for all other joystick types.
+
+Any of the three users can also be set to the "Kempston Mouse" device type instead. The mouse's left and right buttons map to the host mouse's left and right buttons (see the "Kempston Mouse Swap Buttons" core option to swap them); relative motion drives the Kempston Mouse position directly. Since Kempston Mouse is a single peripheral (not per-player), only set one user to it at a time.
+
+If the pointer doesn't seem to do anything even though it's set to Kempston Mouse, check RetroArch's own **Settings > Input > Port *N* Controls > Mouse Index** for that user. Users 2+ default to expecting a second, third, etc. physical mouse (mouse index 1, 2, ...); on a machine with only one physical mouse, point that setting back to index 0.
 
 ## Supported Formats
 

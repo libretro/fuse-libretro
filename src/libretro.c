@@ -21,6 +21,7 @@
 #include <peripherals/disk/opus.h>
 #include <peripherals/disk/disciple.h>
 #include <pokefinder/pokemem.h>
+#include <periph.h>
 
 #include "ui/uimedia.h"
 
@@ -77,6 +78,11 @@ static const machine_t machine_list[] =
    { LIBSPECTRUM_MACHINE_PENT1024, "pentagon1024", 0 },
    { LIBSPECTRUM_MACHINE_SCORP,    "scorpion",     0 },
 };
+
+static int machine_id_is_60hz(libspectrum_machine id)
+{
+   return id == LIBSPECTRUM_MACHINE_48_NTSC || id == LIBSPECTRUM_MACHINE_TS2068;
+}
 
 #define BGR16(color) rgb32_to_bgr16(color)
 #define rgb32_to_bgr16(color) rgbc32_to_bgr16((color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0x0000FF))
@@ -209,8 +215,12 @@ static int forced_machine_idx = 0;
 static int auto_size_savestate = 1;
 
 static unsigned msg_interface_version = 0;
+static int show_joystick_type_at_startup;
+static int show_emulation_speed_at_startup;
 static int display_joystick_type;
 static int display_emulation_speed;
+static int kempston_mouse_needs_periph_update = 0;
+static void sync_kempston_mouse_from_ports(void);
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -404,6 +414,433 @@ keysyms_map_t keysyms_map[] = {
    { 0, 0 }    // End marker: DO NOT MOVE!
 };
 
+#define CORE_OPTION_VALUE_LIST_ENABLED_DISABLED \
+   { "enabled", NULL }, \
+   { "disabled", NULL }, \
+   { NULL, NULL }
+
+#define CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS \
+   { "<none>", NULL }, \
+   { "0", NULL }, \
+   { "1", NULL }, \
+   { "2", NULL }, \
+   { "3", NULL }, \
+   { "4", NULL }, \
+   { "5", NULL }, \
+   { "6", NULL }, \
+   { "7", NULL }, \
+   { "8", NULL }, \
+   { "9", NULL }, \
+   { "a", NULL }, \
+   { "b", NULL }, \
+   { "c", NULL }, \
+   { "d", NULL }, \
+   { "e", NULL }, \
+   { "f", NULL }, \
+   { "g", NULL }, \
+   { "h", NULL }, \
+   { "i", NULL }, \
+   { "j", NULL }, \
+   { "k", NULL }, \
+   { "l", NULL }, \
+   { "m", NULL }, \
+   { "n", NULL }, \
+   { "o", NULL }, \
+   { "p", NULL }, \
+   { "q", NULL }, \
+   { "r", NULL }, \
+   { "s", NULL }, \
+   { "t", NULL }, \
+   { "u", NULL }, \
+   { "v", NULL }, \
+   { "w", NULL }, \
+   { "x", NULL }, \
+   { "y", NULL }, \
+   { "z", NULL }, \
+   { "Enter", NULL }, \
+   { "Caps", NULL }, \
+   { "Symbol", NULL }, \
+   { "Space", NULL }, \
+   { NULL, NULL }
+
+static struct retro_core_option_v2_category core_option_categories[] = {
+   { "system",   "System",   NULL },
+   { "video",    "Video",    NULL },
+   { "audio",    "Audio",    NULL },
+   { "input",    "Input",    NULL },
+   { "advanced", "Advanced", NULL },
+   { NULL, NULL, NULL },
+};
+
+static struct retro_core_option_v2_definition core_option_definitions[] = {
+   {
+      "fuse_machine",
+      "Model (needs content load)",
+      NULL,
+      NULL,
+      NULL,
+      "system",
+      {
+         { "Spectrum 48K", NULL },
+         { "Spectrum 48K (NTSC)", NULL },
+         { "Spectrum 128K", NULL },
+         { "Spectrum +2", NULL },
+         { "Spectrum +2A", NULL },
+         { "Spectrum +3", NULL },
+         { "Spectrum +3e", NULL },
+         { "Spectrum SE", NULL },
+         { "Timex TC2048", NULL },
+         { "Timex TC2068", NULL },
+         { "Timex TS2068", NULL },
+         { "Spectrum 16K", NULL },
+         { "Pentagon 128K", NULL },
+         { "Pentagon 512K", NULL },
+         { "Pentagon 1024", NULL },
+         { "Scorpion 256K", NULL },
+         { NULL, NULL }
+      },
+      "Spectrum 48K"
+   },
+   {
+      "fuse_emulation_speed",
+      "Emulation speed percentage (needs content load)",
+      NULL,
+      NULL,
+      NULL,
+      "system",
+      {
+         { "50", NULL },
+         { "100", NULL },
+         { "150", NULL },
+         { "200", NULL },
+         { "300", NULL },
+         { NULL, NULL }
+      },
+      "100"
+   },
+   {
+      "fuse_size_border",
+      "Size Video Border",
+      NULL,
+      NULL,
+      NULL,
+      "video",
+      {
+         { "full", NULL },
+         { "medium", NULL },
+         { "small", NULL },
+         { "minimum", NULL },
+         { "none", NULL },
+         { NULL, NULL }
+      },
+      "full"
+   },
+   {
+      "fuse_palette",
+      "Colour Palette",
+      NULL,
+      NULL,
+      NULL,
+      "video",
+      {
+         { "Fuse Standard", NULL },
+         { "ZX Standard", NULL },
+         { "B&W TV", NULL },
+         { "Green Monochrome", NULL },
+         { "Ambar Monochrome", NULL },
+         { "C64", NULL },
+         { "CGA 4 colours", NULL },
+         { "CGA 8 colours", NULL },
+         { "CGA 16 colours", NULL },
+         { "Inverted colours", NULL },
+         { NULL, NULL }
+      },
+      "Fuse Standard"
+   },
+   {
+      "fuse_auto_load",
+      "Tape Auto Load",
+      NULL,
+      NULL,
+      NULL,
+      "system",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "enabled"
+   },
+   {
+      "fuse_fast_load",
+      "Tape Fast Load",
+      NULL,
+      NULL,
+      NULL,
+      "advanced",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "enabled"
+   },
+   {
+      "fuse_load_sound",
+      "Tape Load Sound",
+      NULL,
+      NULL,
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "enabled"
+   },
+   {
+      "fuse_speaker_type",
+      "Speaker Type",
+      NULL,
+      NULL,
+      NULL,
+      "audio",
+      {
+         { "tv speaker", NULL },
+         { "beeper", NULL },
+         { "unfiltered", NULL },
+         { NULL, NULL }
+      },
+      "tv speaker"
+   },
+   {
+      "fuse_ay_stereo_separation",
+      "AY Stereo Separation",
+      NULL,
+      NULL,
+      NULL,
+      "audio",
+      {
+         { "none", NULL },
+         { "acb", NULL },
+         { "abc", NULL },
+         { NULL, NULL }
+      },
+      "none"
+   },
+   {
+      "fuse_key_ovrlay_transp",
+      "Transparent Keyboard Overlay",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "enabled"
+   },
+   {
+      "fuse_key_hold_time",
+      "Time to Release Key in ms",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      {
+         { "100", NULL },
+         { "300", NULL },
+         { "500", NULL },
+         { "1000", NULL },
+         { NULL, NULL }
+      },
+      "500"
+   },
+   {
+      "fuse_mouse_swap_buttons",
+      "Kempston Mouse Swap Buttons",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
+      "fuse_display_joystick_type",
+      "Display joystick type at startup",
+      NULL,
+      NULL,
+      NULL,
+      "advanced",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
+      "fuse_display_emulation_speed",
+      "Display emulation speed at startup",
+      NULL,
+      NULL,
+      NULL,
+      "advanced",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
+      "fuse_auto_size_savestate",
+      "Use Auto Size for Savestates. For Netplay 'Off' is recommended",
+      NULL,
+      NULL,
+      NULL,
+      "advanced",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "enabled"
+   },
+   {
+      "fuse_joypad_left",
+      "Joypad Left mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_right",
+      "Joypad Right mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_up",
+      "Joypad Up mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_down",
+      "Joypad Down mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_start",
+      "Joypad Start mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_a",
+      "Joypad A button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_b",
+      "Joypad B button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_x",
+      "Joypad X button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_y",
+      "Joypad Y button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_l",
+      "Joypad L button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_r",
+      "Joypad R button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_l2",
+      "Joypad L2 button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_r2",
+      "Joypad R2 button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_l3",
+      "Joypad L3 button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   {
+      "fuse_joypad_r3",
+      "Joypad R3 button mapping",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS },
+      "<none>"
+   },
+   { NULL, NULL, NULL, NULL, NULL, NULL, { { NULL, NULL } }, NULL },
+};
+
+static struct retro_core_options_v2 core_options_v2 = {
+   core_option_categories,
+   core_option_definitions
+};
+
 static const struct retro_variable core_vars[] =
 {
    { "fuse_machine", "Model (needs content load); Spectrum 48K|Spectrum 48K (NTSC)|Spectrum 128K|Spectrum +2|Spectrum +2A|Spectrum +3|Spectrum +3e|Spectrum SE|Timex TC2048|Timex TC2068|Timex TS2068|Spectrum 16K|Pentagon 128K|Pentagon 512K|Pentagon 1024|Scorpion 256K" },
@@ -418,8 +855,10 @@ static const struct retro_variable core_vars[] =
    { "fuse_turbosound", "TurboSound (2x AY-8910); disabled|enabled" },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
-   { "fuse_display_joystick_type", "Display joystick type and emulation speed at startup; enabled|disabled" },
+   { "fuse_display_joystick_type", "Display joystick type at startup; disabled|enabled" },
+   { "fuse_display_emulation_speed", "Display emulation speed at startup; disabled|enabled" },
    { "fuse_auto_size_savestate", "Use Auto Size for Savestates. For Netplay 'Off' is recommended; enabled|disabled" },
+   { "fuse_mouse_swap_buttons", "Kempston Mouse Swap Buttons; disabled|enabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
    { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
@@ -487,19 +926,22 @@ int update_variables(int force)
 
          settings_current.start_machine = utils_safe_strdup(new_machine->fuse_id);
 
-         if (machine == NULL || new_machine->id == LIBSPECTRUM_MACHINE_48_NTSC || machine->id == LIBSPECTRUM_MACHINE_TS2068)
+         if (machine == NULL || machine_id_is_60hz(new_machine->id) != machine_id_is_60hz(machine->id))
          {
             // region and fps change
             flags |= UPDATE_AV_INFO;
          }
 
          machine = new_machine;
-         frame_time = 1000.0 / ( (machine->id == LIBSPECTRUM_MACHINE_48_NTSC|| machine->id == LIBSPECTRUM_MACHINE_TS2068) ? 60.0 : 50.0 );
+         frame_time = 1000.0 / (machine_id_is_60hz(machine->id) ? 60.0 : 50.0);
          flags |= UPDATE_MACHINE;
       }
 
+      // Fuse always renders the full PAL-sized canvas (DISPLAY_SCREEN_HEIGHT
+      // is a compile-time constant); 60Hz machines get a smaller window
+      // carved out of it below, when the border size is applied
       unsigned width = machine->is_timex ? 640 : 320;
-      unsigned height = machine->is_timex ? 480 : 240;
+      unsigned height = machine->is_timex ? 576 : 288;
 
       if (width != hard_width || height != hard_height || force)
       {
@@ -532,7 +974,10 @@ int update_variables(int force)
          else
          {
             soft_width = hard_width;
-            soft_height = hard_height;
+            // 60Hz machines only have ~24 border lines above and below the
+            // paper area; show a 240 (480 for Timex) line window centred on
+            // the canvas so the paper stays centred with real-sized borders
+            soft_height = machine_id_is_60hz(machine->id) ? (machine->is_timex ? 480 : 240) : hard_height;
          }
 
          first_pixel = (hard_height - soft_height) / 2 * hard_width + (hard_width - soft_width) / 2;
@@ -572,7 +1017,8 @@ int update_variables(int force)
          else
          {
             soft_width = hard_width;
-            soft_height = hard_height;
+            // Same 60Hz window as above
+            soft_height = machine_id_is_60hz(machine->id) ? (machine->is_timex ? 480 : 240) : hard_height;
          }
 
          first_pixel = (hard_height - soft_height) / 2 * hard_width + (hard_width - soft_width) / 2;
@@ -649,14 +1095,18 @@ int update_variables(int force)
    }
 
 
-   if (coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL) == 0)
    {
-      display_joystick_type = TRUE;
-      display_emulation_speed = TRUE;
-   } else {
-      display_joystick_type = FALSE;
-      display_emulation_speed = FALSE;
+      int joystick_option = coreopt(env_cb, core_vars, "fuse_display_joystick_type", NULL);
+      show_joystick_type_at_startup = joystick_option == 1;
    }
+
+   {
+      int speed_option = coreopt(env_cb, core_vars, "fuse_display_emulation_speed", NULL);
+      show_emulation_speed_at_startup = speed_option == 1;
+   }
+
+   display_joystick_type = show_joystick_type_at_startup;
+   display_emulation_speed = show_emulation_speed_at_startup;
 
    if (coreopt(env_cb, core_vars, "fuse_auto_size_savestate", NULL) == 0)
       auto_size_savestate = TRUE;
@@ -664,6 +1114,7 @@ int update_variables(int force)
       auto_size_savestate = FALSE;
 
    ay_turbosound_enabled = coreopt(env_cb, core_vars, "fuse_turbosound", NULL) == 1;
+   settings_current.mouse_swap_buttons = coreopt(env_cb, core_vars, "fuse_mouse_swap_buttons", NULL) == 1;
 
    const char* value;
    int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );
@@ -762,6 +1213,7 @@ void retro_set_environment(retro_environment_t cb)
       { "Timex 1 Joystick",    RETRO_DEVICE_TIMEX1_JOYSTICK    },
       { "Timex 2 Joystick",    RETRO_DEVICE_TIMEX2_JOYSTICK    },
       { "Fuller Joystick",     RETRO_DEVICE_FULLER_JOYSTICK    },
+      { "Kempston Mouse",      RETRO_DEVICE_KEMPSTON_MOUSE     },
       { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  }
    };
 
@@ -773,9 +1225,19 @@ void retro_set_environment(retro_environment_t cb)
    };
 
    bool yes = true;
+   unsigned core_options_version = 0;
    cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &yes);
 
-   cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
+   if (cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version) &&
+       core_options_version >= 2)
+   {
+      cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void*)&core_options_v2);
+   }
+   else
+   {
+      cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
+   }
+
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
 
@@ -800,13 +1262,22 @@ void retro_init(void)
    total_time_ms = 0.0;
    active_cheats = NULL;
 
+   // Always report a mouse as available so Fuse auto-grabs it at startup
+   // (see fuse_init() -> ui_mouse_grab()); our ui_mouse_grab() stub in
+   // src/compat/mouse.c always succeeds, so this keeps ui_mouse_grabbed set
+   // and ui_mouse_button()/ui_mouse_motion() active whenever a port is
+   // configured as RETRO_DEVICE_KEMPSTON_MOUSE.
+   ui_mouse_present = 1;
+
    // Set default controllers
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK   );
    retro_set_controller_port_device( 1, RETRO_DEVICE_KEMPSTON_JOYSTICK );
    retro_set_controller_port_device( 2, RETRO_DEVICE_SPECTRUM_KEYBOARD );
-   
+
+   show_joystick_type_at_startup = FALSE;
+   show_emulation_speed_at_startup = FALSE;
    display_joystick_type = FALSE;
-   display_emulation_speed = TRUE;
+   display_emulation_speed = FALSE;
 }
 
 static libspectrum_id_t identify_file(const char* filename, const void* data, size_t size)
@@ -1016,6 +1487,15 @@ bool retro_load_game(const struct retro_game_info *info)
 
       env_cb(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, &memory_map);
 
+      // Re-apply the live controller-port wiring: if a frontend assigned
+      // RETRO_DEVICE_KEMPSTON_MOUSE before retro_load_game(), fuse_init()'s
+      // settings_defaults() has just wiped settings_current.kempston_mouse
+      // (and the deferral flag was never armed because fuse_init_called was
+      // still 0); likewise, loading snapshot content re-derives the flag
+      // from the file via kempmouse_snapshot_enabled(). Port wiring is
+      // frontend state, not machine state - see retro_unserialize().
+      sync_kempston_mouse_from_ports();
+
       return true;
    }
 
@@ -1067,7 +1547,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
    info->geometry.aspect_ratio = 0.0f;
-   info->timing.fps = machine->id == LIBSPECTRUM_MACHINE_48_NTSC ? 60.0 : 50.0;
+   info->timing.fps = machine_id_is_60hz(machine->id) ? 60.0 : 50.0;
    info->timing.sample_rate = 44100.0;
 }
 
@@ -1084,22 +1564,22 @@ static void render_video(void)
          if (machine->is_timex)
          {
             const uint16_t* src1 = keyboard_overlay;
-            const uint16_t* src2 = image_buffer;
-            uint16_t* dest = image_buffer_2;
+            const uint16_t* src2 = image_buffer + (48 * hard_width); // Centre doubled 480px overlay in 576px canvas
+            uint16_t* dest = image_buffer_2 + (48 * hard_width);     // Centre doubled 480px overlay in 576px canvas
             int x, y;
 
             if (keyb_transparent)
             {
-               for (y = 0; y < 240; y++)
+               for (y = 0; y < 240; y++) // Process only 240px height
                {
                   for (x = 0; x < 320; x++)
                   {
                      uint32_t src1_pixel = (*src1++ & 0xe79c) * 3;
 
-                     dest[ 0 ] = (src1_pixel + ( src2[ 0 ] & 0xe79c)) >> 2;
-                     dest[ 1 ] = (src1_pixel + ( src2[ 1 ] & 0xe79c)) >> 2;
-                     dest[ 640 ] = (src1_pixel + ( src2[ 640 ] & 0xe79c)) >> 2;
-                     dest[ 641 ] = (src1_pixel + ( src2[ 641 ] & 0xe79c)) >> 2;
+                     dest[0] = (src1_pixel + (src2[0] & 0xe79c)) >> 2;
+                     dest[1] = (src1_pixel + (src2[1] & 0xe79c)) >> 2;
+                     dest[640] = (src1_pixel + (src2[640] & 0xe79c)) >> 2;
+                     dest[641] = (src1_pixel + (src2[641] & 0xe79c)) >> 2;
 
                      src2 += 2;
                      dest += 2;
@@ -1111,16 +1591,16 @@ static void render_video(void)
             }
             else
             {
-               for (y = 0; y < 240; y++)
+               for (y = 0; y < 240; y++) // Process only 240px height
                {
                   for (x = 0; x < 320; x++)
                   {
                      uint32_t src1_pixel = *src1++;
 
-                     dest[ 0 ] = src1_pixel;
-                     dest[ 1 ] = src1_pixel;
-                     dest[ 640 ] = src1_pixel;
-                     dest[ 641 ] = src1_pixel;
+                     dest[0] = src1_pixel;
+                     dest[1] = src1_pixel;
+                     dest[640] = src1_pixel;
+                     dest[641] = src1_pixel;
 
                      src2 += 2;
                      dest += 2;
@@ -1129,34 +1609,34 @@ static void render_video(void)
                   src2 += 640;
                   dest += 640;
                }
-             }
+            }
          }
          else
          {
             if (keyb_transparent)
             {
                const uint16_t* src1 = keyboard_overlay;
-               const uint16_t* src2 = image_buffer;
-               const uint16_t* end = src1 + sizeof(keyboard_overlay) / sizeof(keyboard_overlay[0]);
-               uint16_t* dest = image_buffer_2;
+               const uint16_t* src2 = image_buffer + (24 * hard_width); // Offset by 24px
+               const uint16_t* end = src1 + (240 * 320);                // Limit to 240px height
+               uint16_t* dest = image_buffer_2 + (24 * hard_width);    // Offset by 24px
 
-               do
+               while (src1 < end)
                {
                   uint32_t src1_pixel = *src1++ & 0xe79c;
                   uint32_t src2_pixel = *src2++ & 0xe79c;
 
                   *dest++ = (src1_pixel * 3 + src2_pixel) >> 2;
                }
-               while (src1 < end);
             }
             else
             {
-               memcpy(image_buffer_2, keyboard_overlay, sizeof(keyboard_overlay));
+               memcpy(image_buffer_2 + (24 * hard_width), keyboard_overlay, 240 * 320 * sizeof(uint16_t)); // Copy to offset position
             }
          }
 
+         // Render virtual keyboard highlighting
          unsigned x = keyb_positions[keyb_y].x + keyb_x * 24;
-         unsigned y = keyb_positions[keyb_y].y;
+         unsigned y = keyb_positions[keyb_y].y + 24; // Offset highlighting by 24px
          unsigned width = 23;
 
          if (keyb_y == 3)
@@ -1173,7 +1653,7 @@ static void render_video(void)
          }
 
          unsigned mult = machine->is_timex ? 2 : 1;
-         uint16_t* pixel = image_buffer_2 + (y * hard_width + x + 1) * mult;
+         uint16_t* pixel = image_buffer_2 + ((y * hard_width) + x + 1) * mult;
          unsigned i, j;
 
          for (j = mult; j > 0; --j )
@@ -1226,6 +1706,12 @@ void retro_run(void)
 {
    bool updated = false;
 
+   if (kempston_mouse_needs_periph_update)
+   {
+      kempston_mouse_needs_periph_update = 0;
+      periph_update();
+   }
+
    if (display_joystick_type == TRUE)
    {
       int port;
@@ -1233,7 +1719,7 @@ void retro_run(void)
          int joystick_type = get_joystick(input_devices[port]);
          if (joystick_type != 0) {
             char title[80];
-            snprintf(title, sizeof(title), "Port %d configured as %s joystick", port + 1,
+            snprintf(title, sizeof(title), "Port %d set as %s joystick", port + 1,
                libspectrum_joystick_name(joystick_type));
             Retro_Msg(title);
          }
@@ -1243,7 +1729,7 @@ void retro_run(void)
 
    if (display_emulation_speed == TRUE) {
       char title[80];
-      snprintf(title, sizeof(title), "Emulation speed configured to %d%%", settings_current.emulation_speed);
+      snprintf(title, sizeof(title), "Emulation speed set to %d%%", settings_current.emulation_speed);
       Retro_Msg(title);
       display_emulation_speed = FALSE;
    }
@@ -1326,13 +1812,48 @@ void retro_deinit(void)
    }
 }
 
+// Kempston Mouse is a single peripheral, not per-port; enable it in Fuse
+// whenever any port is currently configured as a mouse, disable it
+// otherwise. This reflects live frontend port wiring, not emulated
+// machine state, so it must be re-applied after a snapshot/rewind restore
+// too - the snapshot's own kempston_mouse_active flag only reflects
+// whatever was true at the moment that particular state was captured
+// (e.g. still off, if rewound back to before the mouse was ever
+// connected), which can otherwise leave the peripheral disabled even
+// though the frontend still has a mouse wired to a port right now.
+static void sync_kempston_mouse_from_ports(void)
+{
+   unsigned p;
+   int kempston_mouse = 0;
+
+   for (p = 0; p < MAX_PADS; p++)
+   {
+      if (input_devices[p] == RETRO_DEVICE_KEMPSTON_MOUSE)
+      {
+         kempston_mouse = 1;
+         break;
+      }
+   }
+
+   if (settings_current.kempston_mouse != kempston_mouse)
+   {
+      settings_current.kempston_mouse = kempston_mouse;
+
+      // See the comment in retro_set_controller_port_device(): defer the
+      // actual periph_update() to the top of retro_run() rather than
+      // calling it here synchronously.
+      if (fuse_init_called)
+         kempston_mouse_needs_periph_update = 1;
+   }
+}
+
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
    log_cb(RETRO_LOG_INFO, "port %u device %08x\n", port, device);
 
    if (device == RETRO_DEVICE_AUTO_CFG)
    {
-      if (port == 0)
+      if (port == 0 && show_joystick_type_at_startup == TRUE)
          display_joystick_type = TRUE;
       return;
    }
@@ -1365,6 +1886,24 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          }
          break;
    }
+
+   // Flipping settings_current.kempston_mouse alone does nothing: Fuse
+   // only (de)registers a peripheral's I/O ports when periph_update() runs
+   // (normally done by each machine's own init(), on snapshot load, etc;
+   // there is no automatic hook for "an option changed while already
+   // running"). Before fuse_init() has run there is no machine/peripheral
+   // table yet to update - retro_init()'s default controller setup would
+   // crash here.
+   //
+   // Do NOT call periph_update()/machine_reset() synchronously here:
+   // frontends (RetroArch included) apply saved port/remap config right
+   // after retro_load_game() returns, before the first retro_run().
+   // Resetting the machine at that point - before Fuse's event queue has
+   // processed a single frame - leaves the next frame interrupt event
+   // unscheduled, so retro_run()'s "wait until some_audio" loop spins
+   // forever and the frontend hangs. Defer to the top of retro_run()
+   // instead, exactly like UPDATE_MACHINE (model changes) already does.
+   sync_kempston_mouse_from_ports();
 }
 
 void retro_reset(void)
@@ -1381,14 +1920,18 @@ void retro_reset(void)
    utils_open_file(filename, 1, &type);
    display_refresh_all();
    fuse_emulation_unpause();
+
+   // If the content is a snapshot, utils_open_file() went through
+   // snapshot_copy_from() and re-derived settings_current.kempston_mouse
+   // from the file, exactly like retro_unserialize() - re-apply the live
+   // controller-port wiring here too.
+   sync_kempston_mouse_from_ports();
 }
 
 size_t retro_serialize_size(void)
 {
    if (auto_size_savestate) {
-      fuse_emulation_pause();
       snapshot_update();
-      fuse_emulation_unpause();
       return snapshot_size;
    }
    else
@@ -1425,13 +1968,19 @@ bool retro_serialize(void *data, size_t size)
 
    if (auto_size_savestate)
    {
-      if (size <= snapshot_size)
+      if (size < snapshot_size)
       {
-         memcpy(data, snapshot_buffer, snapshot_size);
-         return true;
-      }  
-      log_cb(RETRO_LOG_WARN, "Data size is not enough for snapshot\n");
-      return false;
+         log_cb(RETRO_LOG_WARN, "Data size is not enough for snapshot\n");
+         return false;
+      }
+      memcpy(data, snapshot_buffer, snapshot_size);
+      // Frontends (rewind in particular) keep passing the size reported by
+      // the first retro_serialize_size() call even after the SZX shrinks;
+      // pad like the fixed-size path below so the tail is well-formed 0xFF
+      // instead of stale ring-buffer bytes that would parse as garbage
+      // chunks on unserialize.
+      memset(data + snapshot_size, 0xFF, size - snapshot_size);
+      return true;
    }
 
    if (size < snapshot_size)
@@ -1446,7 +1995,20 @@ bool retro_serialize(void *data, size_t size)
 
 bool retro_unserialize(const void *data, size_t size)
 {
-   return snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
+   bool ok = snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
+
+   // Loading a snapshot re-derives settings_current.kempston_mouse from
+   // whatever was true when that particular state was captured (see
+   // kempmouse_snapshot_enabled() in fuse/peripherals/kempmouse.c) - e.g.
+   // still off, if rewound back to before the mouse was ever connected.
+   // Port wiring is live frontend state, not emulated machine state, so
+   // re-sync it from the actual current controller assignment right after
+   // every restore (rewind or manual load) rather than leaving whatever
+   // the snapshot happened to say.
+   if (ok)
+      sync_kempston_mouse_from_ports();
+
+   return ok;
 }
 
 void retro_cheat_reset(void)
