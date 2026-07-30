@@ -20,6 +20,7 @@
 #include <peripherals/disk/opus.h>
 #include <peripherals/disk/disciple.h>
 #include <pokefinder/pokemem.h>
+#include <periph.h>
 
 #include "ui/uimedia.h"
 
@@ -217,6 +218,8 @@ static int show_joystick_type_at_startup;
 static int show_emulation_speed_at_startup;
 static int display_joystick_type;
 static int display_emulation_speed;
+static int kempston_mouse_needs_periph_update = 0;
+static void sync_kempston_mouse_from_ports(void);
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -640,6 +643,16 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
       "500"
    },
    {
+      "fuse_mouse_swap_buttons",
+      "Kempston Mouse Swap Buttons",
+      NULL,
+      NULL,
+      NULL,
+      "input",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
       "fuse_display_joystick_type",
       "Display joystick type at startup",
       NULL,
@@ -843,6 +856,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_display_joystick_type", "Display joystick type at startup; disabled|enabled" },
    { "fuse_display_emulation_speed", "Display emulation speed at startup; disabled|enabled" },
    { "fuse_auto_size_savestate", "Use Auto Size for Savestates. For Netplay 'Off' is recommended; enabled|disabled" },
+   { "fuse_mouse_swap_buttons", "Kempston Mouse Swap Buttons; disabled|enabled" },
    { "fuse_joypad_left",    "Joypad Left mapping; " SPECTRUMKEYS },
    { "fuse_joypad_right",   "Joypad Right mapping; " SPECTRUMKEYS },
    { "fuse_joypad_up",      "Joypad Up mapping; " SPECTRUMKEYS },
@@ -1097,6 +1111,8 @@ int update_variables(int force)
    else
       auto_size_savestate = FALSE;
 
+   settings_current.mouse_swap_buttons = coreopt(env_cb, core_vars, "fuse_mouse_swap_buttons", NULL) == 1;
+
    const char* value;
    int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );
    joymap[ RETRO_DEVICE_ID_JOYPAD_UP ] = spectrum_keys_map[option];
@@ -1194,6 +1210,7 @@ void retro_set_environment(retro_environment_t cb)
       { "Timex 1 Joystick",    RETRO_DEVICE_TIMEX1_JOYSTICK    },
       { "Timex 2 Joystick",    RETRO_DEVICE_TIMEX2_JOYSTICK    },
       { "Fuller Joystick",     RETRO_DEVICE_FULLER_JOYSTICK    },
+      { "Kempston Mouse",      RETRO_DEVICE_KEMPSTON_MOUSE     },
       { "Sinclair Keyboard",   RETRO_DEVICE_SPECTRUM_KEYBOARD  }
    };
 
@@ -1241,6 +1258,13 @@ void retro_init(void)
    machine = machine_list;
    total_time_ms = 0.0;
    active_cheats = NULL;
+
+   // Always report a mouse as available so Fuse auto-grabs it at startup
+   // (see fuse_init() -> ui_mouse_grab()); our ui_mouse_grab() stub in
+   // src/compat/mouse.c always succeeds, so this keeps ui_mouse_grabbed set
+   // and ui_mouse_button()/ui_mouse_motion() active whenever a port is
+   // configured as RETRO_DEVICE_KEMPSTON_MOUSE.
+   ui_mouse_present = 1;
 
    // Set default controllers
    retro_set_controller_port_device( 0, RETRO_DEVICE_CURSOR_JOYSTICK   );
@@ -1460,6 +1484,15 @@ bool retro_load_game(const struct retro_game_info *info)
 
       env_cb(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, &memory_map);
 
+      // Re-apply the live controller-port wiring: if a frontend assigned
+      // RETRO_DEVICE_KEMPSTON_MOUSE before retro_load_game(), fuse_init()'s
+      // settings_defaults() has just wiped settings_current.kempston_mouse
+      // (and the deferral flag was never armed because fuse_init_called was
+      // still 0); likewise, loading snapshot content re-derives the flag
+      // from the file via kempmouse_snapshot_enabled(). Port wiring is
+      // frontend state, not machine state - see retro_unserialize().
+      sync_kempston_mouse_from_ports();
+
       return true;
    }
 
@@ -1670,6 +1703,12 @@ void retro_run(void)
 {
    bool updated = false;
 
+   if (kempston_mouse_needs_periph_update)
+   {
+      kempston_mouse_needs_periph_update = 0;
+      periph_update();
+   }
+
    if (display_joystick_type == TRUE)
    {
       int port;
@@ -1770,6 +1809,41 @@ void retro_deinit(void)
    }
 }
 
+// Kempston Mouse is a single peripheral, not per-port; enable it in Fuse
+// whenever any port is currently configured as a mouse, disable it
+// otherwise. This reflects live frontend port wiring, not emulated
+// machine state, so it must be re-applied after a snapshot/rewind restore
+// too - the snapshot's own kempston_mouse_active flag only reflects
+// whatever was true at the moment that particular state was captured
+// (e.g. still off, if rewound back to before the mouse was ever
+// connected), which can otherwise leave the peripheral disabled even
+// though the frontend still has a mouse wired to a port right now.
+static void sync_kempston_mouse_from_ports(void)
+{
+   unsigned p;
+   int kempston_mouse = 0;
+
+   for (p = 0; p < MAX_PADS; p++)
+   {
+      if (input_devices[p] == RETRO_DEVICE_KEMPSTON_MOUSE)
+      {
+         kempston_mouse = 1;
+         break;
+      }
+   }
+
+   if (settings_current.kempston_mouse != kempston_mouse)
+   {
+      settings_current.kempston_mouse = kempston_mouse;
+
+      // See the comment in retro_set_controller_port_device(): defer the
+      // actual periph_update() to the top of retro_run() rather than
+      // calling it here synchronously.
+      if (fuse_init_called)
+         kempston_mouse_needs_periph_update = 1;
+   }
+}
+
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
    log_cb(RETRO_LOG_INFO, "port %u device %08x\n", port, device);
@@ -1809,6 +1883,24 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
          }
          break;
    }
+
+   // Flipping settings_current.kempston_mouse alone does nothing: Fuse
+   // only (de)registers a peripheral's I/O ports when periph_update() runs
+   // (normally done by each machine's own init(), on snapshot load, etc;
+   // there is no automatic hook for "an option changed while already
+   // running"). Before fuse_init() has run there is no machine/peripheral
+   // table yet to update - retro_init()'s default controller setup would
+   // crash here.
+   //
+   // Do NOT call periph_update()/machine_reset() synchronously here:
+   // frontends (RetroArch included) apply saved port/remap config right
+   // after retro_load_game() returns, before the first retro_run().
+   // Resetting the machine at that point - before Fuse's event queue has
+   // processed a single frame - leaves the next frame interrupt event
+   // unscheduled, so retro_run()'s "wait until some_audio" loop spins
+   // forever and the frontend hangs. Defer to the top of retro_run()
+   // instead, exactly like UPDATE_MACHINE (model changes) already does.
+   sync_kempston_mouse_from_ports();
 }
 
 void retro_reset(void)
@@ -1825,6 +1917,12 @@ void retro_reset(void)
    utils_open_file(filename, 1, &type);
    display_refresh_all();
    fuse_emulation_unpause();
+
+   // If the content is a snapshot, utils_open_file() went through
+   // snapshot_copy_from() and re-derived settings_current.kempston_mouse
+   // from the file, exactly like retro_unserialize() - re-apply the live
+   // controller-port wiring here too.
+   sync_kempston_mouse_from_ports();
 }
 
 size_t retro_serialize_size(void)
@@ -1890,7 +1988,20 @@ bool retro_serialize(void *data, size_t size)
 
 bool retro_unserialize(const void *data, size_t size)
 {
-   return snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
+   bool ok = snapshot_read_buffer(data, size, LIBSPECTRUM_ID_SNAPSHOT_SZX) == 0;
+
+   // Loading a snapshot re-derives settings_current.kempston_mouse from
+   // whatever was true when that particular state was captured (see
+   // kempmouse_snapshot_enabled() in fuse/peripherals/kempmouse.c) - e.g.
+   // still off, if rewound back to before the mouse was ever connected.
+   // Port wiring is live frontend state, not emulated machine state, so
+   // re-sync it from the actual current controller assignment right after
+   // every restore (rewind or manual load) rather than leaving whatever
+   // the snapshot happened to say.
+   if (ok)
+      sync_kempston_mouse_from_ports();
+
+   return ok;
 }
 
 void retro_cheat_reset(void)

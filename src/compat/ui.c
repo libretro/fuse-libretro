@@ -135,7 +135,28 @@ int ui_event(void)
    {
       select_pressed = false;
    }
-   
+
+   // Kempston Mouse: a single peripheral, read from whichever port (if any)
+   // is configured as RETRO_DEVICE_KEMPSTON_MOUSE. Runs regardless of
+   // keyb_overlay state since it doesn't share the joypad with the overlay
+   // navigation. input_state_cb() itself is still queried with the base
+   // RETRO_DEVICE_MOUSE, not the subclass - same as joystick polling below
+   // uses plain RETRO_DEVICE_JOYPAD, never one of the *_JOYSTICK subclasses.
+   for (port = 0; port < MAX_PADS; port++)
+   {
+      if (input_devices[port] == RETRO_DEVICE_KEMPSTON_MOUSE)
+      {
+         int16_t dx = input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+         int16_t dy = input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+
+         if (dx || dy)
+            ui_mouse_motion(dx, dy);
+
+         ui_mouse_button(1, input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT));
+         ui_mouse_button(3, input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT));
+      }
+   }
+
    if (!keyb_overlay)
    {
       unsigned id;

@@ -2867,9 +2867,22 @@ libspectrum_szx_write( libspectrum_buffer *buffer, int *out_flags,
     }
   }
 
+#ifdef __LIBRETRO__
+  /* Written unconditionally (like write_joy_chunk() below), not gated on
+     kempston_mouse_active: this core's Kempston Mouse peripheral can be
+     connected/disconnected mid-session via retro_set_controller_port_device(),
+     and frontends size their rewind ring buffer once from the first
+     retro_serialize_size() call, never resizing it - a snapshot that only
+     sometimes carries this chunk makes the reported size grow the first
+     time the mouse is connected, which silently breaks the rewind buffer
+     from that point on. write_amxm_chunk() already encodes "no mouse" as
+     ZXSTM_NONE, so writing it unconditionally is lossless. */
+  write_amxm_chunk( buffer, block_data, snap );
+#else
   if( libspectrum_snap_kempston_mouse_active( snap ) ) {
     write_amxm_chunk( buffer, block_data, snap );
   }
+#endif
 
   if( libspectrum_snap_simpleide_active( snap ) ) {
     write_side_chunk( buffer, block_data, snap );

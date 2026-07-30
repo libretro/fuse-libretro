@@ -22,6 +22,11 @@
 #define RETRO_DEVICE_TIMEX2_JOYSTICK    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 5)
 #define RETRO_DEVICE_FULLER_JOYSTICK    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 6)
 
+// The Spectrum had more than one mouse standard (Kempston, AY, AMX); this
+// core only emulates Kempston, so name it explicitly rather than claiming
+// the generic RETRO_DEVICE_MOUSE
+#define RETRO_DEVICE_KEMPSTON_MOUSE     RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
+
 // These defines shouldn't be here...
 #define MAX_WIDTH  640
 #define MAX_HEIGHT 576
