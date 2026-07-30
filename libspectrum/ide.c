@@ -23,6 +23,7 @@
 */
 
 #include "config.h"
+#include <streams/file_stream.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -197,11 +198,12 @@ libspectrum_error
 libspectrum_ide_insert_into_drive( libspectrum_ide_drive *drv,
                                    const char *filename )
 {
-  FILE *f;
+  RFILE *f;
   size_t l;
 
   /* Open the file */
-  f = fopen( filename, "rb+" );
+  f = filestream_open( filename, RETRO_VFS_FILE_ACCESS_READ_WRITE,
+                   RETRO_VFS_FILE_ACCESS_HINT_NONE );
   if( !f ) {
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_UNKNOWN,
@@ -212,9 +214,9 @@ libspectrum_ide_insert_into_drive( libspectrum_ide_drive *drv,
   }
   
   /* Read the HDF header */
-  l = fread( &drv->hdf, 1, sizeof( libspectrum_hdf_header ), f ); 
+  l = filestream_read( f, &drv->hdf, sizeof( libspectrum_hdf_header ) ); 
   if ( l != sizeof( libspectrum_hdf_header ) ) {
-    fclose( f );
+    filestream_close( f );
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_UNKNOWN,
       "libspectrum_ide_insert: unable to read HDF header from '%s'", filename
@@ -225,7 +227,7 @@ libspectrum_ide_insert_into_drive( libspectrum_ide_drive *drv,
   /* Verify the validity of the header */
   if( memcmp( &drv->hdf.signature, "RS-IDE", 6 ) ||
       drv->hdf.id != 0x1a                           ) {
-    fclose( f );
+    filestream_close( f );
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_CORRUPT,
       "libspectrum_ide_insert: '%s' is not a valid HDF file", filename
@@ -275,10 +277,10 @@ write_to_disk( gpointer key, gpointer value, gpointer user_data )
 
   sector_position = drv->data_offset + ( drv->sector_size * sector_number );
 
-  if( fseek( drv->disk, sector_position, SEEK_SET ) )
+  if( filestream_seek( drv->disk, sector_position, RETRO_VFS_SEEK_POSITION_START ) )
     return FALSE;
 
-  if( fwrite( buffer, 1, drv->sector_size, drv->disk ) != drv->sector_size )
+  if( filestream_write( drv->disk, buffer, drv->sector_size ) != drv->sector_size )
     return FALSE;
 
   libspectrum_free( key ); libspectrum_free( value );
@@ -327,7 +329,7 @@ libspectrum_ide_eject_from_drive( libspectrum_ide_drive *drv,
 {
   if( !drv->disk ) return LIBSPECTRUM_ERROR_NONE;
 
-  fclose( drv->disk );
+  filestream_close( drv->disk );
   drv->disk = NULL;
 
   g_hash_table_foreach_remove( cache, clear_cache, NULL );
@@ -425,7 +427,7 @@ libspectrum_ide_read_sector_from_hdf( libspectrum_ide_drive *drv,
       drv->data_offset + ( drv->sector_size * sector_number );
 
     /* Seek to the correct file position */
-    if( fseek( drv->disk, sector_position, SEEK_SET ) ) {
+    if( filestream_seek( drv->disk, sector_position, RETRO_VFS_SEEK_POSITION_START ) ) {
       libspectrum_print_error(
           LIBSPECTRUM_ERROR_WARNING,
           "Couldn't seek in HDF file\n" );
@@ -433,7 +435,7 @@ libspectrum_ide_read_sector_from_hdf( libspectrum_ide_drive *drv,
     }
 
     /* Read the packed data into a temporary buffer */
-    if ( fread( packed_buf, 1, drv->sector_size, drv->disk ) !=
+    if ( filestream_read( drv->disk, packed_buf, drv->sector_size ) !=
 	 drv->sector_size                                       ) {
       libspectrum_print_error(
           LIBSPECTRUM_ERROR_WARNING,

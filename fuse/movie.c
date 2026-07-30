@@ -23,6 +23,7 @@
 */
 
 #include <config.h>
+#include <streams/file_stream.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -120,7 +121,7 @@ static int movie_paused = 0;
 
 static int frame_no, slice_no;
 
-static FILE *of = NULL;	/* out file */
+static RFILE *of = NULL;	/* out file */
 static int fmf_screen;
 static libspectrum_byte head[8];
 static int freq = 0;
@@ -188,10 +189,10 @@ get_screentype( void )
 
 #ifdef HAVE_ZLIB_H
 static void
-fwrite_compr( const void *b, size_t n, size_t m, FILE *f )
+fwrite_compr( const void *b, size_t n, size_t m, RFILE *f )
 {
   if( fmf_compr == 0 ) {
-    fwrite( b, n, m, f );
+    filestream_write( f, b, (int64_t)( n ) * ( m ) );
   } else {
     zstream.avail_in = n * m;
     zstream.next_in = b;
@@ -200,7 +201,7 @@ fwrite_compr( const void *b, size_t n, size_t m, FILE *f )
     do {
       deflate( &zstream, Z_NO_FLUSH );
       while( zstream.avail_out != ZBUF_SIZE ) {
-        fwrite( zbuf_o, ZBUF_SIZE - zstream.avail_out, 1, of );
+        filestream_write( of, zbuf_o, (int64_t)( ZBUF_SIZE - zstream.avail_out ) * ( 1 ) );
 	zstream.avail_out = ZBUF_SIZE;
 	zstream.next_out = zbuf_o;
         deflate( &zstream, Z_NO_FLUSH );
@@ -293,23 +294,23 @@ movie_add_area( int x, int y, int w, int h )
 static void
 movie_start_fmf( const char *name )
 {
-  if( ( of = fopen(name, "wb") ) == NULL ) {  /* trunc old file ? or append ? */
+  if( ( of = filestream_open( name, RETRO_VFS_FILE_ACCESS_WRITE, RETRO_VFS_FILE_ACCESS_HINT_NONE ) ) == NULL ) {  /* trunc old file ? or append ? */
     ui_error( UI_ERROR_ERROR, "error opening movie file '%s': %s", name,
               strerror( errno ) );
     return;
   }
 #ifdef WORDS_BIGENDIAN
-  fwrite( "FMF_V1E", 7, 1, of );	/* write magic header Fuse Movie File */
+  filestream_write( of, "FMF_V1E", (int64_t)( 7 ) * ( 1 ) );	/* write magic header Fuse Movie File */
 #else	/* WORDS_BIGENDIAN */
-  fwrite( "FMF_V1e", 7, 1, of );	/* write magic header Fuse Movie File */
+  filestream_write( of, "FMF_V1e", (int64_t)( 7 ) * ( 1 ) );	/* write magic header Fuse Movie File */
 #endif	/* WORDS_BIGENDIAN */
 #ifdef HAVE_ZLIB_H
   if( option_enumerate_movie_movie_compr() == 0 ) {
     fmf_compr = 0;
-    fwrite( "U", 1, 1, of );		/* not compressed */
+    filestream_write( of, "U", 1 );		/* not compressed */
   } else {
     fmf_compr = Z_DEFAULT_COMPRESSION;
-    fwrite( "Z", 1, 1, of );		/* compressed */
+    filestream_write( of, "Z", 1 );		/* compressed */
   }
   if( fmf_compr != 0 ) {
     zstream.zalloc = Z_NULL;
@@ -320,7 +321,7 @@ movie_start_fmf( const char *name )
     deflateInit( &zstream, fmf_compr );
   }
 #else	/* HAVE_ZLIB_H */
-  fwrite( "U", 1, 1, of );		/* cannot be compressed */
+  filestream_write( of, "U", 1 );		/* cannot be compressed */
 #endif	/* HAVE_ZLIB_H */
   movie_init_sound( settings_current.sound_freq,
                     sound_stereo_ay != SOUND_STEREO_AY_NONE );
@@ -332,7 +333,7 @@ movie_start_fmf( const char *name )
   head[5] = freq >> 8;
   head[6] = stereo;
   head[7] = '\n';	/* padding */
-  fwrite( head, 8, 1, of );		/* write initial params */
+  filestream_write( of, head, (int64_t)( 8 ) * ( 1 ) );		/* write initial params */
   movie_add_area( 0, 0, 40, 240 );
 }
 
@@ -364,7 +365,7 @@ movie_stop( void )
         zstream.next_out = zbuf_o;
         deflate( &zstream, Z_SYNC_FLUSH );
         if( zstream.avail_out != ZBUF_SIZE )
-          fwrite( zbuf_o, ZBUF_SIZE - zstream.avail_out, 1, of );
+          filestream_write( of, zbuf_o, (int64_t)( ZBUF_SIZE - zstream.avail_out ) * ( 1 ) );
       } while ( zstream.avail_out != ZBUF_SIZE );
       deflateEnd( &zstream );
       fmf_compr = -1;
@@ -373,11 +374,11 @@ movie_stop( void )
 #endif	/* HAVE_ZLIB_H */
   format = '?';
   if( of ) {
-    fclose( of );
+    filestream_close( of );
     of = NULL;
   }
 #ifdef MOVIE_DEBUG_PRINT
-  fprintf( stderr, "Debug movie: saved %d.%d frame(.slice)\n", frame_no, slice_no );
+  filestream_printf( stderr, "Debug movie: saved %d.%d frame(.slice)\n", frame_no, slice_no );
 #endif 	/* MOVIE_DEBUG_PRINT */
   movie_recording = 0;
   movie_paused = 0;

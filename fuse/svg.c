@@ -24,6 +24,7 @@
 */
 
 #include <config.h>
+#include <streams/file_stream.h>
 
 #ifdef HAVE_LIB_XML2
 #include <errno.h>
@@ -275,7 +276,7 @@ svg_closepath( void )
 void
 svg_closefile( void )
 {
-  FILE *fp;
+  RFILE *fp;
 
   if( svg_write_metadata() != 0 ) {
     ui_error( UI_ERROR_ERROR, "error writing the SVG metadata" );
@@ -298,10 +299,11 @@ svg_closefile( void )
   snprintf( svg_fname, strlen( svg_fnameroot ) + BUFSIZ, "%s%d.svg", 
             svg_fnameroot, svg_filecount++ );
 
-  if( ( fp = fopen( svg_fname, "w" ) ) != NULL ) {
-    fprintf( fp, "%s", buffer->content );
+  if( ( fp = filestream_open( svg_fname, RETRO_VFS_FILE_ACCESS_WRITE,
+                    RETRO_VFS_FILE_ACCESS_HINT_NONE ) ) != NULL ) {
+    filestream_printf( fp, "%s", buffer->content );
 
-    if( fclose( fp ) != 0 ) {
+    if( filestream_close( fp ) != 0 ) {
       ui_error( UI_ERROR_ERROR, "error closing SVG file '%s': %s", svg_fname,
                 strerror( errno ) );
     }

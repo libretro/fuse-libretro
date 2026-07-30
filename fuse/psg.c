@@ -22,6 +22,7 @@
 */
 
 #include <config.h>
+#include <streams/file_stream.h>
 
 #include <stdio.h>
 
@@ -40,7 +41,7 @@ static int psg_registers_written[ AY_REGISTERS ];
 /* number of prior frames with no AY events */
 static int psg_empty_frame_count;
 
-static FILE *psg_file;
+static RFILE *psg_file;
 
 static int write_frame_separator( void );
 
@@ -59,18 +60,19 @@ psg_start_recording( const char *filename )
 
   if( psg_recording ) return 1;
   
-  psg_file = fopen( filename, "wb" );
+  psg_file = filestream_open( filename, RETRO_VFS_FILE_ACCESS_WRITE,
+                    RETRO_VFS_FILE_ACCESS_HINT_NONE );
   if( psg_file == NULL ) {
     ui_error( UI_ERROR_ERROR, "unable to open PSG file for writing" );
     return 1;
   }
 
   /* write PSG file header */
-  if( fprintf( psg_file, "PSG\x1a" ) < 0 ) {
+  if( filestream_printf( psg_file, "PSG\x1a" ) < 0 ) {
     ui_error( UI_ERROR_ERROR, "unable to write PSG file header" );
     return 1;
   }
-  for( i = 0; i < 12; i++ ) putc( 0, psg_file );
+  for( i = 0; i < 12; i++ ) filestream_putc( psg_file, 0 );
 
   /* begin with no registers written */
   for( i = 0; i < AY_REGISTERS; i++ ) psg_registers_written[i] = 0;
@@ -92,7 +94,7 @@ psg_stop_recording( void )
   /* end file with the appropriate end-frame marker */
   write_frame_separator();
 
-  fclose( psg_file );
+  filestream_close( psg_file );
 
   psg_recording = 0;
   return 0;
@@ -108,14 +110,14 @@ write_frame_separator( void )
     count = psg_empty_frame_count / 4;
     if( count > 0xff ) count = 0xff;
 
-    putc( 0xfe, psg_file );
-    putc( count, psg_file );
+    filestream_putc( psg_file, 0xfe );
+    filestream_putc( psg_file, count );
 
     psg_empty_frame_count -= 4 * count;
   }
 
   for( ; psg_empty_frame_count; psg_empty_frame_count-- )
-    putc( 0xff, psg_file );
+    filestream_putc( psg_file, 0xff );
 
   return 0;
 }
@@ -138,8 +140,8 @@ psg_frame( void )
     write_frame_separator();
     for( i = 0; i < 14; i++ ) {
       if( psg_registers_written[i] ) {
-	putc( i, psg_file );
-	putc( psg_register_values[i], psg_file );
+	filestream_putc( psg_file, i );
+	filestream_putc( psg_file, psg_register_values[i] );
       }
     }
     psg_empty_frame_count = 1;

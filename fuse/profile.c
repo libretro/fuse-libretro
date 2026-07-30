@@ -22,6 +22,7 @@
 */
 
 #include <config.h>
+#include <streams/file_stream.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -119,10 +120,11 @@ profile_from_snapshot( libspectrum_snap *snap GCC_UNUSED )
 void
 profile_finish( const char *filename )
 {
-  FILE *f;
+  RFILE *f;
   size_t i;
 
-  f = fopen( filename, "w" );
+  f = filestream_open( filename, RETRO_VFS_FILE_ACCESS_WRITE,
+                    RETRO_VFS_FILE_ACCESS_HINT_NONE );
   if( !f ) {
     ui_error( UI_ERROR_ERROR, "unable to open profile map '%s' for writing",
 	      filename );
@@ -133,11 +135,11 @@ profile_finish( const char *filename )
 
     if( !total_tstates[ i ] ) continue;
 
-    fprintf( f, "0x%04lx,%d\n", (unsigned long)i, total_tstates[ i ] );
+    filestream_printf( f, "0x%04lx,%d\n", (unsigned long)i, total_tstates[ i ] );
 
   }
 
-  fclose( f );
+  filestream_close( f );
 
   profile_active = 0;
 

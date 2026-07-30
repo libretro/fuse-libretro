@@ -29,6 +29,7 @@
  */
    
 #include <config.h>
+#include <streams/file_stream.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -45,8 +46,8 @@
 
 static int printer_graphics_enabled=0;
 static int printer_text_enabled=0;
-static FILE *printer_graphics_file=NULL;
-static FILE *printer_text_file=NULL;
+static RFILE *printer_graphics_file=NULL;
+static RFILE *printer_text_file=NULL;
 
 /* for the ZX Printer */
 static int zxpframes,zxpspeed,zxpnewspeed;
@@ -143,19 +144,19 @@ static void printer_text_init(void)
 static int printer_zxp_open_file(void)
 {
 static const char * const pbmstart="P4\n256 ";
-FILE *tmpf;
+RFILE *tmpf;
 int overwrite=1;
 
 if(!printer_graphics_enabled || !settings_current.printer_graphics_filename)
   return(0);
 
 /* first, see if there's an existing file we can add to. */
-if((tmpf=fopen(settings_current.printer_graphics_filename,"rb"))!=NULL)
+if((tmpf=filestream_open( settings_current.printer_graphics_filename, RETRO_VFS_FILE_ACCESS_READ, RETRO_VFS_FILE_ACCESS_HINT_NONE ))!=NULL)
   {
   char buf[7+10+1];		/* 7 being length of pbmstart */
 
   /* check it has a header in our slightly odd format. */
-  if(fread(buf,1,sizeof(buf),tmpf)==sizeof(buf) &&
+  if(filestream_read( tmpf, buf, sizeof(buf) )==sizeof(buf) &&
      memcmp(buf,pbmstart,strlen(pbmstart))==0 &&
      buf[sizeof(buf)-1]=='\n')
     {
@@ -190,11 +191,15 @@ if((tmpf=fopen(settings_current.printer_graphics_filename,"rb"))!=NULL)
       }
     }
 
-  fclose(tmpf);
+  filestream_close(tmpf);
   }
 
-if((printer_graphics_file=fopen(settings_current.printer_graphics_filename,
-                                overwrite?"wb":"r+b"))==NULL)
+if((printer_graphics_file=filestream_open(
+      settings_current.printer_graphics_filename,
+      overwrite ? RETRO_VFS_FILE_ACCESS_WRITE
+                : (RETRO_VFS_FILE_ACCESS_READ_WRITE |
+                   RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING),
+      RETRO_VFS_FILE_ACCESS_HINT_NONE))==NULL)
   {
   ui_error(UI_ERROR_ERROR,"Couldn't open '%s', graphics printout disabled",
 	   settings_current.printer_graphics_filename);
@@ -205,19 +210,17 @@ if((printer_graphics_file=fopen(settings_current.printer_graphics_filename,
 if(overwrite)
   {
   /* we reserve 10 chars for height */
-  fputs(pbmstart,printer_graphics_file);
-  fprintf(printer_graphics_file,"%10d\n",0);
+  filestream_printf(printer_graphics_file,"%s",pbmstart);
+  filestream_printf(printer_graphics_file,"%10d\n",0);
   }
 else
   {
   /* if appending, seek to the correct place */
-  if(fseek(printer_graphics_file,
-           strlen(pbmstart)+10+1+(256/8)*zxpheight,
-           SEEK_SET)!=0)
+  if(filestream_seek( printer_graphics_file, strlen(pbmstart)+10+1+(256/8)*zxpheight, RETRO_VFS_SEEK_POSITION_START )!=0)
     {
     ui_error(UI_ERROR_ERROR,
 	     "Couldn't seek on file, graphics printout disabled");
-    fclose(printer_graphics_file);
+    filestream_close(printer_graphics_file);
     printer_graphics_file=NULL;
     printer_graphics_enabled=0;
     }
@@ -233,7 +236,9 @@ if(!printer_text_enabled || !settings_current.printer_text_filename)
   return(0);
 
 /* append to any existing file... */
-if((printer_text_file=fopen(settings_current.printer_text_filename,"a"))==NULL)
+if((printer_text_file=filestream_open(settings_current.printer_text_filename,
+      RETRO_VFS_FILE_ACCESS_WRITE | RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING,
+      RETRO_VFS_FILE_ACCESS_HINT_NONE))==NULL)
   {
   ui_error(UI_ERROR_ERROR,"Couldn't open '%s', text printout disabled",
 	   settings_current.printer_text_filename);
@@ -241,9 +246,12 @@ if((printer_text_file=fopen(settings_current.printer_text_filename,"a"))==NULL)
   return(0);
   }
 
-/* ensure users have immediate access to text file contents */
-setbuf( printer_text_file, NULL );
+/* The stdio "a" mode this replaced positioned writes at the end of the
+   file; UPDATE_EXISTING only stops VFS truncating it, so seek explicitly. */
+filestream_seek(printer_text_file, 0, RETRO_VFS_SEEK_POSITION_END);
 
+/* ensure users have immediate access to text file contents */
+/* setbuf() has no VFS equivalent; flush explicitly instead. */
 return(1);
 }
 
@@ -260,7 +268,7 @@ if(!printer_text_enabled)
 if(!printer_text_file && !printer_text_open_file())
   return;
 
-fputc(c,printer_text_file);
+filestream_putc( printer_text_file, c );
 }
 
 
@@ -273,10 +281,10 @@ if(!printer_graphics_enabled || !zxpheight) return;
 if(!printer_graphics_file && !printer_zxp_open_file())
   return;
 
-pos=ftell(printer_graphics_file);
+pos=filestream_tell(printer_graphics_file);
 
 /* seek back to write the image height */
-if(fseek(printer_graphics_file,strlen("P4\n256 "),SEEK_SET)!=0)
+if(filestream_seek( printer_graphics_file, strlen("P4\n256 "), RETRO_VFS_SEEK_POSITION_START )!=0)
   ui_error(UI_ERROR_ERROR,
 	   "Couldn't seek to write graphics printout image height");
 else
@@ -285,14 +293,14 @@ else
    * breaks the format as defined in pbm(5) (not to mention breaking
    * when read by zgv :-)). So they're now before the height.
    */
-  fprintf(printer_graphics_file,"%10d",zxpheight);
+  filestream_printf(printer_graphics_file,"%10d",zxpheight);
   }
 
-if(fseek(printer_graphics_file,pos,SEEK_SET)!=0)
+if(filestream_seek( printer_graphics_file, pos, RETRO_VFS_SEEK_POSITION_START )!=0)
   {
   ui_error(UI_ERROR_ERROR,
 	   "Couldn't re-seek on file, graphics printout disabled");
-  fclose(printer_graphics_file);
+  filestream_close(printer_graphics_file);
   printer_graphics_file=NULL;
   printer_graphics_enabled=0;
   }
@@ -311,7 +319,7 @@ if(!printer_graphics_enabled || !printer_graphics_file || zxpheight==0)
 /* write header */
 printer_zxp_update_header();
 
-fclose(printer_graphics_file);
+filestream_close(printer_graphics_file);
 printer_graphics_file=NULL;
 printer_graphics_enabled=0;
 }
@@ -324,7 +332,7 @@ if(!printer_text_enabled)
 
 if(printer_text_file)
   {
-  fclose(printer_text_file);
+  filestream_close(printer_text_file);
   printer_text_file=NULL;
   }
 }
@@ -409,7 +417,7 @@ for(i=0;i<32;i++)
   
   *ptr++=d;
   
-  fputc(d,printer_graphics_file);
+  filestream_putc( printer_graphics_file, d );
   }
 
 if(zxplineofchar>=8)

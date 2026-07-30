@@ -25,6 +25,8 @@
 #ifndef LIBSPECTRUM_INTERNALS_H
 #define LIBSPECTRUM_INTERNALS_H
 
+#include <streams/file_stream.h>
+
 #ifdef HAVE_LIB_GLIB		/* Only if we've got the real glib */
 #include <glib.h>
 #endif				/* #ifdef HAVE_LIB_GLIB */
@@ -299,7 +301,7 @@ typedef struct libspectrum_hdf_header {
 typedef struct libspectrum_ide_drive {
 
   /* HDF filepointer and information */
-  FILE *disk;
+  RFILE *disk;
   libspectrum_word data_offset;
   libspectrum_word sector_size;
   libspectrum_hdf_header hdf;

@@ -22,6 +22,7 @@
 */
 
 #include <config.h>
+#include <streams/file_stream.h>
 
 #include <errno.h>
 #include <limits.h>
@@ -77,7 +78,7 @@ static libspectrum_byte *png_data = NULL;
 int
 screenshot_write( const char *filename, scaler_type scaler )
 {
-  FILE *f;
+  RFILE *f;
 
   png_structp png_ptr;
   png_infop info_ptr;
@@ -140,7 +141,8 @@ screenshot_write( const char *filename, scaler_type scaler )
   for( y = 0; y < height; y++ )
     row_pointers[y] = &png_data[ y * png_stride ];
 
-  f = fopen( filename, "wb" );
+  f = filestream_open( filename, RETRO_VFS_FILE_ACCESS_WRITE,
+                    RETRO_VFS_FILE_ACCESS_HINT_NONE );
   if( !f ) {
     ui_error( UI_ERROR_ERROR, "Couldn't open `%s': %s", filename,
 	      strerror( errno ) );
@@ -151,7 +153,7 @@ screenshot_write( const char *filename, scaler_type scaler )
 				     NULL, NULL, NULL );
   if( !png_ptr ) {
     ui_error( UI_ERROR_ERROR, "Couldn't allocate png_ptr" );
-    fclose( f );
+    filestream_close( f );
     return 1;
   }
 
@@ -159,7 +161,7 @@ screenshot_write( const char *filename, scaler_type scaler )
   if( !info_ptr ) {
     ui_error( UI_ERROR_ERROR, "Couldn't allocate info_ptr" );
     png_destroy_write_struct( &png_ptr, NULL );
-    fclose( f );
+    filestream_close( f );
     return 1;
   }
 
@@ -168,7 +170,7 @@ screenshot_write( const char *filename, scaler_type scaler )
   if( setjmp( png_jmpbuf( png_ptr ) ) ) {
     ui_error( UI_ERROR_ERROR, "Error from libpng" );
     png_destroy_write_struct( &png_ptr, &info_ptr );
-    fclose( f );
+    filestream_close( f );
     return 1;
   }
 
@@ -190,7 +192,7 @@ screenshot_write( const char *filename, scaler_type scaler )
 
   png_destroy_write_struct( &png_ptr, &info_ptr );
 
-  if( fclose( f ) ) {
+  if( filestream_close( f ) ) {
     ui_error( UI_ERROR_ERROR, "Couldn't close `%s': %s", filename,
 	      strerror( errno ) );
     return 1;

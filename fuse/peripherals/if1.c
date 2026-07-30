@@ -23,6 +23,7 @@
 */
 
 #include <config.h>
+#include <streams/file_stream.h>
 
 #include <string.h>
 #include <errno.h>
@@ -645,7 +646,7 @@ port_ctr_in( void )
      software in Interface 1 */
   if( if1_ula.busy == 0 )
     ret &= 0xef;	/* %11101111 */
-  /*    fprintf( stderr, "Read CTR ( %%%d%d%d%d%d%d%d%d ).\n", 
+  /*    filestream_printf( stderr, "Read CTR ( %%%d%d%d%d%d%d%d%d ).\n", 
 	!!(ret & 128), !!(ret & 64), !!(ret & 32), !!(ret & 16),
 	!!(ret & 8), !!(ret & 4), !!(ret & 2), !!(ret & 1)); */
   microdrives_restart();
@@ -749,7 +750,7 @@ no_rs232_in:
       if1_ula.net_state++;
       if1_ula.net = 0;
 #ifdef IF1_DEBUG_NET
-      fprintf( stderr, "NET-STAT(%03d)? We send 0!\n", if1_ula.net_state );
+      filestream_printf( stderr, "NET-STAT(%03d)? We send 0!\n", if1_ula.net_state );
 #endif
     } else if( if1_ula.net_state == 0x0100 ) { /* probably waiting for input */
       if( read( if1_ula.fd_net, &if1_ula.net_data, 1 ) == 1 ) {
@@ -768,7 +769,7 @@ no_rs232_in:
       if1_ula.net = 0;
       if1_ula.net_state = 0;	/* OK, we starting a new byte... */
 #ifdef IF1_DEBUG_NET
-      fprintf( stderr, "NET-STAT(%03d)? Get a byte!\n", if1_ula.net_state );
+      filestream_printf( stderr, "NET-STAT(%03d)? Get a byte!\n", if1_ula.net_state );
 #endif
     }
   }
@@ -812,7 +813,7 @@ port_mdr_out( libspectrum_byte val )
  
     if( mdr->motor_on && mdr->inserted ) {
 #ifdef IF1_DEBUG_MDR
-      fprintf(stderr, "#%05d  %03d(%03d): 0x%02x\n",
+      filestream_printf(stderr, "#%05d  %03d(%03d): 0x%02x\n",
     			mdr->head_pos, mdr->transfered, mdr->max_bytes, val );
 #endif
       block = mdr->head_pos / 543 + ( mdr->max_bytes == 15 ? 0 : 256 );
@@ -912,7 +913,7 @@ port_ctr_out( libspectrum_byte val )
   if1_ula.cts = val;
     
 #ifdef IF1_DEBUG_NET
-  fprintf( stderr, "Set CTS to %d, set WAIT to %d and COMMS_DATA to %d\n",
+  filestream_printf( stderr, "Set CTS to %d, set WAIT to %d and COMMS_DATA to %d\n",
 	   if1_ula.cts, if1_ula.wait, if1_ula.comms_data );
 #endif
 
@@ -984,7 +985,7 @@ port_net_out( libspectrum_byte val )
       fsync( if1_ula.fd_net );
 #endif /* #ifdef HAVE_FSYNC */
 #ifdef IF1_DEBUG_NET
-      fprintf( stderr, "Send SinclairNET: %d\n", if1_ula.net );
+      filestream_printf( stderr, "Send SinclairNET: %d\n", if1_ula.net );
 #endif
     } else { /* if( if1_ula.s_net_mode == 0 )  if we out byte by byte, do it */
       if( if1_ula.net_state >= 0x0200 && if1_ula.net_state < 0x0208 ) {
@@ -1002,7 +1003,7 @@ port_net_out( libspectrum_byte val )
         fsync( if1_ula.fd_net );
 #endif /* #ifdef HAVE_FSYNC */
 #ifdef IF1_DEBUG_NET
-	fprintf( stderr, "SC-OUT send network number: %d\n",
+	filestream_printf( stderr, "SC-OUT send network number: %d\n",
 	                                   if1_ula.net_data ^ 0xff );
 #endif
       } else if( if1_ula.net_state > 192 && if1_ula.net_state < 0x0200 && 
@@ -1021,7 +1022,7 @@ static void
 if1_port_out( libspectrum_word port GCC_UNUSED, libspectrum_byte val )
 {
 #ifdef IF1_DEBUG_NET_1
-  fprintf( stderr, "In if1_port_out( %%%d%d%d%d%d%d%d%d => 0x%04x ).\n", 
+  filestream_printf( stderr, "In if1_port_out( %%%d%d%d%d%d%d%d%d => 0x%04x ).\n", 
 	!!(val & 128), !!(val & 64), !!(val & 32), !!(val & 16),
 	!!(val & 8), !!(val & 4), !!(val & 2), !!(val & 1), port);
 #endif
