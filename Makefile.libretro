@@ -528,6 +528,14 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCLUDES)
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCDIRS)
 
+# libretro-common is vendored standalone here rather than sitting inside
+# RetroArch's source tree. RARCH_INTERNAL is RetroArch's marker for the
+# latter, and compat/strl.h reacts to it by including "../../../config.h",
+# a path that only resolves in RetroArch's layout. The libnx platform block
+# defines RARCH_INTERNAL for the whole build, so drop it for these objects.
+deps/libretro-common/%.o: deps/libretro-common/%.c
+	$(CC) -c -o $@ $< $(CFLAGS) -URARCH_INTERNAL $(INCDIRS)
+
 %.o: %.S
 	$(CC_AS) -c -o $@ $< $(CFLAGS) $(INCDIRS)
 
