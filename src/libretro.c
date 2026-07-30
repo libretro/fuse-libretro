@@ -51,6 +51,22 @@ static const int spectrum_keys_map[] = { INPUT_KEY_NONE, INPUT_KEY_0, INPUT_KEY_
       INPUT_KEY_u, INPUT_KEY_v, INPUT_KEY_w, INPUT_KEY_x, INPUT_KEY_y, INPUT_KEY_z,
       INPUT_KEY_Return, INPUT_KEY_Shift_L, INPUT_KEY_Control_R, INPUT_KEY_space, };
 
+/* coreopt() returns -1 when the key is absent from core_vars, when the
+   frontend does not answer GET_VARIABLE, or when the stored value matches
+   none of the declared options (e.g. a stale config naming an option value
+   that no longer exists). Indexing spectrum_keys_map with that directly is
+   an out-of-bounds read, so resolve unusable values to "no key" instead.
+   The machine option already guards this case (see "option += option < 0"
+   in update_variables). */
+static int spectrum_key_from_option(int option)
+{
+   if (option < 0 ||
+       option >= (int)(sizeof(spectrum_keys_map) / sizeof(spectrum_keys_map[0])))
+      return INPUT_KEY_NONE;
+
+   return spectrum_key_from_option(option);
+}
+
 typedef struct
 {
    libspectrum_machine id;
@@ -1148,49 +1164,49 @@ int update_variables(int force)
 
    const char* value;
    int option = coreopt(env_cb, core_vars, "fuse_joypad_up", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_UP ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_UP ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_down", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_DOWN ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_DOWN ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_left", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_LEFT ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_LEFT ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_right", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_RIGHT ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_RIGHT ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_a", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_A ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_A ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_b", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_B ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_B ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_x", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_X ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_X ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_y", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_Y ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_Y ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_l", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_L ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_L ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_r", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_R ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_R ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_l2", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_L2 ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_L2 ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_r2", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_R2 ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_R2 ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_l3", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_L3 ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_L3 ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_r3", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_R3 ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_R3 ] = spectrum_key_from_option(option);
 
    option = coreopt(env_cb, core_vars, "fuse_joypad_start", &value );
-   joymap[ RETRO_DEVICE_ID_JOYPAD_START ] = spectrum_keys_map[option];
+   joymap[ RETRO_DEVICE_ID_JOYPAD_START ] = spectrum_key_from_option(option);
 
    return flags;
 }
