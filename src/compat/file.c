@@ -143,18 +143,53 @@ compat_fd compat_file_open(const char *path, int write)
    }
     
    const entry_t* entry = find_entry(path);
-   
+
    if (entry != NULL)
    {
       fd->ptr = (const char*)entry->ptr;
       fd->length = fd->remain = entry->size;
-     
+
       log_cb(RETRO_LOG_INFO, "Opened \"%s\" from memory\n", path);
       return (compat_fd)fd;
    }
-   
+
+   /* Not a baked-in asset or the wildcard content buffer - try the path
+      as-is (e.g. an absolute path to a disk image referenced by an M3U
+      playlist) before falling back to the system/fuse/ prefix used for
+      the extra machine ROMs below. A bare relative ROM filename won't
+      resolve here (not relative to any directory the core can assume),
+      so this doesn't change behavior for the existing callers. */
+   {
+      FILE* direct = fopen(path, "rb");
+
+      if (direct)
+      {
+         long size;
+
+         if (fseek(direct, 0, SEEK_END) == 0 && (size = ftell(direct)) >= 0 &&
+             fseek(direct, 0, SEEK_SET) == 0)
+         {
+            void* ptr = malloc(size);
+
+            if (ptr && fread(ptr, 1, size, direct) == (size_t)size)
+            {
+               fclose(direct);
+               fd->ptr = (const char*)ptr;
+               fd->length = fd->remain = size;
+
+               log_cb(RETRO_LOG_INFO, "Opened \"%s\" directly\n", path);
+               return (compat_fd)fd;
+            }
+
+            free(ptr);
+         }
+
+         fclose(direct);
+      }
+   }
+
    log_cb(RETRO_LOG_INFO, "Could not find file \"%s\", trying file system\n", path);
-   
+
    const char *sys;
    
    if (!env_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &sys) || !sys)
