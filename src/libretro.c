@@ -1,4 +1,5 @@
 #include <libretro.h>
+#include <streams/file_stream.h>
 #include <keyboverlay.h>
 
 #include <coreopt.h>
@@ -1259,7 +1260,31 @@ static struct retro_disk_control_ext_callback disk_control_ext_cb;
 
 void retro_set_environment(retro_environment_t cb)
 {
+   struct retro_vfs_interface_info vfs_iface_info;
+
    env_cb = cb;
+
+   /* Hand the frontend's VFS to libretro-common's filestream layer, which
+      every file access in this core goes through. Ask for the newest
+      interface revision we use and fall back, since a frontend that only
+      implements an older one must still work. If the frontend offers no
+      VFS at all, filestream keeps using libretro's own vfs_implementation,
+      so the call path through the core is identical either way. */
+   {
+      unsigned v;
+
+      for (v = 3; v >= 1; v--)
+      {
+         vfs_iface_info.required_interface_version = v;
+         vfs_iface_info.iface                      = NULL;
+
+         if (cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_iface_info))
+         {
+            filestream_vfs_init(&vfs_iface_info);
+            break;
+         }
+      }
+   }
 
    static const struct retro_controller_description controllers_and_kb[] = {
       { "Core defined Input",  RETRO_DEVICE_AUTO_CFG           },

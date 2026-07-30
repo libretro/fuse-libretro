@@ -1,4 +1,5 @@
-INCLUDES += -I$(CORE_DIR) \
+INCLUDES += -I$(CORE_DIR)/deps/libretro-common/include \
+            -I$(CORE_DIR) \
             -I$(CORE_DIR)/src \
             -I$(CORE_DIR)/src/compat \
             -I$(CORE_DIR)/fuse \
@@ -274,3 +275,20 @@ SNAPS += $(CORE_DIR)/fuse/lib/compressed/tape_2068.szx
 SNAPS += $(CORE_DIR)/fuse/lib/compressed/tape_ts2068.szx
 SNAPS += $(CORE_DIR)/fuse/lib/compressed/tape_pentagon.szx
 SNAPS += $(CORE_DIR)/fuse/lib/compressed/tape_scorpion.szx
+
+# libretro-common: VFS-backed file I/O. filestream_* uses the frontend's VFS
+# interface when one is supplied (see RETRO_ENVIRONMENT_GET_VFS_INTERFACE in
+# retro_init) and libretro's own implementation otherwise, so every path in
+# the core goes through the same abstraction either way.
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/streams/file_stream.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/vfs/vfs_implementation.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/file/file_path.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/file/file_path_io.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/string/stdstring.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/lists/string_list.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/encodings/encoding_utf.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/time/rtime.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/compat/compat_strl.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/compat/compat_posix_string.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/compat/compat_strcasestr.c
+SOURCES_C += $(CORE_DIR)/deps/libretro-common/compat/fopen_utf8.c

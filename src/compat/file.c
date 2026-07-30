@@ -1,6 +1,7 @@
 // Compatibility file functions
 
 #include <libretro.h>
+#include <streams/file_stream.h>
 #include <externs.h>
 #include <compat.h>
 #include <ui/ui.h>
@@ -130,12 +131,15 @@ typedef struct
       file-backed descriptors, which stream from fp instead. */
    const char* ptr;
    size_t length, remain;
-   /* Open handle for descriptors backed by a real file. Opening no longer
-      slurps the contents: compat_file_read() reads straight into the
+   /* Open handle for descriptors backed by a real file. All file access in
+      this core goes through libretro's filestream layer, which routes to
+      the frontend's VFS when one was supplied (see retro_set_environment)
+      and to libretro's own vfs_implementation otherwise. Opening does not
+      slurp the contents: compat_file_read() reads straight into the
       caller's buffer, which avoids a second full-size allocation plus a
       full-size memcpy per file, and makes compat_file_exists() an
       open/close rather than a whole-file read. */
-   FILE* fp;
+   RFILE* fp;
 }
 compat_fd_internal;
 
@@ -179,23 +183,23 @@ compat_fd compat_file_open(const char *path, int write)
       resolve here (not relative to any directory the core can assume),
       so this doesn't change behavior for the existing callers. */
    {
-      FILE* direct = fopen(path, "rb");
+      RFILE* direct = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ,
+                                      RETRO_VFS_FILE_ACCESS_HINT_NONE);
 
       if (direct)
       {
-         long size;
+         int64_t size = filestream_get_size(direct);
 
-         if (fseek(direct, 0, SEEK_END) == 0 && (size = ftell(direct)) >= 0 &&
-             fseek(direct, 0, SEEK_SET) == 0)
+         if (size >= 0)
          {
             fd->fp = direct;
-            fd->length = fd->remain = size;
+            fd->length = fd->remain = (size_t)size;
 
             log_cb(RETRO_LOG_INFO, "Opened \"%s\" directly\n", path);
             return (compat_fd)fd;
          }
 
-         fclose(direct);
+         filestream_close(direct);
       }
    }
 
@@ -221,7 +225,8 @@ compat_fd compat_file_open(const char *path, int write)
    system[MAX_PATH_LEN - 1] = 0;
    
    log_cb(RETRO_LOG_INFO, "Trying to open \"%s\" from the file system\n", system);
-   FILE* file = fopen(system, "rb");
+   RFILE* file = filestream_open(system, RETRO_VFS_FILE_ACCESS_READ,
+                                 RETRO_VFS_FILE_ACCESS_HINT_NONE);
    
    if (!file)
    {
@@ -230,18 +235,18 @@ compat_fd compat_file_open(const char *path, int write)
       return COMPAT_FILE_OPEN_FAILED;
    }
    
-   long size;
-   
-   if (fseek(file, 0, SEEK_END) != 0 || (size = ftell(file)) < 0 || fseek(file, 0, SEEK_SET) != 0)
+   int64_t size = filestream_get_size(file);
+
+   if (size < 0)
    {
       log_cb(RETRO_LOG_ERROR, "Could not determine size of \"%s\"\n", system);
-      fclose(file);
+      filestream_close(file);
       free(fd);
       return COMPAT_FILE_OPEN_FAILED;
    }
-   
+
    fd->fp = file;
-   fd->length = fd->remain = size;
+   fd->length = fd->remain = (size_t)size;
    
    log_cb(RETRO_LOG_INFO, "Opened \"%s\" from the file system\n", system);
    return (compat_fd)fd;
@@ -262,7 +267,8 @@ int compat_file_read(compat_fd cfd, utils_file *file)
 
    if (fd->fp)
    {
-      numread = fread(file->buffer, 1, numread, fd->fp);
+      int64_t got = filestream_read(fd->fp, file->buffer, (int64_t)numread);
+      numread = got > 0 ? (size_t)got : 0;
    }
    else
    {
@@ -299,7 +305,7 @@ int compat_file_close(compat_fd cfd)
       return 0;
 
    if (fd->fp)
-      fclose(fd->fp);
+      filestream_close(fd->fp);
 
    free(fd);
    return 0;
