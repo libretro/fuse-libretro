@@ -828,7 +828,7 @@ int disk_preformat( disk_t *d )
 /* open a disk image */
 #define GEOM_CHECK \
     if( d->sides < 1 || d->sides > 2 || \
-       d->cylinders < 1 || d->cylinders > 85 ) return d->status = DISK_GEOM
+       d->cylinders < 1 || d->cylinders > 86 ) return d->status = DISK_GEOM
 
 #ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION
 static int
