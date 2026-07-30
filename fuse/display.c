@@ -547,7 +547,21 @@ copy_critical_region_line( int y, int x, int end )
 {
   libspectrum_dword bit_mask, dirty;
 
-  if( x < DISPLAY_WIDTH_COLS ) {
+  /* Clamp to the 32-column screen area before building the mask below.
+     end is the beam column, which spans the whole scanline (up to ~57
+     columns including border and retrace) and is 0 at the start of every
+     line, so both shift amounts could leave the defined range for a
+     32-bit type: ( 32 - end ) == 32 when end == 0, and x + ( 32 - end )
+     goes negative when end > 32. x86 shifts modulo 32, leaving the mask
+     unchanged - the whole line gets copied and its dirty bits cleared -
+     while AArch32 produces 0 and copies nothing, so the same emulated
+     state rendered differently depending on the host. With end clamped
+     to DISPLAY_WIDTH_COLS and an empty range handled separately, both
+     shifts stay within 0..31. */
+  if( end > DISPLAY_WIDTH_COLS )
+    end = DISPLAY_WIDTH_COLS;
+
+  if( x < DISPLAY_WIDTH_COLS && end > x ) {
 
     /* Build a mask for the bits we're interested in */
     bit_mask = display_all_dirty;

@@ -82,9 +82,13 @@ g_array_append_vals( GArray *array, gconstpointer data, guint len )
   if( array->len + len > array->allocated )
     expand_array( array, len );
 
-  memcpy( array->data + array->len * array->element_size,
-	  data,
-	  len * array->element_size );
+  /* Callers legitimately append zero elements from a NULL array (e.g. a
+     startup_manager module with no dependencies). memcpy() requires valid
+     pointers even for a zero length, so skip the call entirely. */
+  if( len )
+    memcpy( array->data + array->len * array->element_size,
+	    data,
+	    len * array->element_size );
 
   array->len += len;
 
