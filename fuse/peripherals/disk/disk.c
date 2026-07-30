@@ -1032,14 +1032,17 @@ open_udi( buffer_t *buffer, disk_t *d )
   crc = ~(libspectrum_dword) 0;
 
   /* check file length */
-  eof = buff[4] + 256 * buff[5] + 65536 * buff[6] + 16777216 * buff[7];
+  eof = (size_t)buff[4] | ( (size_t)buff[5] << 8 ) |
+        ( (size_t)buff[6] << 16 ) | ( (size_t)buff[7] << 24 );
   if( eof != buffer->file.length - 4 )
     return d->status = DISK_OPEN;
   /* check CRC32 */
   for( i = 0; i < eof; i++ )
     crc = crc_udi( crc, buff[i] );
-  if( crc != buff[eof] + 256 * buff[eof + 1] + 65536 * buff[eof + 2] +
-						16777216 * buff[eof + 3] )
+  if( crc != ( (libspectrum_dword)buff[eof]              |
+               ( (libspectrum_dword)buff[eof + 1] <<  8 ) |
+               ( (libspectrum_dword)buff[eof + 2] << 16 ) |
+               ( (libspectrum_dword)buff[eof + 3] << 24 ) ) )
     return d->status = DISK_OPEN;
 
   d->sides = buff[10] + 1;
@@ -1527,8 +1530,8 @@ open_fdi( buffer_t *buffer, disk_t *d, int preindex )
   for( i = 0; i < d->cylinders * d->sides; i++ ) {	/* ALT */
     buffer->index = head_offset;
     buffread( head, 7, buffer );	/* 7 = track head */
-    track_offset = head[0x00] + 256 * head[0x01] +
-    			 65536 * head[0x02] + 16777216 * head[0x03];
+    track_offset = (size_t)head[0x00] | ( (size_t)head[0x01] <<  8 ) |
+                   ( (size_t)head[0x02] << 16 ) | ( (size_t)head[0x03] << 24 );
     DISK_SET_TRACK_IDX( d, i );
     d->i = 0;
     if( preindex )

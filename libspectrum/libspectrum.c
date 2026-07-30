@@ -1013,10 +1013,13 @@ libspectrum_read_dword( const libspectrum_byte **buffer )
 {
   libspectrum_dword value;
 
-  value = (*buffer)[0]             +
-          (*buffer)[1] *     0x100 +
-	  (*buffer)[2] *   0x10000 +
-          (*buffer)[3] * 0x1000000 ;
+  /* Shift as libspectrum_dword: (*buffer)[3] promotes to int, so the
+     multiply by 0x1000000 overflows a signed int for any byte >= 0x80,
+     which is undefined and reachable from every chunk length in a file. */
+  value = ( (libspectrum_dword)(*buffer)[0]       ) |
+          ( (libspectrum_dword)(*buffer)[1] <<  8 ) |
+          ( (libspectrum_dword)(*buffer)[2] << 16 ) |
+          ( (libspectrum_dword)(*buffer)[3] << 24 );
 
   (*buffer) += 4;
 
