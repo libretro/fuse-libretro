@@ -154,7 +154,12 @@ libspectrum_error libspectrum_split_to_48k_pages( libspectrum_snap *snap,
 				    const libspectrum_byte* data );
 
 /* Sizes of some of the arrays in the snap structure */
-#define SNAPSHOT_RAM_PAGES 16
+/* szx.c reads and writes RAM pages 0..63 (Pentagon 1024 has 64 pages, and
+   read_ramp_chunk() explicitly accepts any page <= 63), so this array must
+   have 64 entries. At 16 it was overrun: set_pages()/pages() for index
+   16..63 aliased the adjacent slt[] array, giving an out-of-bounds pointer
+   write at an index chosen by the snapshot being loaded. */
+#define SNAPSHOT_RAM_PAGES 64
 #define SNAPSHOT_SLT_PAGES 256
 #define SNAPSHOT_ZXATASP_PAGES 32
 #define SNAPSHOT_ZXCF_PAGES 64
