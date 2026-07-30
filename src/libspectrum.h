@@ -869,6 +869,15 @@ LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_ay_registerport( libspectr
 LIBSPECTRUM_API void libspectrum_snap_set_out_ay_registerport( libspectrum_snap *snap, libspectrum_byte out_ay_registerport );
 LIBSPECTRUM_API libspectrum_byte libspectrum_snap_ay_registers( libspectrum_snap *snap, int idx );
 LIBSPECTRUM_API void libspectrum_snap_set_ay_registers( libspectrum_snap *snap, int idx, libspectrum_byte ay_registers );
+/* TurboSound: second AY-3-8912 chip (fuse-libretro only) */
+LIBSPECTRUM_API int libspectrum_snap_turbosound_active( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_turbosound_active( libspectrum_snap *snap, int turbosound_active );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_ay2_registerport( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_ay2_registerport( libspectrum_snap *snap, libspectrum_byte out_ay2_registerport );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_ay2_registers( libspectrum_snap *snap, int idx );
+LIBSPECTRUM_API void libspectrum_snap_set_ay2_registers( libspectrum_snap *snap, int idx, libspectrum_byte ay2_registers );
+LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_ay2_active_chip( libspectrum_snap *snap );
+LIBSPECTRUM_API void libspectrum_snap_set_out_ay2_active_chip( libspectrum_snap *snap, libspectrum_byte out_ay2_active_chip );
 LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_scld_hsr( libspectrum_snap *snap );
 LIBSPECTRUM_API void libspectrum_snap_set_out_scld_hsr( libspectrum_snap *snap, libspectrum_byte out_scld_hsr );
 LIBSPECTRUM_API libspectrum_byte libspectrum_snap_out_scld_dec( libspectrum_snap *snap );

@@ -39,6 +39,7 @@ The core options available on the frontend are:
 * Tape Load Sound (enabled|disabled): Outputs the tape sound if fast load is disabled
 * Speaker Type (tv speaker|beeper|unfiltered): Applies an audio filter (libretro should allow for audio filters on the frontend)
 * AY Stereo Separation (none|acb|abc): The AY sound chip stereo separation (whatever it is)
+* TurboSound (disabled|enabled): Emulates a second AY-8910 chip (classic NedoPC protocol), giving 6 sound channels instead of 3. Only used by software written for it
 * Transparent Keyboard Overlay (enabled|disabled): If the keyboard overlay is transparent or opaque
 * Time to Release Key in ms (100|300|500|1000): How much time to keep a key pressed before releasing it (used when a key is pressed using the keyboard overlay)
 * Kempston Mouse Swap Buttons (disabled|enabled): Swaps the left and right Kempston Mouse button mapping

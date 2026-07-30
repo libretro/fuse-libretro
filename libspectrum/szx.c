@@ -87,6 +87,13 @@ static const libspectrum_word ZXSTRF_COMPRESSED = 1;
 static const libspectrum_byte ZXSTAYF_FULLERBOX = 1;
 static const libspectrum_byte ZXSTAYF_128AY = 2;
 
+#ifdef __LIBRETRO__
+/* Non-standard chunk: second AY-3-8912 chip (TurboSound). Not part of the
+   real SZX spec - only ever written/read by this core, for round-tripping
+   save states/rewind. Standard SZX readers safely skip unknown chunks. */
+#define ZXSTBID_AY2 "AY2\0"
+#endif
+
 #define ZXSTBID_MULTIFACE "MFCE"
 static const libspectrum_byte ZXSTMF_PAGEDIN = 1;
 static const libspectrum_byte ZXSTMF_COMPRESSED = 2;
@@ -287,6 +294,11 @@ write_rom_chunk( libspectrum_buffer *buffer, libspectrum_buffer *block_data,
 static void
 write_ay_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
                 libspectrum_snap *snap );
+#ifdef __LIBRETRO__
+static void
+write_ay2_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
+                 libspectrum_snap *snap );
+#endif
 static void
 write_scld_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
                   libspectrum_snap *snap );
@@ -495,6 +507,37 @@ read_ay_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 
   return LIBSPECTRUM_ERROR_NONE;
 }
+
+#ifdef __LIBRETRO__
+static libspectrum_error
+read_ay2_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
+	        const libspectrum_byte **buffer,
+	        const libspectrum_byte *end GCC_UNUSED, size_t data_length,
+                szx_context *ctx GCC_UNUSED )
+{
+  size_t i;
+
+  if( data_length != 18 ) {
+    libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
+			     "szx_read_ay2_chunk: unknown length %lu",
+			     (unsigned long)data_length );
+    return LIBSPECTRUM_ERROR_UNKNOWN;
+  }
+
+  libspectrum_snap_set_turbosound_active( snap, 1 );
+
+  /* Which chip the NedoPC select latch was pointing at (0 = A, 1 = B) */
+  libspectrum_snap_set_out_ay2_active_chip( snap, **buffer & 1 ); (*buffer)++;
+
+  libspectrum_snap_set_out_ay2_registerport( snap, **buffer ); (*buffer)++;
+
+  for( i = 0; i < 16; i++ ) {
+    libspectrum_snap_set_ay2_registers( snap, i, **buffer ); (*buffer)++;
+  }
+
+  return LIBSPECTRUM_ERROR_NONE;
+}
+#endif /* #ifdef __LIBRETRO__ */
 
 static libspectrum_error
 read_b128_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
@@ -2465,6 +2508,9 @@ struct read_chunk_t {
 static struct read_chunk_t read_chunks[] = {
 
   { ZXSTBID_AY,		         read_ay_chunk   },
+#ifdef __LIBRETRO__
+  { ZXSTBID_AY2,	         read_ay2_chunk  },
+#endif
   { ZXSTBID_BETA128,	         read_b128_chunk },
   { ZXSTBID_BETADISK,	         skip_chunk      },
   { ZXSTBID_COVOX,	         read_covx_chunk },
@@ -2800,6 +2846,19 @@ libspectrum_szx_write( libspectrum_buffer *buffer, int *out_flags,
       libspectrum_snap_melodik_active( snap ) ||
       capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_AY ) {
     write_ay_chunk( buffer, block_data, snap );
+
+#ifdef __LIBRETRO__
+    /* Written under the same condition as the primary AY chip above (not
+       ay_turbosound_enabled, which can change mid-session via the
+       fuse_turbosound core option without a content reload): frontends
+       size their rewind ring buffer once from the first
+       retro_serialize_size() call and never resize it, so a snapshot
+       whose size depends on a live-toggleable option can grow after that
+       point and silently break the rewind buffer. Tying this chunk to the
+       same, session-constant condition as chip A keeps the size stable
+       regardless of whether TurboSound is actually turned on. */
+    write_ay2_chunk( buffer, block_data, snap );
+#endif
   }
 
   if( capabilities & ( LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_MEMORY |
@@ -3457,6 +3516,28 @@ write_ay_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
 
   write_chunk( buffer, ZXSTBID_AY, data );
 }
+
+#ifdef __LIBRETRO__
+static void
+write_ay2_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
+                 libspectrum_snap *snap )
+{
+  size_t i;
+
+  /* Which chip the NedoPC select latch was pointing at (0 = A, 1 = B) */
+  libspectrum_buffer_write_byte( data,
+                                 libspectrum_snap_out_ay2_active_chip( snap ) );
+
+  libspectrum_buffer_write_byte( data,
+                                 libspectrum_snap_out_ay2_registerport( snap ) );
+
+  for( i = 0; i < 16; i++ )
+    libspectrum_buffer_write_byte( data,
+                                   libspectrum_snap_ay2_registers( snap, i ) );
+
+  write_chunk( buffer, ZXSTBID_AY2, data );
+}
+#endif /* #ifdef __LIBRETRO__ */
 
 static void
 write_scld_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
