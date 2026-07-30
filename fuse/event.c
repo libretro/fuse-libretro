@@ -85,8 +85,13 @@ event_add_cmp( gconstpointer a1, gconstpointer b1 )
 {
   const event_t *a = a1, *b = b1;
 
-  return a->tstates != b->tstates ? a->tstates - b->tstates
-		                  : a->type - b->type;
+  /* (a->tstates - b->tstates), although usually sufficient as a GCompareFunc,
+     can overflow for high values of b->tstates, which pushes a frame event
+     beyond a distant timer event and can crash the event list. Use the
+     overflow-safe comparison instead. */
+  return a->tstates != b->tstates
+           ? ( a->tstates > b->tstates ) - ( a->tstates < b->tstates )
+           : a->type - b->type;
 }
 
 /* Add an event at the correct place in the event list */

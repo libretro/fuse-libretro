@@ -871,7 +871,7 @@ upd_fdc_event( libspectrum_dword last_tstates GCC_UNUSED, int event,
   }
   
   if( f->read_id ) {
-    if( f->cmd->id == UPD_CMD_READ_DATA ) {
+    if( f->cmd->id == UPD_CMD_READ_DATA || f->cmd->id == UPD_CMD_SCAN ) {
       start_read_data( f );
     } else if( f->cmd->id == UPD_CMD_READ_ID ) {
       start_read_id( f );
@@ -1120,7 +1120,7 @@ upd_fdc_write_data( upd_fdc *f, libspectrum_byte data )
     } else {						/* SCAN */
       f->data_offset++;
       fdd_read_data( d ); crc_add( f, d );
-      if( f->data_offset == 0 && d->data == data )	/* `scan hit' */
+      if( f->data_offset == 1 && d->data == data )	/* `scan hit' */
         f->status_register[2] |= UPD_FDC_ST2_SCAN_HIT;
 
       if( d->data != data )				/* `scan _not_ hit' */
@@ -1366,6 +1366,9 @@ upd_fdc_write_data( upd_fdc *f, libspectrum_byte data )
 							     UPD_SCAN_LO;
 
       f->rlen = 0x80 << ( f->data_register[4] > MAX_SIZE_CODE ? MAX_SIZE_CODE : f->data_register[4] );
+      f->first_rw = 1;		/* always read at least one sector */
+      if( f->data_register[4] == 0 && f->data_register[7] < 128 )
+        f->rlen = f->data_register[7];
       head_load( f );
       return;
     }
