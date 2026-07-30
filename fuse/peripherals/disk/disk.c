@@ -86,14 +86,22 @@ disk_gap_t gaps[] = {
   { 0x4e, 0x00, 12, 0xa1, { 80, 50, 22, 54 } },			/* IBM34 MFM */
   { 0xff, 0x00,  6, -1,   {  0, 16, 11, 10 } },			/* MINIMAL FM */
   { 0x4e, 0x00, 12, 0xa1, {  0, 32, 22, 24 } },			/* MINIMAL MFM */
+  { 0xff, 0x00,  6, -1,   {  8,  8, 11, 10 } },			/* 4k UPD765 FM  - maybe never... */
+  { 0x4e, 0x00, 12, 0xa1, { 16, 16, 22, 24 } },			/* 8k UPD765 MFM */
+  { 0xff, 0x00,  6, -1,   {  0,  0,  0,  0 } },			/* CUSTOM FM */
+  { 0x4e, 0x00, 12, 0xa1, {  0,  0,  0,  0 } },			/* CUSTOM MFM */
 };
 
 #define GAP_MGT_PLUSD	0
 #define GAP_TRDOS	1
 #define GAP_IBM3740	2
 #define GAP_IBM34	3
-#define GAP_MINIMAL_FM  4
-#define GAP_MINIMAL_MFM 5
+#define GAP_MINIMAL_FM	4
+#define GAP_MINIMAL_MFM	5
+#define GAP_4k765_FM	6
+#define GAP_8k765_MFM	7
+#define GAP_CUSTOM_FM	8
+#define GAP_CUSTOM_MFM	9
 
 #define buffavail(buffer) ( buffer->file.length - buffer->index )
 /* data buffer */
@@ -1575,27 +1583,68 @@ cpc_set_weak_range( disk_t *d, int idx, buffer_t *buffer, int n, int len )
   }
 }
 
+/*
+#define CPC_DEBUG 1
+#define CPC_DEBUG_EXIT 1
+*/
+#ifdef CPC_DEBUG_EXIT
+extern int fuse_exiting;		/* Shall we exit now? */
+#endif
 #define CPC_ISSUE_NONE 0
+/* 1x 8k sector */
 #define CPC_ISSUE_1 1
+/* 1x 8k + Nx 512 sector */
 #define CPC_ISSUE_2 2
+/* 128 256 512 1024 2048 4096 */
 #define CPC_ISSUE_3 3
+/* 128 256 512 1024 2048 4096 ... */
+#define CPC_ISSUE_3a 13
 #define CPC_ISSUE_4 4
+/* 512 256 512 256 512 256 ... (9x) */
 #define CPC_ISSUE_5 5
 
 static int
 open_cpc( buffer_t *buffer, disk_t *d, int preindex )
 {
-  int i, j, seclen, idlen, gap, sector_pad, idx;
+  int i, j, seclen, idlen, gap, idx;
   int bpt, max_bpt = 0, trlen;
-  int fix[84], plus3_fix;
-  unsigned char *hdrb;
+  int cpc_fix;
+  unsigned char *hdrb, *tltbl = NULL;
+#ifdef CPC_DEBUG
+  int cpc_fix_fix = 0;
+#endif
 
   d->sides = buff[0x31];
   d->cylinders = buff[0x30];			/* maximum number of tracks */
   GEOM_CHECK;
+/* first scan for the longest track */
+  if( d->type != DISK_ECPC ) {
+    /* All track sizes in the standard disk image must be the same */
+    trlen = buff[0x32] + 256 * buff[0x33];
+  } else {
+    trlen = -1;
+    tltbl = &buff[0x34]; /* track size table */
+  }
+  idx = 256;
+  for( i = 0; i < d->sides * d->cylinders; i++ ) {
+    if( buff[ idx + 0x13 ] == 0 ) /* we now assume MFM */
+      buff[ idx + 0x13 ] = 2;
+    idx += d->type == DISK_ECPC ? tltbl[i] * 256 : trlen;
+  }
+  buffer->index = idx;
+/* later we try to use Offset-Info block to determine gap lengths...
+  if( buffavail( buffer ) >= 13 && !memcmp( buff, "Offset-Info\r\n", 13 ) )
+    offinf = buff;
+  else
+    offinf = NULL;
+*/
   buffer->index = 256;
+#ifdef CPC_DEBUG
+fprintf( stderr, "%ds/%dc\n", d->sides, d->cylinders );
+#endif
 /* first scan for the longest track */
   for( i = 0; i < d->sides*d->cylinders; i++ ) {
+
     /* ignore Sector Offset block */
     if( buffavail( buffer ) >= 13 && !memcmp( buff, "Offset-Info\r\n", 13 ) ) {
       buffer->index = buffer->file.length;
@@ -1606,74 +1655,106 @@ open_cpc( buffer_t *buffer, disk_t *d, int preindex )
       d->cylinders = i / d->sides + i % d->sides;	/* the real cylinder number */
       break;
     }
+    if( d->type == DISK_ECPC && tltbl[i] == 0 ) continue; /* skip unformatted tracks */
     if( buffavail( buffer ) < 256 ||
 	memcmp( buff, "Track-Info", 10 ) )		/* check track header */
       return d->status = DISK_OPEN;
-
+/*
     gap = (unsigned char)buff[0x16] == 0xff ? GAP_MINIMAL_FM :
     					    GAP_MINIMAL_MFM;
-    plus3_fix = trlen = 0;
-    while( i < buff[0x10] * d->sides + buff[0x11] ) {
-      if( i < 84 ) fix[i] = 0;
-      i++;
+*/
+    if( buff[0x1b] >= 6 ) {
+        gap = buff[0x13] == 2 ? GAP_8k765_MFM : GAP_4k765_FM;
+    } else {
+        gap = buff[0x13] == 2 ? GAP_IBM34 : GAP_IBM3740;
     }
+    cpc_fix = 0;
+
     if( i >= d->sides*d->cylinders || 
 	i != buff[0x10] * d->sides + buff[0x11] )	/* problem with track idx. */
       return d->status = DISK_OPEN;
 
     bpt = postindex_len( d, gap ) +
 	    ( preindex ? preindex_len( d, gap ) : 0 ) +
-		( gap == GAP_MINIMAL_MFM ? 6 : 3 );	/* gap4 */
-    sector_pad = 0;
-    for( j = 0; j < buff[0x15]; j++ ) {			/* each sector */
+		( buff[ 0x13 ] == 2 ? 6 : 3 );	/* gap4 */
+#ifdef CPC_DEBUG
+fprintf( stderr, "%d:: %d/%d.%d [%d] %d", i, buff[ 0x15 ], gap, buff[0x13], buffer->index, bpt );
+#endif
+    for( j = 0; j < buff[ 0x15 ]; j++ ) {			/* each sector */
       seclen = d->type == DISK_ECPC ? buff[ 0x1e + 8 * j ] +
 				      256 * buff[ 0x1f + 8 * j ]
 				    : 0x80 << buff[ 0x1b + 8 * j ];
-      idlen = 0x80 << buff[ 0x1b + 8 * j ];	/* sector length from ID */
-      if( idlen != 0 && idlen <= ( 0x80 << 0x08 ) && 		/* idlen is o.k. */
-          seclen > idlen && seclen % idlen )			/* seclen != N * len */
-	return d->status = DISK_OPEN;
+      idlen = 0x80 << ( buff[ 0x1b + 8 * j ] > 7 ? 8 : buff[ 0x1b + 8 * j ] );
+					/* sector length from ID if N >= 8 -> N = 8 */
+      if( d->type != DISK_ECPC && (
+            ( seclen == 6144 && idlen != 8192 ) ||
+            ( idlen > 4096 && seclen != 0 ) ||
+            seclen != idlen
+          ) )
+        return d->status = DISK_OPEN; /* relax the sector length rule */
 
-      bpt += calc_sectorlen( gap == GAP_MINIMAL_MFM ? 1 : 0, seclen > idlen ? idlen : seclen, gap );
-      if( i < 84 && d->flag & DISK_FLAG_PLUS3_CPC ) {
+#ifdef CPC_DEBUG
+fprintf( stderr, " (%d/%d) %d", seclen, idlen, bpt );
+#endif
+      bpt += calc_sectorlen( buff[ 0x13 ] == 2 ? 1 : 0, seclen > idlen ? idlen : seclen, gap );
+      if( d->flag & DISK_FLAG_PLUS3_CPC ) {
         if( j == 0 && buff[ 0x1b + 8 * j ] == 6 && seclen > 6144 )
-	  plus3_fix = CPC_ISSUE_4;
-	else if( j == 0 && buff[ 0x1b + 8 * j ] == 6 )
-	  plus3_fix = CPC_ISSUE_1;
+	  cpc_fix = CPC_ISSUE_4;
+	else if( j == 0 && buff[ 0x1b + 8 * j ] == 6 ) /* sec1 = 8k */
+	  cpc_fix = CPC_ISSUE_1;
 	else if( j == 0 &&
 		 buff[ 0x18 + 8 * j ] == j && buff[ 0x19 + 8 * j ] == j &&
 		 buff[ 0x1a + 8 * j ] == j && buff[ 0x1b + 8 * j ] == j ) 
-	  plus3_fix = CPC_ISSUE_3;
-	else if( j == 1 && plus3_fix == CPC_ISSUE_1 &&
+	  cpc_fix = CPC_ISSUE_3;
+	else if( j == 0 &&
+                 buff[ 0x18 + 8 * j ] == 1 && buff[ 0x19 + 8 * j ] == 1 &&
+                 buff[ 0x1a + 8 * j ] == 1 && buff[ 0x1b + 8 * j ] == 1 )
+          cpc_fix = CPC_ISSUE_3a;
+	else if( j == 1 && cpc_fix == CPC_ISSUE_1 && /* sec1 = 8k && sec2 = 512 sec3 = 512 ... sec10 = 512 */
                  buff[ 0x1b + 8 * j ] == 2 )
-	  plus3_fix = CPC_ISSUE_2;
+	  cpc_fix = CPC_ISSUE_2;
 	else if( i == 38 && j == 0 && buff[ 0x1b + 8 * j ] == 2 )
-	  plus3_fix = CPC_ISSUE_5;
-	else if( j > 1 && plus3_fix == CPC_ISSUE_2 && buff[ 0x1b + 8 * j ] != 2 )
-	  plus3_fix = CPC_ISSUE_NONE;
-	else if( j > 0 && plus3_fix == CPC_ISSUE_3 &&
+	  cpc_fix = CPC_ISSUE_5;
+	else if( j > 1 && cpc_fix == CPC_ISSUE_2 && buff[ 0x1b + 8 * j ] != 2 )
+	  cpc_fix = CPC_ISSUE_NONE;
+	else if( j > 0 && cpc_fix == CPC_ISSUE_3 &&
 		 ( buff[ 0x18 + 8 * j ] != j || buff[ 0x19 + 8 * j ] != j ||
 		   buff[ 0x1a + 8 * j ] != j || buff[ 0x1b + 8 * j ] != j ) )
-	  plus3_fix = CPC_ISSUE_NONE;
-	else if( j > 10 && plus3_fix == CPC_ISSUE_2 )
-	  plus3_fix = CPC_ISSUE_NONE;
-	else if( i == 38 && j > 0 && plus3_fix == CPC_ISSUE_5 &&
+	  cpc_fix = CPC_ISSUE_NONE;
+        else if( j > 0 && cpc_fix == CPC_ISSUE_3a &&
+                 ( buff[ 0x18 + 8 * j ] != j + 1 || buff[ 0x19 + 8 * j ] != j + 1 ||
+                   buff[ 0x1a + 8 * j ] != j + 1 || buff[ 0x1b + 8 * j ] != j + 1 ) )
+          cpc_fix = CPC_ISSUE_NONE;
+	else if( j > 10 && cpc_fix == CPC_ISSUE_2 )
+	  cpc_fix = CPC_ISSUE_NONE;
+	else if( i == 38 && j > 0 && cpc_fix == CPC_ISSUE_5 &&
 		 buff[ 0x1b + 8 * j ] != 2 - ( j & 1 ) )
-	  plus3_fix = CPC_ISSUE_NONE;
+	  cpc_fix = CPC_ISSUE_NONE;
       }
-      trlen += seclen;
-      if( seclen % 0x100 )		/* every? 128/384/...byte length sector padded */
-	sector_pad++;
     }
-    if( i < 84 ) {
-      fix[i] = plus3_fix;
-      if( fix[i] == CPC_ISSUE_4 )         bpt = 6500;/* Type 1 variant DD+ (e.g. Coin Op Hits) */
-      else if( fix[i] != CPC_ISSUE_NONE ) bpt = 6250;/* we assume a standard DD track */
-    }
-    buffer->index += trlen + sector_pad * 128 + 256;
+//      fix[i] = cpc_fix;
+    buff[0x00] = cpc_fix;		/* we use "Track-Info..." T to store "FIX" */
+    if( buff[0x00] == CPC_ISSUE_4 )         bpt = 6500;/* Type 1 variant DD+ (e.g. Coin Op Hits) */
+    else if( buff[0x00] != CPC_ISSUE_NONE ) bpt = 6250;/* we assume a standard DD track */
+#ifdef CPC_DEBUG
+fprintf( stderr, "----spec:%d bpt:%d\n", cpc_fix, bpt );
+if( cpc_fix ) cpc_fix_fix = cpc_fix;
+#endif
+/* extended DSK image uses track size table */
+    buffer->index += ( d->type == DISK_ECPC ? 256 * tltbl[i] : trlen );
     if( bpt > max_bpt )
       max_bpt = bpt;
   }
+#ifdef CPC_DEBUG
+if( cpc_fix_fix ) {
+  fprintf( stderr, "@@@spec:%d\n", cpc_fix_fix );
+  cpc_fix_fix = 0;
+}
+#endif
+/****TODO
+  open unformatted disks e.g.: edd_the_duck_master_b.dsk
+  this disk looks has 0 track... so fail to open, and merge
+*/
   if( max_bpt == 0 )
     return d->status = DISK_GEOM;
 
@@ -1685,57 +1766,67 @@ open_cpc( buffer_t *buffer, disk_t *d, int preindex )
   DISK_SET_TRACK_IDX( d, 0 );
   buffer->index = 256;				/* rewind to first track */
   for( i = 0; i < d->sides*d->cylinders; i++ ) {
-    hdrb = buff;
-    buffer->index += 256;		/* skip to data */
-    gap = (unsigned char)hdrb[0x16] == 0xff ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM;
+    int idx_save;
 
-    i = hdrb[0x10] * d->sides + hdrb[0x11];		/* adjust track No. */
+    if( d->type == DISK_ECPC && tltbl[i] == 0 ) continue; /* skip unformatted tracks */
+    hdrb = buff;
+    idx_save = buffer->index;
+    buffer->index += 256;		/* skip to data */
+/*
+    gap = (unsigned char)hdrb[0x16] == 0xff ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM;
+*/
+    if( hdrb[0x1b] >= 6 ) {
+        gap = hdrb[0x13] == 2 ? GAP_8k765_MFM : GAP_4k765_FM;
+    } else {
+        gap = hdrb[0x13] == 2 ? GAP_IBM34 : GAP_IBM3740;
+    }
+
+    if( hdrb[0x10] * d->sides + hdrb[0x11] > i )		/* adjust track No. */
+      i = hdrb[0x10] * d->sides + hdrb[0x11];
     DISK_SET_TRACK_IDX( d, i );
     d->i = 0;
     if( preindex)
       preindex_add( d, gap );
     postindex_add( d, gap );
 
-    sector_pad = 0;
     for( j = 0; j < hdrb[0x15]; j++ ) {			/* each sector */
       seclen = d->type == DISK_ECPC ? hdrb[ 0x1e + 8 * j ] +	/* data length in sector */
 				      256 * hdrb[ 0x1f + 8 * j ]
 				    : 0x80 << hdrb[ 0x1b + 8 * j ];
-      idlen = 0x80 << hdrb[ 0x1b + 8 * j ];		/* sector length from ID */
+      idlen = 0x80 << ( hdrb[ 0x1b + 8 * j ] > 7 ? 8 : hdrb[ 0x1b + 8 * j ] );
+					/* sector length from ID if N >= 8 -> N = 8
+					https://simonowen.com/misc/extextdsk.txt */
 
-      if( idlen == 0 || idlen > ( 0x80 << 0x08 ) )      /* error in sector length code -> ignore */
-        idlen = seclen;
-
-      if( i < 84 && fix[i] == 2 && j == 0 ) {	/* repositionate the dummy track  */
+      if( hdrb[ 0x00 ] == CPC_ISSUE_2 && j == 0 ) {	/* repositionate the dummy sector (?)  */
         d->i = 8;
       }
       id_add( d, hdrb[ 0x19 + 8 * j ], hdrb[ 0x18 + 8 * j ],
 		 hdrb[ 0x1a + 8 * j ], hdrb[ 0x1b + 8 * j ], gap,
                  hdrb[ 0x1c + 8 * j ] & 0x20 && !( hdrb[ 0x1d + 8 * j ] & 0x20 ) ? 
                  CRC_ERROR : CRC_OK );
-
-      if( i < 84 && fix[i] == CPC_ISSUE_1 && j == 0 ) {	/* 6144 */
+      cpc_fix = hdrb[ 0x00 ];
+      if( cpc_fix == CPC_ISSUE_1 && j == 0 ) {	/* 6144 */
         data_add( d, buffer, NULL, seclen, 
 		hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap, 
 		hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
 		CRC_ERROR : CRC_OK, 0x00, NULL );
-      } else if( i < 84 && fix[i] == CPC_ISSUE_2 && j == 0 ) {	/* 6144, 10x512 */
+      } else if( cpc_fix == CPC_ISSUE_2 && j == 0 ) {	/* 6144, 10x512 */
         datamark_add( d, hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap );
         gap_add( d, 2, gap );
         buffer->index += seclen;
-      } else if( i < 84 && fix[i] == CPC_ISSUE_3 ) {	/* 128, 256, 512, ... 4096k */
+      } else if( cpc_fix == CPC_ISSUE_3 ) {	/* 128, 256, 512, ... 4096k */
         data_add( d, buffer, NULL, 128, 
 		hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap, 
 		hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
 		CRC_ERROR : CRC_OK, 0x00, NULL );
         buffer->index += seclen - 128;
-      } else if( i < 84 && fix[i] == CPC_ISSUE_4 ) {	/* Nx8192 (max 6384 byte ) */
+      } else if( cpc_fix == CPC_ISSUE_4 ) {	/* Nx8192 (max 6384 byte ) */
         data_add( d, buffer, NULL, 6384,
 		hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap, 
 		hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
 		CRC_ERROR : CRC_OK, 0x00, NULL );
         buffer->index += seclen - 6384;
-      } else if( i < 84 && fix[i] == CPC_ISSUE_5 ) {	/* 9x512 */
+      } else if( cpc_fix == CPC_ISSUE_5 ) {	/* 9x512 */
       /* 512 256 512 256 512 256 512 256 512 */
         if( idlen == 256 ) {
           data_add( d, NULL, buff, 512,
@@ -1750,21 +1841,35 @@ open_cpc( buffer_t *buffer, disk_t *d, int preindex )
 		CRC_ERROR : CRC_OK, 0x00, NULL );
 	}
       } else {
-        data_add( d, buffer, NULL, seclen > idlen ? idlen : seclen,
+        if( data_add( d, buffer, NULL, seclen > idlen ? idlen : seclen,
 		hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap,
 		hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
-		CRC_ERROR : CRC_OK, 0x00, &idx );
-        if( seclen > idlen ) {		/* weak sector with multiple copy  */
+		CRC_ERROR : CRC_OK, 0x00, &idx ) )
+	  buffer->index += seclen; /* if cannot add data, we have to advance buffer->index! */
+        if( seclen > idlen && seclen % idlen ) { /* data in gap ??? */
+          int k, save_index;
+
+          save_index = d->i;
+          /* idx -> first data byte */
+          d->i = idx + idlen; /* end of the sector data (CRC) */
+          for( k = seclen - idlen; k > 0; k-- ) {
+            if( d->i == d->bpt )
+              d->i = 0; /* wrap around */
+            d->track[ d->i ] = *buff;
+            d->i++;
+            buffer->index++;
+          }
+          d->i = save_index;			/* restore pointer */
+        } else if( seclen > idlen ) {		/* weak sector with multiple copy  */
           cpc_set_weak_range( d, idx, buffer, seclen / idlen, idlen );
           buffer->index += ( seclen / idlen - 1 ) * idlen;
 					/* ( ( N * len ) / len - 1 ) * len */
         }
       }
-      if( seclen % 0x100 )		/* every? 128/384/...byte length sector padded */
-	sector_pad++;
     }
     gap4_add( d, gap );
-    buffer->index += sector_pad * 0x80;
+/* extended DSK image uses track size table */
+    buffer->index = idx_save + ( d->type == DISK_ECPC ? 256 * tltbl[i] : trlen );
   }
   return d->status = DISK_OK;
 }
@@ -2111,6 +2216,9 @@ disk_open2( disk_t *d, const char *filename, int preindex )
 					 buffer.file.buffer, buffer.file.length );
   if( error ) return d->status = DISK_OPEN;
   d->type = DISK_TYPE_NONE;
+#ifdef CPC_DEBUG
+fprintf( stderr, "\n::::%s:::: ", filename );
+#endif
   switch ( type ) {
   case LIBSPECTRUM_ID_DISK_UDI:
     d->type = DISK_UDI;
@@ -2162,6 +2270,12 @@ disk_open2( disk_t *d, const char *filename, int preindex )
     if( d->data != NULL )
       libspectrum_free( d->data );
     utils_close_file( &buffer.file );
+#ifdef CPC_DEBUG
+fprintf( stderr, "\n!!!!error opening: %s!!!!\n", filename );
+#ifdef CPC_DEBUG_EXIT
+fuse_exiting = 1;
+#endif
+#endif
     return d->status;
   }
   utils_close_file( &buffer.file );
@@ -2169,6 +2283,9 @@ disk_open2( disk_t *d, const char *filename, int preindex )
   disk_update_tlens( d );
   update_tracks_mode( d );
   d->filename = utils_safe_strdup( filename );
+#ifdef CPC_DEBUG_EXIT
+fuse_exiting = 1;
+#endif
   return d->status = DISK_OK;
 }
 
@@ -2262,7 +2379,10 @@ disk_open( disk_t *d, const char *filename, int preindex, int merge_disks )
       g++;
       pos = filename2 - filename;
       c = *filename2 - 1;		/* 2->1, b->a, B->A */
-    } else if( g == 2 && ( *filename2 == '_' || *filename2 == ' ' ) ) {
+    } else if( g == 2 && ( *filename2 < '0' ||
+                           ( *filename2 > '9' && *filename2 < 'A') ||
+                           ( *filename2 > 'Z' && *filename2 < 'a') ||
+                           *filename2 > 'x' ) ) {
       g++;
     } else if( g == 3 && l >= 5 && ( !memcmp( filename2 - 3, "Side", 4 ) ||
 				     !memcmp( filename2 - 3, "side", 4 ) ) ) {
