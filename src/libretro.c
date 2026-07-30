@@ -14,7 +14,6 @@
 #include <spectrum.h>
 #include <keyboard.h>
 #include <machines/specplus3.h>
-#include <periph.h>
 #include <peripherals/ay.h>
 #include <peripherals/disk/beta.h>
 #include <peripherals/disk/didaktik.h>
@@ -248,6 +247,7 @@ static char disk_image_paths[MAX_DISK_IMAGES][MAX_DISK_PATH_LEN];
 static unsigned num_disk_images = 0;
 static unsigned current_disk_index = 0;
 static bool disk_tray_ejected = false;
+static int content_is_m3u = 0;
 
 // Cached by set_initial_image(), called by the frontend *before*
 // retro_load_game() - see the libretro.h doc comment on that callback.
@@ -1433,7 +1433,12 @@ static void parse_m3u(const char* m3u_path, const char* data, size_t size)
       if (line_len == 0 || line_start[0] == '#')
          continue;
 
-      copy_len = line_len < sizeof(entry) - 1 ? line_len : sizeof(entry) - 1;
+      // A path that would truncate can never open - skip it outright
+      // rather than storing a mangled path that fails later.
+      if (line_len > sizeof(entry) - 1)
+         continue;
+
+      copy_len = line_len;
       memcpy(entry, line_start, copy_len);
       entry[copy_len] = 0;
 
@@ -1443,12 +1448,14 @@ static void parse_m3u(const char* m3u_path, const char* data, size_t size)
 
       if (is_absolute || base_len == 0)
       {
-         strncpy(disk_image_paths[num_disk_images], entry, MAX_DISK_PATH_LEN - 1);
-         disk_image_paths[num_disk_images][MAX_DISK_PATH_LEN - 1] = 0;
+         memcpy(disk_image_paths[num_disk_images], entry, copy_len + 1);
       }
       else
       {
-         snprintf(disk_image_paths[num_disk_images], MAX_DISK_PATH_LEN, "%s%s", base_dir, entry);
+         if (base_len + copy_len > MAX_DISK_PATH_LEN - 1)
+            continue;
+         memcpy(disk_image_paths[num_disk_images], base_dir, base_len);
+         memcpy(disk_image_paths[num_disk_images] + base_len, entry, copy_len + 1);
       }
 
       num_disk_images++;
@@ -1690,12 +1697,28 @@ bool retro_load_game(const struct retro_game_info *info)
          memcpy(tape_data, info->data, tape_size);
 
          const char* filename_load_game = info->path;
-         const char* m3u_ext = strrchr(filename_load_game, '.');
-         int is_m3u = m3u_ext != NULL && strcmp(m3u_ext, ".m3u") == 0;
+         int is_m3u = 0;
+
+         // info->path may legitimately be NULL with need_fullpath=false;
+         // M3U content (and single-disk registration below) needs a real
+         // path, everything else falls back to content-based identify.
+         if (filename_load_game != NULL)
+         {
+            const char* m3u_ext = strrchr(filename_load_game, '.');
+            // Case-insensitive: frontends and users pass ".M3U" too, and
+            // falling through to identify would misread the playlist text
+            // as a raw disk image.
+            is_m3u = m3u_ext != NULL &&
+                     (m3u_ext[1] == 'm' || m3u_ext[1] == 'M') &&
+                      m3u_ext[2] == '3' &&
+                     (m3u_ext[3] == 'u' || m3u_ext[3] == 'U') &&
+                      m3u_ext[4] == 0;
+         }
 
          num_disk_images = 0;
          current_disk_index = 0;
          disk_tray_ejected = false;
+         content_is_m3u = is_m3u;
 
          if (is_m3u)
          {
@@ -1779,9 +1802,10 @@ bool retro_load_game(const struct retro_game_info *info)
             // Single disk image: still expose it through Disk Control, so
             // a second disk can be added manually from the frontend's UI
             // even without an M3U.
-            if (class == LIBSPECTRUM_CLASS_DISK_PLUS3   || class == LIBSPECTRUM_CLASS_DISK_DIDAKTIK ||
+            if (filename_load_game != NULL &&
+               (class == LIBSPECTRUM_CLASS_DISK_PLUS3   || class == LIBSPECTRUM_CLASS_DISK_DIDAKTIK ||
                 class == LIBSPECTRUM_CLASS_DISK_PLUSD   || class == LIBSPECTRUM_CLASS_DISK_TRDOS     ||
-                class == LIBSPECTRUM_CLASS_DISK_OPUS    || class == LIBSPECTRUM_CLASS_DISK_GENERIC)
+                class == LIBSPECTRUM_CLASS_DISK_OPUS    || class == LIBSPECTRUM_CLASS_DISK_GENERIC))
             {
                strncpy(disk_image_paths[0], filename_load_game, MAX_DISK_PATH_LEN - 1);
                disk_image_paths[0][MAX_DISK_PATH_LEN - 1] = 0;
@@ -1797,6 +1821,7 @@ bool retro_load_game(const struct retro_game_info *info)
          num_disk_images = 0;
          current_disk_index = 0;
          disk_tray_ejected = false;
+         content_is_m3u = 0;
       }
 
       // Enable read/write on all disk drives
@@ -2256,11 +2281,36 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
 void retro_reset(void)
 {
-
    const char* ext;
-   libspectrum_id_t type = identify_file_get_ext(NULL, tape_data, tape_size, &ext);
-
+   libspectrum_id_t type;
    char filename[32];
+
+   if (content_is_m3u)
+   {
+      // tape_data holds the M3U's playlist text, not an image -
+      // re-identifying it here would misread it (possibly as a raw TRD).
+      // Reset means reboot with the currently selected disk inserted,
+      // mirroring the initial load; autoload forced like the normal
+      // reset path below.
+      if (num_disk_images > 0 && current_disk_index < num_disk_images)
+      {
+         fuse_emulation_pause();
+         utils_open_file(disk_image_paths[current_disk_index], 1, &type);
+         display_refresh_all();
+         fuse_emulation_unpause();
+         disk_tray_ejected = false;
+      }
+      else
+      {
+         machine_reset(1);
+      }
+
+      sync_kempston_mouse_from_ports();
+      return;
+   }
+
+   type = identify_file_get_ext(NULL, tape_data, tape_size, &ext);
+
    snprintf(filename, sizeof(filename), "*%s", ext);
    filename[sizeof(filename) - 1] = 0;
 
