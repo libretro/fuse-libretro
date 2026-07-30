@@ -24,6 +24,7 @@
 */
 
 #include <config.h>
+#include <file/file_path.h>
 
 #include <sys/types.h>
 #include <errno.h>
@@ -407,9 +408,7 @@ static int widget_scandrives( struct widget_dirent ***namelist )
 
 static void widget_scan( char *dir )
 {
-  struct stat file_info;
-
-  size_t i; int error;
+  size_t i;
   
   /* Free the memory belonging to the files in the previous directory */
   for( i=0; i<widget_numfiles; i++ ) {
@@ -432,8 +431,12 @@ static void widget_scan( char *dir )
   if( widget_numfiles == (size_t)-1 ) return;
 
   for( i=0; i<widget_numfiles; i++ ) {
-    error = stat( widget_filenames[i]->name, &file_info );
-    widget_filenames[i]->mode = error ? 0 : file_info.st_mode;
+    /* Only S_ISDIR() is ever read back out of mode (see
+       widget_scan_compare() and widget_print_filename()), so ask the VFS
+       whether the entry is a directory and synthesise the one bit that
+       matters instead of calling stat(). */
+    widget_filenames[i]->mode =
+      path_is_directory( widget_filenames[i]->name ) ? S_IFDIR : 0;
   }
 
   qsort( widget_filenames, widget_numfiles, sizeof(struct widget_dirent*),
@@ -564,6 +567,10 @@ static char* widget_getcwd( void )
     return NULL;
   }
 
+  /* getcwd()/chdir() below stay on the host API: libretro's VFS has no
+     concept of a current working directory, and libretro-common exposes no
+     equivalent. This widget is the in-emulator file browser, which the
+     libretro build never presents - the frontend chooses content. */
   do {
     ptr = getcwd( directory, directory_length );
     if( ptr ) break;

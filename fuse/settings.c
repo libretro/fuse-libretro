@@ -26,6 +26,7 @@
    Do not edit unless you know what will happen! */
 
 #include <config.h>
+#include <file/file_path.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -2730,7 +2731,6 @@ static int
 read_config_file( settings_info *settings )
 {
   const char *cfgdir; char path[ PATH_MAX ];
-  struct stat stat_info;
   int error;
 
   utils_file file;
@@ -2739,8 +2739,9 @@ read_config_file( settings_info *settings )
 
   snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
-  /* See if the file exists; if doesn't, it's not a problem */
-  if( stat( path, &stat_info ) ) {
+  /* See if the file exists; if doesn't, it's not a problem.
+     path_is_valid() goes through the VFS stat callback. */
+  if( !path_is_valid( path ) ) {
 #if defined(VITA) || defined (__PS3__)
     return 0;
 #else

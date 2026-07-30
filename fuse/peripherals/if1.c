@@ -1275,6 +1275,15 @@ if1_plug( const char *filename, int what )
   case 1:
     if( if1_ula.fd_r >= 0 )
       close( if1_ula.fd_r );
+    /* Deliberately not libretro VFS. These are the Interface 1 RS-232 and
+       SpeccyNet endpoints: on a host they are normally serial devices or
+       FIFOs rather than regular files, and the code below depends on
+       O_NONBLOCK semantics - read() returning 0 when no byte is ready.
+       libretro's VFS models regular files, has no non-blocking mode and no
+       character-device support, so routing these through filestream_* would
+       change behaviour rather than preserve it. Nothing in the core's
+       option set can populate settings_current.rs232_rx/tx, so this path is
+       unreachable in the libretro build in any case. */
     fd = if1_ula.fd_r = open( filename, O_RDWR | O_NONBLOCK );
     if( fcntl( fd, F_SETFL, O_RDONLY | O_NONBLOCK ) )
       ui_error( UI_ERROR_ERROR, "Cannot set O_RDONLY on '%s': %s",
