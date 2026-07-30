@@ -474,6 +474,7 @@ read_atrp_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
+  libspectrum_free( libspectrum_snap_zxatasp_ram( snap, page ) );
   libspectrum_snap_set_zxatasp_ram( snap, page, data );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -628,6 +629,7 @@ read_b128_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 
   }
 
+  libspectrum_free( libspectrum_snap_beta_rom( snap, 0 ) );
   libspectrum_snap_set_beta_rom( snap, 0, rom_data );
 
   /* Skip any extra data (most likely a custom ROM) */
@@ -894,6 +896,7 @@ read_opus_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
   }
 
   libspectrum_snap_set_opus_ram( snap, 0, ram_data );
+  libspectrum_free( libspectrum_snap_opus_rom( snap, 0 ) );
   libspectrum_snap_set_opus_rom( snap, 0, rom_data );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -1078,6 +1081,7 @@ read_plsd_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
   }
 
   libspectrum_snap_set_plusd_ram( snap, 0, ram_data );
+  libspectrum_free( libspectrum_snap_plusd_rom( snap, 0 ) );
   libspectrum_snap_set_plusd_rom( snap, 0, rom_data );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -1105,6 +1109,7 @@ read_cfrp_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
+  libspectrum_free( libspectrum_snap_zxcf_ram( snap, page ) );
   libspectrum_snap_set_zxcf_ram( snap, page, data );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -1381,6 +1386,7 @@ read_ramp_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 
+  libspectrum_free( libspectrum_snap_pages( snap, page ) );
   libspectrum_snap_set_pages( snap, page, data );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -1639,6 +1645,7 @@ read_if1_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
         return LIBSPECTRUM_ERROR_UNKNOWN;
       }
 
+      libspectrum_free( libspectrum_snap_interface1_rom( snap, 0 ) );
       libspectrum_snap_set_interface1_rom( snap, 0, rom_data );
       libspectrum_snap_set_interface1_rom_length( snap, 0,
                                                   uncompressed_length );
@@ -1902,6 +1909,7 @@ read_if2r_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 
   libspectrum_snap_set_interface2_active( snap, 1 );
 
+  libspectrum_free( libspectrum_snap_interface2_rom( snap, 0 ) );
   libspectrum_snap_set_interface2_rom( snap, 0, buffer2 );
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -1948,9 +1956,11 @@ read_dock_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 
   if( flags & ZXSTDOCKF_EXROMDOCK ) {
     libspectrum_snap_set_dock_ram( snap, page, writeable );
+    libspectrum_free( libspectrum_snap_dock_cart( snap, page ) );
     libspectrum_snap_set_dock_cart( snap, page, data );
   } else {
     libspectrum_snap_set_exrom_ram( snap, page, writeable );
+    libspectrum_free( libspectrum_snap_exrom_cart( snap, page ) );
     libspectrum_snap_set_exrom_cart( snap, page, data );
   }
 
