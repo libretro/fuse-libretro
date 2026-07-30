@@ -1928,9 +1928,7 @@ void retro_reset(void)
 size_t retro_serialize_size(void)
 {
    if (auto_size_savestate) {
-      fuse_emulation_pause();
       snapshot_update();
-      fuse_emulation_unpause();
       return snapshot_size;
    }
    else
@@ -1967,13 +1965,19 @@ bool retro_serialize(void *data, size_t size)
 
    if (auto_size_savestate)
    {
-      if (size <= snapshot_size)
+      if (size < snapshot_size)
       {
-         memcpy(data, snapshot_buffer, snapshot_size);
-         return true;
-      }  
-      log_cb(RETRO_LOG_WARN, "Data size is not enough for snapshot\n");
-      return false;
+         log_cb(RETRO_LOG_WARN, "Data size is not enough for snapshot\n");
+         return false;
+      }
+      memcpy(data, snapshot_buffer, snapshot_size);
+      // Frontends (rewind in particular) keep passing the size reported by
+      // the first retro_serialize_size() call even after the SZX shrinks;
+      // pad like the fixed-size path below so the tail is well-formed 0xFF
+      // instead of stale ring-buffer bytes that would parse as garbage
+      // chunks on unserialize.
+      memset(data + snapshot_size, 0xFF, size - snapshot_size);
+      return true;
    }
 
    if (size < snapshot_size)
