@@ -2170,12 +2170,50 @@ void retro_run(void)
    emulation runs steadly at 50 FPS. Ideally, we should investigate why fuse
    is doing that and fix it, but this solutions seems to work just fine.
    */
-   do {
-      input_poll_cb();
-      z80_do_opcodes();
-      event_do_events();
+   /* Poll exactly once per retro_run(), before stepping the machine.
+      The loop below runs until this frame's audio has been emitted, which
+      takes several event batches, so polling inside it called
+      input_poll_cb() ~4 times per frame (and 15+ on some frames). The
+      libretro contract is one poll per frame - the frontend latches input
+      state on poll and serves it through input_state_cb() - and frontends
+      that record, replay or re-run frames (netplay, runahead, BSV replay)
+      consume one input sample per poll, so extra polls desync them.
+      Reading state inside the loop via input_state_cb() remains fine. */
+   input_poll_cb();
+
+   /* Bounded wait. some_audio is set by sound_lowlevel_frame(), reached only
+      via sound_frame(), which returns early whenever sound_enabled is clear
+      - sound_init() failed, the emulation speed sits outside the supported
+      range, or the machine was left paused. An unbounded wait then freezes
+      the frontend with no way out short of killing it, which this core has
+      already hit twice (a machine_reset() during content load leaves the
+      frame interrupt unscheduled). Typical frames need ~4 iterations and
+      the worst observed is ~15, so this ceiling is several orders of
+      magnitude of headroom; reaching it means something is wrong, and
+      emitting a frame without audio degrades far better than hanging. */
+   {
+      int guard = 10000;
+
+      do {
+         z80_do_opcodes();
+         event_do_events();
+      }
+      while (!some_audio && --guard > 0);
+
+      if (!some_audio)
+      {
+         static int warned_no_audio = 0;
+
+         if (!warned_no_audio)
+         {
+            warned_no_audio = 1;
+            log_cb(RETRO_LOG_WARN,
+                   "retro_run: no audio produced within %d iterations; "
+                   "continuing without it (sound_enabled is probably clear)\n",
+                   10000);
+         }
+      }
    }
-   while (!some_audio);
 
    render_video();
 }
