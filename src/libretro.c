@@ -618,6 +618,16 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
       "none"
    },
    {
+      "fuse_turbosound",
+      "TurboSound (2x AY-8910)",
+      NULL,
+      NULL,
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
       "fuse_key_ovrlay_transp",
       "Transparent Keyboard Overlay",
       NULL,
@@ -1114,6 +1124,7 @@ int update_variables(int force)
       auto_size_savestate = FALSE;
 
    ay_turbosound_enabled = coreopt(env_cb, core_vars, "fuse_turbosound", NULL) == 1;
+
    settings_current.mouse_swap_buttons = coreopt(env_cb, core_vars, "fuse_mouse_swap_buttons", NULL) == 1;
 
    const char* value;

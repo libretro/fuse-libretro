@@ -517,7 +517,7 @@ read_ay2_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 {
   size_t i;
 
-  if( data_length != 17 ) {
+  if( data_length != 18 ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
 			     "szx_read_ay2_chunk: unknown length %lu",
 			     (unsigned long)data_length );
@@ -525,6 +525,9 @@ read_ay2_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
   }
 
   libspectrum_snap_set_turbosound_active( snap, 1 );
+
+  /* Which chip the NedoPC select latch was pointing at (0 = A, 1 = B) */
+  libspectrum_snap_set_out_ay2_active_chip( snap, **buffer & 1 ); (*buffer)++;
 
   libspectrum_snap_set_out_ay2_registerport( snap, **buffer ); (*buffer)++;
 
@@ -3520,6 +3523,10 @@ write_ay2_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
                  libspectrum_snap *snap )
 {
   size_t i;
+
+  /* Which chip the NedoPC select latch was pointing at (0 = A, 1 = B) */
+  libspectrum_buffer_write_byte( data,
+                                 libspectrum_snap_out_ay2_active_chip( snap ) );
 
   libspectrum_buffer_write_byte( data,
                                  libspectrum_snap_out_ay2_registerport( snap ) );

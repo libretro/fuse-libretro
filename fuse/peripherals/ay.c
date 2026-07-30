@@ -290,6 +290,13 @@ ay2_state_from_snapshot( libspectrum_snap *snap )
 {
   size_t i;
 
+  /* The NedoPC chip-select latch is machine state, not synthesis state:
+     a state saved while chip B was selected must resume routing #BFFD
+     writes to chip B, or the first register batch after a load/rewind
+     lands on the wrong chip. */
+  ay_turbosound_active_chip =
+    libspectrum_snap_out_ay2_active_chip( snap ) & 1;
+
   machine_current->ay2.current_register =
     libspectrum_snap_out_ay2_registerport( snap ) & 0x0f;
 
@@ -335,6 +342,9 @@ ay_to_snapshot( libspectrum_snap *snap )
      the AY2 chunk in libspectrum/szx.c for why this must not depend on
      the (live-toggleable) ay_turbosound_enabled option. */
   libspectrum_snap_set_turbosound_active( snap, 1 );
+  libspectrum_snap_set_out_ay2_active_chip(
+    snap, (libspectrum_byte)ay_turbosound_active_chip
+  );
   libspectrum_snap_set_out_ay2_registerport(
     snap, machine_current->ay2.current_register
   );

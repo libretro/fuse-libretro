@@ -85,6 +85,7 @@ struct libspectrum_snap {
   int turbosound_active;
   libspectrum_byte out_ay2_registerport;
   libspectrum_byte ay2_registers[ 16 ];
+  libspectrum_byte out_ay2_active_chip;
 #endif
 
   /* Timex-specific bits */
@@ -381,6 +382,7 @@ libspectrum_snap_alloc( void )
   libspectrum_snap_set_out_ay2_registerport( snap, 0 );
   for( i = 0; i < 16; i++ )
     libspectrum_snap_set_ay2_registers( snap, i, 0 );
+  libspectrum_snap_set_out_ay2_active_chip( snap, 0 );
 #endif
 
   /* Timex-specific bits */
@@ -1190,6 +1192,18 @@ void
 libspectrum_snap_set_ay2_registers( libspectrum_snap *snap, int idx, libspectrum_byte ay2_registers )
 {
   snap->ay2_registers[idx] = ay2_registers;
+}
+
+libspectrum_byte
+libspectrum_snap_out_ay2_active_chip( libspectrum_snap *snap )
+{
+  return snap->out_ay2_active_chip;
+}
+
+void
+libspectrum_snap_set_out_ay2_active_chip( libspectrum_snap *snap, libspectrum_byte out_ay2_active_chip )
+{
+  snap->out_ay2_active_chip = out_ay2_active_chip;
 }
 
 #endif /* #ifdef __LIBRETRO__ */
