@@ -337,6 +337,12 @@ libspectrum_zip_open( const libspectrum_byte *buffer, size_t length )
   return z;
 }
 
+/* Upper bound on the initial inflate buffer we will allocate from an
+   archive-supplied uncompressed size; zlib_inflate() reallocs beyond this
+   as needed, so it costs at most a few extra grows for genuinely large
+   entries and stops a malformed header demanding gigabytes up front. */
+#define ZIP_INFLATE_HINT_MAX ( 8 * 1024 * 1024 )
+
 static void
 dump_entry_stat( struct libspectrum_zip *z, zip_stat *info )
 {
@@ -348,7 +354,9 @@ dump_entry_stat( struct libspectrum_zip *z, zip_stat *info )
   info->filename = slash ? slash + 1 : info->name;
 
   length = strlen( z->file_name );
-  info->is_dir = ( z->file_name[ length - 1 ] == '/' ) ? 1 : 0;
+  /* A zip entry may carry a zero-length name, in which case length - 1
+     wraps and indexes far outside file_name[]. */
+  info->is_dir = ( length && z->file_name[ length - 1 ] == '/' ) ? 1 : 0;
 
   info->size = z->file_info.uncompressed_size;
   info->index = z->file_index -1;
@@ -527,6 +535,17 @@ libspectrum_zip_read( struct libspectrum_zip *z, libspectrum_byte **buffer,
   if( *size == 0 ) {
     return LIBSPECTRUM_ERROR_UNKNOWN;
   }
+
+  /* uncompressed_size is whatever the archive claims, and for a deflated
+     entry it is handed to zlib_inflate() as the size of its initial
+     allocation - so a bogus header asks libspectrum_malloc() for gigabytes,
+     and that abort()s rather than failing the load, taking the process with
+     it. zlib_inflate() grows its buffer as it goes, so the value is only a
+     hint: cap the hint and let it expand if the entry really is that big.
+     The stored (uncompressed) path below is already bounded by the archive
+     itself, so it keeps the exact size. */
+  if( z->file_info.compression != 0 && *size > ZIP_INFLATE_HINT_MAX )
+    *size = ZIP_INFLATE_HINT_MAX;
 
   /* Now read the data depending on the compression method used */
   compression = z->file_info.compression;
