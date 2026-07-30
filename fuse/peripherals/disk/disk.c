@@ -1630,9 +1630,40 @@ open_cpc( buffer_t *buffer, disk_t *d, int preindex )
   }
   idx = 256;
   for( i = 0; i < d->sides * d->cylinders; i++ ) {
+    size_t tsize;
+
+    /* Both the track count and the per-track sizes are file data, and the
+       scanning loop this replaced bounded every step with buffavail().
+       Without that, idx walks past the image and buff[ idx + 0x13 ] is
+       read *and written* out of bounds. */
+    if( d->type == DISK_ECPC ) {
+      /* the track size table lives inside the 256-byte header */
+      if( 0x34 + i >= 256 || (size_t)( 0x34 + i ) >= buffavail( buffer ) )
+        return d->status = DISK_OPEN;
+      tsize = (size_t)tltbl[i] * 256;
+    } else {
+      tsize = trlen > 0 ? (size_t)trlen : 0;
+    }
+
+    if( tsize == 0 )            /* unformatted track: nothing stored */
+      continue;
+
+    /* A header may declare more tracks than the file actually holds; the
+       old loop shortened the geometry rather than failing, so keep that. */
+    if( (size_t)idx + 0x14 > buffavail( buffer ) ) {
+      d->cylinders = i / d->sides + i % d->sides;
+      break;
+    }
+
     if( buff[ idx + 0x13 ] == 0 ) /* we now assume MFM */
       buff[ idx + 0x13 ] = 2;
-    idx += d->type == DISK_ECPC ? tltbl[i] * 256 : trlen;
+
+    if( (size_t)idx + tsize > buffavail( buffer ) ) {
+      d->cylinders = i / d->sides + i % d->sides;
+      break;
+    }
+
+    idx += (int)tsize;
   }
   buffer->index = idx;
 /* later we try to use Offset-Info block to determine gap lengths...
@@ -1853,6 +1884,13 @@ if( cpc_fix_fix ) {
           int k, save_index;
 
           save_index = d->i;
+
+          /* seclen comes from the sector header in the image, so the copy
+             below is a file-controlled length: check the image actually
+             holds that many bytes before walking off the end of it. */
+          if( (size_t)( seclen - idlen ) > buffavail( buffer ) )
+            return d->status = DISK_OPEN;
+
           /* idx -> first data byte */
           d->i = idx + idlen; /* end of the sector data (CRC) */
           for( k = seclen - idlen; k > 0; k-- ) {
@@ -2270,8 +2308,14 @@ fprintf( stderr, "\n::::%s:::: ", filename );
     return d->status = DISK_OPEN;
   }
   if( d->status != DISK_OK ) {
-    if( d->data != NULL )
+    /* Clear the pointer as well: callers keep the disk_t (it lives inside
+       the drive) and close it later, and disk_close() frees d->data again
+       if it is still set - a double free reachable by inserting an image
+       that fails to open and then ejecting or swapping. */
+    if( d->data != NULL ) {
       libspectrum_free( d->data );
+      d->data = NULL;
+    }
     utils_close_file( &buffer.file );
 #ifdef CPC_DEBUG
 fprintf( stderr, "\n!!!!error opening: %s!!!!\n", filename );
