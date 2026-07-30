@@ -181,7 +181,7 @@ const libspectrum_word libspectrum_rzx_repeat_frame = 0xffff;
 static void
 block_alloc( rzx_block_t **block, libspectrum_rzx_block_id type )
 {
-  *block = libspectrum_new( rzx_block_t, 1 );
+  *block = libspectrum_new0( rzx_block_t, 1 );
   (*block)->type = type;
 }
 
@@ -198,9 +198,12 @@ block_free( rzx_block_t *block )
 
   case LIBSPECTRUM_RZX_INPUT_BLOCK:
     input = &( block->types.input );
-    for( i = 0; i < input->count; i++ )
-      if( !input->frames[i].repeat_last ) libspectrum_free( input->frames[i].in_bytes );
-    libspectrum_free( input->frames );
+    if( input->frames ) {
+      for( i = 0; i < input->count; i++ )
+        if( !input->frames[i].repeat_last )
+          libspectrum_free( input->frames[i].in_bytes );
+      libspectrum_free( input->frames );
+    }
     libspectrum_free( block );
     return LIBSPECTRUM_ERROR_NONE;
 
@@ -821,9 +824,22 @@ rzx_read_creator( const libspectrum_byte **ptr, const libspectrum_byte *end )
   /* Get the length */
   length = libspectrum_read_dword( ptr );
 
-  /* Check there's still enough data (the -5 is because we've already read
-     the block ID and the length) */
-  if( end - (*ptr) < (ptrdiff_t)length - 5 ) {
+  /* Check the length is at least the 5 bytes already consumed, the way
+     rzx_read_sign_start() does. length is unsigned, so casting it to
+     ptrdiff_t and subtracting compares against a negative number when
+     length < 5: the test passes, and the advance below - evaluated in
+     size_t - wraps and moves ptr *backwards*, so the block loop in
+     libspectrum_rzx_read() never terminates. */
+  if( length < 5 ) {
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "rzx_read_creator: block length %lu less than the minimum 5 bytes",
+      (unsigned long)length
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
+  if( end - (*ptr) < (ptrdiff_t)( length - 5 ) ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
 			     "rzx_read_creator: not enough data in buffer" );
     return LIBSPECTRUM_ERROR_CORRUPT;
@@ -859,7 +875,18 @@ rzx_read_snapshot( libspectrum_rzx *rzx, const libspectrum_byte **ptr,
 
   blocklength = libspectrum_read_dword( ptr );
 
-  if( end - (*ptr) < (ptrdiff_t)blocklength - 5 ) {
+  /* Both skips below advance by blocklength - 9, so 9 is the real
+     minimum; a shorter value wraps in size_t and rewinds ptr. */
+  if( blocklength < 9 ) {
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "rzx_read_snapshot: block length %lu less than the minimum 9 bytes",
+      (unsigned long)blocklength
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
+  if( end - (*ptr) < (ptrdiff_t)( blocklength - 5 ) ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
 			     "rzx_read_snapshot: not enough data in buffer" );
     return LIBSPECTRUM_ERROR_CORRUPT;
@@ -999,9 +1026,10 @@ rzx_read_input( libspectrum_rzx *rzx,
   /* Frame size is undefined, so just skip it */
   (*ptr)++;
 
-  /* Allocate memory for the frames */
-  block->frames = libspectrum_new( libspectrum_rzx_frame_t, block->count );
-  block->allocated = block->count;
+  /* The frames are allocated by rzx_read_frames(), which can bound
+     block->count against the data actually available; count comes
+     straight from the file and allocating on it unchecked asks
+     libspectrum_malloc() for gigabytes, which aborts the process. */
 
   /* Fetch the T-state counter and the flags */
   block->tstates = libspectrum_read_dword( ptr );
@@ -1016,14 +1044,24 @@ rzx_read_input( libspectrum_rzx *rzx,
     libspectrum_byte *data; const libspectrum_byte *data_ptr;
     size_t data_length = 0;
 
-    /* Discount the block intro */
+    /* Discount the block intro. Guard first: blocklength comes from the
+       file, and anything under 18 wraps to a huge size_t which then casts
+       to a negative ptrdiff_t and slips past the bounds test below,
+       handing that length straight to the inflater. */
+    if( blocklength < 18 ) {
+      libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
+                               "rzx_read_input: block length %lu too short",
+                               (unsigned long)blocklength );
+      block_free( rzx_block );
+      return LIBSPECTRUM_ERROR_CORRUPT;
+    }
     blocklength -= 18;
 
     /* Check that we've got enough compressed data */
     if( end - (*ptr) < (ptrdiff_t)blocklength ) {
       libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
 			       "rzx_read_input: not enough data in buffer" );
-      libspectrum_free( rzx_block );
+      block_free( rzx_block );
       return LIBSPECTRUM_ERROR_CORRUPT;
     }
 
@@ -1038,7 +1076,7 @@ rzx_read_input( libspectrum_rzx *rzx,
     data_ptr = data;
 
     error = rzx_read_frames( block, &data_ptr, data + data_length );
-    if( error ) { libspectrum_free( rzx_block ); libspectrum_free( data ); return error; }
+    if( error ) { block_free( rzx_block ); libspectrum_free( data ); return error; }
 
     libspectrum_free( data );
 
@@ -1046,7 +1084,7 @@ rzx_read_input( libspectrum_rzx *rzx,
 
     libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
 			     "rzx_read_input: zlib needed for decompression" );
-    libspectrum_free( rzx_block );
+    block_free( rzx_block );
     return LIBSPECTRUM_ERROR_UNKNOWN;
 
 #endif				/* #ifdef HAVE_ZLIB_H */
@@ -1054,7 +1092,7 @@ rzx_read_input( libspectrum_rzx *rzx,
   } else {			/* Data not compressed */
 
     error = rzx_read_frames( block, ptr, end );
-    if( error ) { libspectrum_free( rzx_block ); return error; }
+    if( error ) { block_free( rzx_block ); return error; }
   }
 
   rzx->blocks = g_slist_append( rzx->blocks, rzx_block );
@@ -1066,7 +1104,26 @@ static libspectrum_error
 rzx_read_frames( input_block_t *block, const libspectrum_byte **ptr,
 		 const libspectrum_byte *end )
 {
-  size_t i, j;
+  size_t i;
+
+  /* Every frame occupies at least four bytes (the instruction and IN
+     counts), so a count larger than the remaining data can describe is
+     corrupt. Check before allocating: block->count is read straight from
+     the file, and an unchecked value asks libspectrum_malloc() for
+     gigabytes - which aborts the whole process rather than failing the
+     load. */
+  if( block->count > (size_t)( end - (*ptr) ) / 4 ) {
+    libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
+                             "rzx_read_frames: %lu frames is more than the "
+                             "block can hold",
+                             (unsigned long)block->count );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
+  /* Zeroed, so every in_bytes starts NULL and block_free() can clean up
+     after a partial read without freeing uninitialised pointers. */
+  block->frames = libspectrum_new0( libspectrum_rzx_frame_t, block->count );
+  block->allocated = block->count;
 
   /* And read in the frames */
   for( i=0; i < block->count; i++ ) {
@@ -1075,9 +1132,6 @@ rzx_read_frames( input_block_t *block, const libspectrum_byte **ptr,
     if( end - (*ptr) < 4 ) {
       libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
 			       "rzx_read_frames: not enough data in buffer" );
-      for( j=0; j<i; j++ ) {
-	if( !block->frames[i].repeat_last ) libspectrum_free( block->frames[j].in_bytes );
-      }
       return LIBSPECTRUM_ERROR_CORRUPT;
     }
 
@@ -1094,9 +1148,6 @@ rzx_read_frames( input_block_t *block, const libspectrum_byte **ptr,
     if( end - (*ptr) < (ptrdiff_t)block->frames[i].count ) {
       libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
 			       "rzx_read_frames: not enough data in buffer" );
-      for( j=0; j<i; j++ ) {
-	if( !block->frames[i].repeat_last ) libspectrum_free( block->frames[j].in_bytes );
-      }
       return LIBSPECTRUM_ERROR_CORRUPT;
     }
 
