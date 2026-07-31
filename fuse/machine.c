@@ -435,6 +435,13 @@ machine_end( void )
   }
 
   libspectrum_free( machine_types );
+
+  /* A second machine_init_machines() would otherwise reallocate the freed
+     array and index it with a count that never went back to zero. */
+  machine_types = NULL;
+  machine_count = 0;
+  machine_current = NULL;
+  machine_location = 0;
 }
 
 void
