@@ -450,6 +450,15 @@ ui_drive_inserted( const ui_media_drive_info_t *drive, int new )
 int
 specplus3_shutdown( void )
 {
+  /* specplus3_765_init() allocates this once; nothing released it, so a
+     second machine table build leaked the previous one. Both the +3 and
+     the +3e install this hook, so machine_end() calls it twice and it has
+     to tolerate the second call. */
+  if( specplus3_fdc ) {
+    libspectrum_free( specplus3_fdc );
+    specplus3_fdc = NULL;
+  }
+
   return 0;
 }
 
