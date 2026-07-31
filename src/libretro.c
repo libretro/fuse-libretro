@@ -1719,6 +1719,17 @@ bool retro_load_game(const struct retro_game_info *info)
       }
    }
    
+   // A frontend may load new content without an intervening
+   // retro_deinit(); retro_unload_game() releases the content buffers but
+   // does not bring Fuse down. Do it here, or fuse_init() runs a second
+   // time over a live machine and abandons everything the first one
+   // allocated - a little over a megabyte per reload.
+   if (fuse_init_called)
+   {
+      fuse_init_called = 0;
+      fuse_end();
+   }
+
    // Arm the teardown flag only once fuse_init() has reported success.
    // fuse_init() can bail out at any point - including before
    // run_startup_manager() has called startup_manager_init(), i.e. before
