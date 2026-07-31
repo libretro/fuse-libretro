@@ -2,6 +2,7 @@
 
 #include <libretro.h>
 #include <streams/file_stream.h>
+#include <file/file_path.h>
 #include <externs.h>
 #include <compat.h>
 #include <ui/ui.h>
@@ -179,9 +180,11 @@ compat_fd compat_file_open(const char *path, int write)
    /* Not a baked-in asset or the wildcard content buffer - try the path
       as-is (e.g. an absolute path to a disk image referenced by an M3U
       playlist) before falling back to the system/fuse/ prefix used for
-      the extra machine ROMs below. A bare relative ROM filename won't
-      resolve here (not relative to any directory the core can assume),
-      so this doesn't change behavior for the existing callers. */
+      the extra machine ROMs below. Restricted to absolute paths on
+      purpose: a bare ROM name is relative to no directory the core can
+      assume, and attempting it here would resolve it against whatever
+      working directory the frontend happens to have. */
+   if (path_is_absolute(path))
    {
       RFILE* direct = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ,
                                       RETRO_VFS_FILE_ACCESS_HINT_NONE);
@@ -215,15 +218,32 @@ compat_fd compat_file_open(const char *path, int write)
    }
    
    char system[MAX_PATH_LEN];
-   strncpy(system, sys, MAX_PATH_LEN);
-   system[MAX_PATH_LEN - 1] = 0;
-   
-   strncat(system, "/fuse", MAX_PATH_LEN);
-   system[MAX_PATH_LEN - 1] = 0;
-   
-   strncat(system, path, MAX_PATH_LEN);
-   system[MAX_PATH_LEN - 1] = 0;
-   
+
+   /* Three separate sources of separator disagree here: the frontend
+      reports its system directory in whatever form it likes, "fuse" used
+      to be appended with a hardcoded '/', and the name fuse looked up
+      carries FUSE_DIR_SEP_STR. Concatenating them produced paths like
+      "C:\RetroArch\system/fuse\if1-2.rom". Windows tolerates that; not
+      every VFS backend does, and it is unreadable in a log either way.
+
+      The old code also passed MAX_PATH_LEN as strncat()'s third argument.
+      That parameter bounds how much is *appended*, not the size of the
+      destination, so a long system directory would have run off the end
+      of this buffer. fill_pathname_join_special() takes the real
+      destination size and inserts exactly one separator. */
+   {
+      char base[MAX_PATH_LEN];
+      const char *leaf = path;
+
+      /* Append the name as a relative element: a leading separator would
+         make fill_pathname_join_special() produce "dir\\\\name". */
+      while (*leaf == '/' || *leaf == '\\')
+         leaf++;
+
+      fill_pathname_join_special(base, sys, "fuse", sizeof(base));
+      fill_pathname_join_special(system, base, leaf, sizeof(system));
+      pathname_conform_slashes_to_os(system);
+   }
    log_cb(RETRO_LOG_INFO, "Trying to open \"%s\" from the file system\n", system);
    RFILE* file = filestream_open(system, RETRO_VFS_FILE_ACCESS_READ,
                                  RETRO_VFS_FILE_ACCESS_HINT_NONE);
