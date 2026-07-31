@@ -1963,10 +1963,9 @@ void retro_set_input_poll(retro_input_poll_t cb)
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-   // Here we always use the "hard" resolution to accomodate output with *and*
-   // without the video border
-   info->geometry.base_width = hard_width;
-   info->geometry.base_height = hard_height;
+   // Report the currently visible output geometry.
+   info->geometry.base_width = soft_width;
+   info->geometry.base_height = soft_height;
 
    info->geometry.max_width = MAX_WIDTH;
    info->geometry.max_height = MAX_HEIGHT;
