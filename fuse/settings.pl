@@ -806,7 +806,7 @@ CODE
 
 foreach my $name ( sort keys %options ) {
     if( $options{$name}->{type} eq 'string' ) {
-	print "  if( settings->$name ) libspectrum_free( settings->$name );\n";
+	print "  if( settings->$name ) { libspectrum_free( settings->$name ); settings->$name = NULL; }\n";
     }
 }
 

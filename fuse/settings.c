@@ -5910,125 +5910,125 @@ settings_set_string( char **string_setting, const char *value )
 int
 settings_free( settings_info *settings )
 {
-  if( settings->betadisk_file ) libspectrum_free( settings->betadisk_file );
-  if( settings->dck_file ) libspectrum_free( settings->dck_file );
-  if( settings->debugger_command ) libspectrum_free( settings->debugger_command );
-  if( settings->didaktik80disk_file ) libspectrum_free( settings->didaktik80disk_file );
-  if( settings->discipledisk_file ) libspectrum_free( settings->discipledisk_file );
-  if( settings->disk_try_merge ) libspectrum_free( settings->disk_try_merge );
-  if( settings->divide_master_file ) libspectrum_free( settings->divide_master_file );
-  if( settings->divide_slave_file ) libspectrum_free( settings->divide_slave_file );
-  if( settings->divmmc_file ) libspectrum_free( settings->divmmc_file );
-  if( settings->drive_beta128a_type ) libspectrum_free( settings->drive_beta128a_type );
-  if( settings->drive_beta128b_type ) libspectrum_free( settings->drive_beta128b_type );
-  if( settings->drive_beta128c_type ) libspectrum_free( settings->drive_beta128c_type );
-  if( settings->drive_beta128d_type ) libspectrum_free( settings->drive_beta128d_type );
-  if( settings->drive_didaktik80a_type ) libspectrum_free( settings->drive_didaktik80a_type );
-  if( settings->drive_didaktik80b_type ) libspectrum_free( settings->drive_didaktik80b_type );
-  if( settings->drive_disciple1_type ) libspectrum_free( settings->drive_disciple1_type );
-  if( settings->drive_disciple2_type ) libspectrum_free( settings->drive_disciple2_type );
-  if( settings->drive_opus1_type ) libspectrum_free( settings->drive_opus1_type );
-  if( settings->drive_opus2_type ) libspectrum_free( settings->drive_opus2_type );
-  if( settings->drive_plus3a_type ) libspectrum_free( settings->drive_plus3a_type );
-  if( settings->drive_plus3b_type ) libspectrum_free( settings->drive_plus3b_type );
-  if( settings->drive_plusd1_type ) libspectrum_free( settings->drive_plusd1_type );
-  if( settings->drive_plusd2_type ) libspectrum_free( settings->drive_plusd2_type );
-  if( settings->if2_file ) libspectrum_free( settings->if2_file );
-  if( settings->joystick_1 ) libspectrum_free( settings->joystick_1 );
-  if( settings->joystick_2 ) libspectrum_free( settings->joystick_2 );
-  if( settings->mdr_file ) libspectrum_free( settings->mdr_file );
-  if( settings->mdr_file2 ) libspectrum_free( settings->mdr_file2 );
-  if( settings->mdr_file3 ) libspectrum_free( settings->mdr_file3 );
-  if( settings->mdr_file4 ) libspectrum_free( settings->mdr_file4 );
-  if( settings->mdr_file5 ) libspectrum_free( settings->mdr_file5 );
-  if( settings->mdr_file6 ) libspectrum_free( settings->mdr_file6 );
-  if( settings->mdr_file7 ) libspectrum_free( settings->mdr_file7 );
-  if( settings->mdr_file8 ) libspectrum_free( settings->mdr_file8 );
-  if( settings->movie_compr ) libspectrum_free( settings->movie_compr );
-  if( settings->movie_start ) libspectrum_free( settings->movie_start );
-  if( settings->opusdisk_file ) libspectrum_free( settings->opusdisk_file );
-  if( settings->phantom_typist_mode ) libspectrum_free( settings->phantom_typist_mode );
-  if( settings->playback_file ) libspectrum_free( settings->playback_file );
-  if( settings->plus3disk_file ) libspectrum_free( settings->plus3disk_file );
-  if( settings->plusddisk_file ) libspectrum_free( settings->plusddisk_file );
-  if( settings->printer_graphics_filename ) libspectrum_free( settings->printer_graphics_filename );
-  if( settings->printer_text_filename ) libspectrum_free( settings->printer_text_filename );
-  if( settings->record_file ) libspectrum_free( settings->record_file );
-  if( settings->rom_128_0 ) libspectrum_free( settings->rom_128_0 );
-  if( settings->rom_128_1 ) libspectrum_free( settings->rom_128_1 );
-  if( settings->rom_16 ) libspectrum_free( settings->rom_16 );
-  if( settings->rom_48 ) libspectrum_free( settings->rom_48 );
-  if( settings->rom_beta128 ) libspectrum_free( settings->rom_beta128 );
-  if( settings->rom_didaktik80 ) libspectrum_free( settings->rom_didaktik80 );
-  if( settings->rom_disciple ) libspectrum_free( settings->rom_disciple );
-  if( settings->rom_interface_1 ) libspectrum_free( settings->rom_interface_1 );
-  if( settings->rom_multiface1 ) libspectrum_free( settings->rom_multiface1 );
-  if( settings->rom_multiface128 ) libspectrum_free( settings->rom_multiface128 );
-  if( settings->rom_multiface3 ) libspectrum_free( settings->rom_multiface3 );
-  if( settings->rom_opus ) libspectrum_free( settings->rom_opus );
-  if( settings->rom_pentagon1024_0 ) libspectrum_free( settings->rom_pentagon1024_0 );
-  if( settings->rom_pentagon1024_1 ) libspectrum_free( settings->rom_pentagon1024_1 );
-  if( settings->rom_pentagon1024_2 ) libspectrum_free( settings->rom_pentagon1024_2 );
-  if( settings->rom_pentagon1024_3 ) libspectrum_free( settings->rom_pentagon1024_3 );
-  if( settings->rom_pentagon512_0 ) libspectrum_free( settings->rom_pentagon512_0 );
-  if( settings->rom_pentagon512_1 ) libspectrum_free( settings->rom_pentagon512_1 );
-  if( settings->rom_pentagon512_2 ) libspectrum_free( settings->rom_pentagon512_2 );
-  if( settings->rom_pentagon512_3 ) libspectrum_free( settings->rom_pentagon512_3 );
-  if( settings->rom_pentagon_0 ) libspectrum_free( settings->rom_pentagon_0 );
-  if( settings->rom_pentagon_1 ) libspectrum_free( settings->rom_pentagon_1 );
-  if( settings->rom_pentagon_2 ) libspectrum_free( settings->rom_pentagon_2 );
-  if( settings->rom_plus2_0 ) libspectrum_free( settings->rom_plus2_0 );
-  if( settings->rom_plus2_1 ) libspectrum_free( settings->rom_plus2_1 );
-  if( settings->rom_plus2a_0 ) libspectrum_free( settings->rom_plus2a_0 );
-  if( settings->rom_plus2a_1 ) libspectrum_free( settings->rom_plus2a_1 );
-  if( settings->rom_plus2a_2 ) libspectrum_free( settings->rom_plus2a_2 );
-  if( settings->rom_plus2a_3 ) libspectrum_free( settings->rom_plus2a_3 );
-  if( settings->rom_plus3_0 ) libspectrum_free( settings->rom_plus3_0 );
-  if( settings->rom_plus3_1 ) libspectrum_free( settings->rom_plus3_1 );
-  if( settings->rom_plus3_2 ) libspectrum_free( settings->rom_plus3_2 );
-  if( settings->rom_plus3_3 ) libspectrum_free( settings->rom_plus3_3 );
-  if( settings->rom_plus3e_0 ) libspectrum_free( settings->rom_plus3e_0 );
-  if( settings->rom_plus3e_1 ) libspectrum_free( settings->rom_plus3e_1 );
-  if( settings->rom_plus3e_2 ) libspectrum_free( settings->rom_plus3e_2 );
-  if( settings->rom_plus3e_3 ) libspectrum_free( settings->rom_plus3e_3 );
-  if( settings->rom_plusd ) libspectrum_free( settings->rom_plusd );
-  if( settings->rom_scorpion_0 ) libspectrum_free( settings->rom_scorpion_0 );
-  if( settings->rom_scorpion_1 ) libspectrum_free( settings->rom_scorpion_1 );
-  if( settings->rom_scorpion_2 ) libspectrum_free( settings->rom_scorpion_2 );
-  if( settings->rom_scorpion_3 ) libspectrum_free( settings->rom_scorpion_3 );
-  if( settings->rom_spec_se_0 ) libspectrum_free( settings->rom_spec_se_0 );
-  if( settings->rom_spec_se_1 ) libspectrum_free( settings->rom_spec_se_1 );
-  if( settings->rom_speccyboot ) libspectrum_free( settings->rom_speccyboot );
-  if( settings->rom_tc2048 ) libspectrum_free( settings->rom_tc2048 );
-  if( settings->rom_tc2068_0 ) libspectrum_free( settings->rom_tc2068_0 );
-  if( settings->rom_tc2068_1 ) libspectrum_free( settings->rom_tc2068_1 );
-  if( settings->rom_ts2068_0 ) libspectrum_free( settings->rom_ts2068_0 );
-  if( settings->rom_ts2068_1 ) libspectrum_free( settings->rom_ts2068_1 );
-  if( settings->rom_ttx2000s ) libspectrum_free( settings->rom_ttx2000s );
-  if( settings->rom_usource ) libspectrum_free( settings->rom_usource );
-  if( settings->rs232_rx ) libspectrum_free( settings->rs232_rx );
-  if( settings->rs232_tx ) libspectrum_free( settings->rs232_tx );
-  if( settings->sdl_fullscreen_mode ) libspectrum_free( settings->sdl_fullscreen_mode );
-  if( settings->simpleide_master_file ) libspectrum_free( settings->simpleide_master_file );
-  if( settings->simpleide_slave_file ) libspectrum_free( settings->simpleide_slave_file );
-  if( settings->snapshot ) libspectrum_free( settings->snapshot );
-  if( settings->snet ) libspectrum_free( settings->snet );
-  if( settings->sound_device ) libspectrum_free( settings->sound_device );
-  if( settings->speaker_type ) libspectrum_free( settings->speaker_type );
-  if( settings->speccyboot_tap ) libspectrum_free( settings->speccyboot_tap );
-  if( settings->start_machine ) libspectrum_free( settings->start_machine );
-  if( settings->start_scaler_mode ) libspectrum_free( settings->start_scaler_mode );
-  if( settings->stereo_ay ) libspectrum_free( settings->stereo_ay );
-  if( settings->svga_modes ) libspectrum_free( settings->svga_modes );
-  if( settings->tape_file ) libspectrum_free( settings->tape_file );
-  if( settings->teletext_addr_1 ) libspectrum_free( settings->teletext_addr_1 );
-  if( settings->teletext_addr_2 ) libspectrum_free( settings->teletext_addr_2 );
-  if( settings->teletext_addr_3 ) libspectrum_free( settings->teletext_addr_3 );
-  if( settings->teletext_addr_4 ) libspectrum_free( settings->teletext_addr_4 );
-  if( settings->zxatasp_master_file ) libspectrum_free( settings->zxatasp_master_file );
-  if( settings->zxatasp_slave_file ) libspectrum_free( settings->zxatasp_slave_file );
-  if( settings->zxcf_pri_file ) libspectrum_free( settings->zxcf_pri_file );
-  if( settings->zxmmc_file ) libspectrum_free( settings->zxmmc_file );
+  if( settings->betadisk_file ) { libspectrum_free( settings->betadisk_file ); settings->betadisk_file = NULL; }
+  if( settings->dck_file ) { libspectrum_free( settings->dck_file ); settings->dck_file = NULL; }
+  if( settings->debugger_command ) { libspectrum_free( settings->debugger_command ); settings->debugger_command = NULL; }
+  if( settings->didaktik80disk_file ) { libspectrum_free( settings->didaktik80disk_file ); settings->didaktik80disk_file = NULL; }
+  if( settings->discipledisk_file ) { libspectrum_free( settings->discipledisk_file ); settings->discipledisk_file = NULL; }
+  if( settings->disk_try_merge ) { libspectrum_free( settings->disk_try_merge ); settings->disk_try_merge = NULL; }
+  if( settings->divide_master_file ) { libspectrum_free( settings->divide_master_file ); settings->divide_master_file = NULL; }
+  if( settings->divide_slave_file ) { libspectrum_free( settings->divide_slave_file ); settings->divide_slave_file = NULL; }
+  if( settings->divmmc_file ) { libspectrum_free( settings->divmmc_file ); settings->divmmc_file = NULL; }
+  if( settings->drive_beta128a_type ) { libspectrum_free( settings->drive_beta128a_type ); settings->drive_beta128a_type = NULL; }
+  if( settings->drive_beta128b_type ) { libspectrum_free( settings->drive_beta128b_type ); settings->drive_beta128b_type = NULL; }
+  if( settings->drive_beta128c_type ) { libspectrum_free( settings->drive_beta128c_type ); settings->drive_beta128c_type = NULL; }
+  if( settings->drive_beta128d_type ) { libspectrum_free( settings->drive_beta128d_type ); settings->drive_beta128d_type = NULL; }
+  if( settings->drive_didaktik80a_type ) { libspectrum_free( settings->drive_didaktik80a_type ); settings->drive_didaktik80a_type = NULL; }
+  if( settings->drive_didaktik80b_type ) { libspectrum_free( settings->drive_didaktik80b_type ); settings->drive_didaktik80b_type = NULL; }
+  if( settings->drive_disciple1_type ) { libspectrum_free( settings->drive_disciple1_type ); settings->drive_disciple1_type = NULL; }
+  if( settings->drive_disciple2_type ) { libspectrum_free( settings->drive_disciple2_type ); settings->drive_disciple2_type = NULL; }
+  if( settings->drive_opus1_type ) { libspectrum_free( settings->drive_opus1_type ); settings->drive_opus1_type = NULL; }
+  if( settings->drive_opus2_type ) { libspectrum_free( settings->drive_opus2_type ); settings->drive_opus2_type = NULL; }
+  if( settings->drive_plus3a_type ) { libspectrum_free( settings->drive_plus3a_type ); settings->drive_plus3a_type = NULL; }
+  if( settings->drive_plus3b_type ) { libspectrum_free( settings->drive_plus3b_type ); settings->drive_plus3b_type = NULL; }
+  if( settings->drive_plusd1_type ) { libspectrum_free( settings->drive_plusd1_type ); settings->drive_plusd1_type = NULL; }
+  if( settings->drive_plusd2_type ) { libspectrum_free( settings->drive_plusd2_type ); settings->drive_plusd2_type = NULL; }
+  if( settings->if2_file ) { libspectrum_free( settings->if2_file ); settings->if2_file = NULL; }
+  if( settings->joystick_1 ) { libspectrum_free( settings->joystick_1 ); settings->joystick_1 = NULL; }
+  if( settings->joystick_2 ) { libspectrum_free( settings->joystick_2 ); settings->joystick_2 = NULL; }
+  if( settings->mdr_file ) { libspectrum_free( settings->mdr_file ); settings->mdr_file = NULL; }
+  if( settings->mdr_file2 ) { libspectrum_free( settings->mdr_file2 ); settings->mdr_file2 = NULL; }
+  if( settings->mdr_file3 ) { libspectrum_free( settings->mdr_file3 ); settings->mdr_file3 = NULL; }
+  if( settings->mdr_file4 ) { libspectrum_free( settings->mdr_file4 ); settings->mdr_file4 = NULL; }
+  if( settings->mdr_file5 ) { libspectrum_free( settings->mdr_file5 ); settings->mdr_file5 = NULL; }
+  if( settings->mdr_file6 ) { libspectrum_free( settings->mdr_file6 ); settings->mdr_file6 = NULL; }
+  if( settings->mdr_file7 ) { libspectrum_free( settings->mdr_file7 ); settings->mdr_file7 = NULL; }
+  if( settings->mdr_file8 ) { libspectrum_free( settings->mdr_file8 ); settings->mdr_file8 = NULL; }
+  if( settings->movie_compr ) { libspectrum_free( settings->movie_compr ); settings->movie_compr = NULL; }
+  if( settings->movie_start ) { libspectrum_free( settings->movie_start ); settings->movie_start = NULL; }
+  if( settings->opusdisk_file ) { libspectrum_free( settings->opusdisk_file ); settings->opusdisk_file = NULL; }
+  if( settings->phantom_typist_mode ) { libspectrum_free( settings->phantom_typist_mode ); settings->phantom_typist_mode = NULL; }
+  if( settings->playback_file ) { libspectrum_free( settings->playback_file ); settings->playback_file = NULL; }
+  if( settings->plus3disk_file ) { libspectrum_free( settings->plus3disk_file ); settings->plus3disk_file = NULL; }
+  if( settings->plusddisk_file ) { libspectrum_free( settings->plusddisk_file ); settings->plusddisk_file = NULL; }
+  if( settings->printer_graphics_filename ) { libspectrum_free( settings->printer_graphics_filename ); settings->printer_graphics_filename = NULL; }
+  if( settings->printer_text_filename ) { libspectrum_free( settings->printer_text_filename ); settings->printer_text_filename = NULL; }
+  if( settings->record_file ) { libspectrum_free( settings->record_file ); settings->record_file = NULL; }
+  if( settings->rom_128_0 ) { libspectrum_free( settings->rom_128_0 ); settings->rom_128_0 = NULL; }
+  if( settings->rom_128_1 ) { libspectrum_free( settings->rom_128_1 ); settings->rom_128_1 = NULL; }
+  if( settings->rom_16 ) { libspectrum_free( settings->rom_16 ); settings->rom_16 = NULL; }
+  if( settings->rom_48 ) { libspectrum_free( settings->rom_48 ); settings->rom_48 = NULL; }
+  if( settings->rom_beta128 ) { libspectrum_free( settings->rom_beta128 ); settings->rom_beta128 = NULL; }
+  if( settings->rom_didaktik80 ) { libspectrum_free( settings->rom_didaktik80 ); settings->rom_didaktik80 = NULL; }
+  if( settings->rom_disciple ) { libspectrum_free( settings->rom_disciple ); settings->rom_disciple = NULL; }
+  if( settings->rom_interface_1 ) { libspectrum_free( settings->rom_interface_1 ); settings->rom_interface_1 = NULL; }
+  if( settings->rom_multiface1 ) { libspectrum_free( settings->rom_multiface1 ); settings->rom_multiface1 = NULL; }
+  if( settings->rom_multiface128 ) { libspectrum_free( settings->rom_multiface128 ); settings->rom_multiface128 = NULL; }
+  if( settings->rom_multiface3 ) { libspectrum_free( settings->rom_multiface3 ); settings->rom_multiface3 = NULL; }
+  if( settings->rom_opus ) { libspectrum_free( settings->rom_opus ); settings->rom_opus = NULL; }
+  if( settings->rom_pentagon1024_0 ) { libspectrum_free( settings->rom_pentagon1024_0 ); settings->rom_pentagon1024_0 = NULL; }
+  if( settings->rom_pentagon1024_1 ) { libspectrum_free( settings->rom_pentagon1024_1 ); settings->rom_pentagon1024_1 = NULL; }
+  if( settings->rom_pentagon1024_2 ) { libspectrum_free( settings->rom_pentagon1024_2 ); settings->rom_pentagon1024_2 = NULL; }
+  if( settings->rom_pentagon1024_3 ) { libspectrum_free( settings->rom_pentagon1024_3 ); settings->rom_pentagon1024_3 = NULL; }
+  if( settings->rom_pentagon512_0 ) { libspectrum_free( settings->rom_pentagon512_0 ); settings->rom_pentagon512_0 = NULL; }
+  if( settings->rom_pentagon512_1 ) { libspectrum_free( settings->rom_pentagon512_1 ); settings->rom_pentagon512_1 = NULL; }
+  if( settings->rom_pentagon512_2 ) { libspectrum_free( settings->rom_pentagon512_2 ); settings->rom_pentagon512_2 = NULL; }
+  if( settings->rom_pentagon512_3 ) { libspectrum_free( settings->rom_pentagon512_3 ); settings->rom_pentagon512_3 = NULL; }
+  if( settings->rom_pentagon_0 ) { libspectrum_free( settings->rom_pentagon_0 ); settings->rom_pentagon_0 = NULL; }
+  if( settings->rom_pentagon_1 ) { libspectrum_free( settings->rom_pentagon_1 ); settings->rom_pentagon_1 = NULL; }
+  if( settings->rom_pentagon_2 ) { libspectrum_free( settings->rom_pentagon_2 ); settings->rom_pentagon_2 = NULL; }
+  if( settings->rom_plus2_0 ) { libspectrum_free( settings->rom_plus2_0 ); settings->rom_plus2_0 = NULL; }
+  if( settings->rom_plus2_1 ) { libspectrum_free( settings->rom_plus2_1 ); settings->rom_plus2_1 = NULL; }
+  if( settings->rom_plus2a_0 ) { libspectrum_free( settings->rom_plus2a_0 ); settings->rom_plus2a_0 = NULL; }
+  if( settings->rom_plus2a_1 ) { libspectrum_free( settings->rom_plus2a_1 ); settings->rom_plus2a_1 = NULL; }
+  if( settings->rom_plus2a_2 ) { libspectrum_free( settings->rom_plus2a_2 ); settings->rom_plus2a_2 = NULL; }
+  if( settings->rom_plus2a_3 ) { libspectrum_free( settings->rom_plus2a_3 ); settings->rom_plus2a_3 = NULL; }
+  if( settings->rom_plus3_0 ) { libspectrum_free( settings->rom_plus3_0 ); settings->rom_plus3_0 = NULL; }
+  if( settings->rom_plus3_1 ) { libspectrum_free( settings->rom_plus3_1 ); settings->rom_plus3_1 = NULL; }
+  if( settings->rom_plus3_2 ) { libspectrum_free( settings->rom_plus3_2 ); settings->rom_plus3_2 = NULL; }
+  if( settings->rom_plus3_3 ) { libspectrum_free( settings->rom_plus3_3 ); settings->rom_plus3_3 = NULL; }
+  if( settings->rom_plus3e_0 ) { libspectrum_free( settings->rom_plus3e_0 ); settings->rom_plus3e_0 = NULL; }
+  if( settings->rom_plus3e_1 ) { libspectrum_free( settings->rom_plus3e_1 ); settings->rom_plus3e_1 = NULL; }
+  if( settings->rom_plus3e_2 ) { libspectrum_free( settings->rom_plus3e_2 ); settings->rom_plus3e_2 = NULL; }
+  if( settings->rom_plus3e_3 ) { libspectrum_free( settings->rom_plus3e_3 ); settings->rom_plus3e_3 = NULL; }
+  if( settings->rom_plusd ) { libspectrum_free( settings->rom_plusd ); settings->rom_plusd = NULL; }
+  if( settings->rom_scorpion_0 ) { libspectrum_free( settings->rom_scorpion_0 ); settings->rom_scorpion_0 = NULL; }
+  if( settings->rom_scorpion_1 ) { libspectrum_free( settings->rom_scorpion_1 ); settings->rom_scorpion_1 = NULL; }
+  if( settings->rom_scorpion_2 ) { libspectrum_free( settings->rom_scorpion_2 ); settings->rom_scorpion_2 = NULL; }
+  if( settings->rom_scorpion_3 ) { libspectrum_free( settings->rom_scorpion_3 ); settings->rom_scorpion_3 = NULL; }
+  if( settings->rom_spec_se_0 ) { libspectrum_free( settings->rom_spec_se_0 ); settings->rom_spec_se_0 = NULL; }
+  if( settings->rom_spec_se_1 ) { libspectrum_free( settings->rom_spec_se_1 ); settings->rom_spec_se_1 = NULL; }
+  if( settings->rom_speccyboot ) { libspectrum_free( settings->rom_speccyboot ); settings->rom_speccyboot = NULL; }
+  if( settings->rom_tc2048 ) { libspectrum_free( settings->rom_tc2048 ); settings->rom_tc2048 = NULL; }
+  if( settings->rom_tc2068_0 ) { libspectrum_free( settings->rom_tc2068_0 ); settings->rom_tc2068_0 = NULL; }
+  if( settings->rom_tc2068_1 ) { libspectrum_free( settings->rom_tc2068_1 ); settings->rom_tc2068_1 = NULL; }
+  if( settings->rom_ts2068_0 ) { libspectrum_free( settings->rom_ts2068_0 ); settings->rom_ts2068_0 = NULL; }
+  if( settings->rom_ts2068_1 ) { libspectrum_free( settings->rom_ts2068_1 ); settings->rom_ts2068_1 = NULL; }
+  if( settings->rom_ttx2000s ) { libspectrum_free( settings->rom_ttx2000s ); settings->rom_ttx2000s = NULL; }
+  if( settings->rom_usource ) { libspectrum_free( settings->rom_usource ); settings->rom_usource = NULL; }
+  if( settings->rs232_rx ) { libspectrum_free( settings->rs232_rx ); settings->rs232_rx = NULL; }
+  if( settings->rs232_tx ) { libspectrum_free( settings->rs232_tx ); settings->rs232_tx = NULL; }
+  if( settings->sdl_fullscreen_mode ) { libspectrum_free( settings->sdl_fullscreen_mode ); settings->sdl_fullscreen_mode = NULL; }
+  if( settings->simpleide_master_file ) { libspectrum_free( settings->simpleide_master_file ); settings->simpleide_master_file = NULL; }
+  if( settings->simpleide_slave_file ) { libspectrum_free( settings->simpleide_slave_file ); settings->simpleide_slave_file = NULL; }
+  if( settings->snapshot ) { libspectrum_free( settings->snapshot ); settings->snapshot = NULL; }
+  if( settings->snet ) { libspectrum_free( settings->snet ); settings->snet = NULL; }
+  if( settings->sound_device ) { libspectrum_free( settings->sound_device ); settings->sound_device = NULL; }
+  if( settings->speaker_type ) { libspectrum_free( settings->speaker_type ); settings->speaker_type = NULL; }
+  if( settings->speccyboot_tap ) { libspectrum_free( settings->speccyboot_tap ); settings->speccyboot_tap = NULL; }
+  if( settings->start_machine ) { libspectrum_free( settings->start_machine ); settings->start_machine = NULL; }
+  if( settings->start_scaler_mode ) { libspectrum_free( settings->start_scaler_mode ); settings->start_scaler_mode = NULL; }
+  if( settings->stereo_ay ) { libspectrum_free( settings->stereo_ay ); settings->stereo_ay = NULL; }
+  if( settings->svga_modes ) { libspectrum_free( settings->svga_modes ); settings->svga_modes = NULL; }
+  if( settings->tape_file ) { libspectrum_free( settings->tape_file ); settings->tape_file = NULL; }
+  if( settings->teletext_addr_1 ) { libspectrum_free( settings->teletext_addr_1 ); settings->teletext_addr_1 = NULL; }
+  if( settings->teletext_addr_2 ) { libspectrum_free( settings->teletext_addr_2 ); settings->teletext_addr_2 = NULL; }
+  if( settings->teletext_addr_3 ) { libspectrum_free( settings->teletext_addr_3 ); settings->teletext_addr_3 = NULL; }
+  if( settings->teletext_addr_4 ) { libspectrum_free( settings->teletext_addr_4 ); settings->teletext_addr_4 = NULL; }
+  if( settings->zxatasp_master_file ) { libspectrum_free( settings->zxatasp_master_file ); settings->zxatasp_master_file = NULL; }
+  if( settings->zxatasp_slave_file ) { libspectrum_free( settings->zxatasp_slave_file ); settings->zxatasp_slave_file = NULL; }
+  if( settings->zxcf_pri_file ) { libspectrum_free( settings->zxcf_pri_file ); settings->zxcf_pri_file = NULL; }
+  if( settings->zxmmc_file ) { libspectrum_free( settings->zxmmc_file ); settings->zxmmc_file = NULL; }
 #line 802"./settings.pl"
 
   return 0;
