@@ -171,6 +171,13 @@ startup_manager_run_end( void )
 {
   guint i;
 
+  /* Upstream only ever reaches this after a successful fuse_init(), but a
+     libretro core is initialised and shut down repeatedly and the frontend
+     tears the core down after a failed load too. If startup_manager_init()
+     never ran (or has already run its end functions) there is nothing to
+     do, and the arrays are NULL. */
+  if( !end_functions ) return;
+
   for( i = end_functions->len; i-- != 0; )
   {
     startup_manager_end_fn end_fn = 

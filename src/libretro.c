@@ -1719,10 +1719,17 @@ bool retro_load_game(const struct retro_game_info *info)
       }
    }
    
-   fuse_init_called = 1;
-
+   // Arm the teardown flag only once fuse_init() has reported success.
+   // fuse_init() can bail out at any point - including before
+   // run_startup_manager() has called startup_manager_init(), i.e. before
+   // there is anything at all to shut down - and the frontend still calls
+   // retro_deinit() after a failed retro_load_game(). Setting the flag
+   // up front made that deinit run fuse_end() over a Fuse that was never
+   // brought up.
    if (fuse_init(sizeof(argv) / sizeof(argv[0]), argv) == 0)
    {
+      fuse_init_called = 1;
+
       if (info && info->size != 0)
       {
          tape_size = info->size;
@@ -1731,6 +1738,9 @@ bool retro_load_game(const struct retro_game_info *info)
          if (!tape_data)
          {
             log_cb(RETRO_LOG_ERROR, "Could not allocate memory for the tape\n");
+            // Disarm before ending, or retro_deinit() ends Fuse a second
+            // time.
+            fuse_init_called = 0;
             fuse_end();
             return false;
          }
