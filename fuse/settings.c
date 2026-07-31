@@ -2739,21 +2739,15 @@ read_config_file( settings_info *settings )
 
   snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
-  /* See if the file exists; if doesn't, it's not a problem.
-     path_is_valid() goes through the VFS stat callback. */
-  if( !path_is_valid( path ) ) {
-#if defined(VITA) || defined (__PS3__)
+  /* See if the file exists; if it doesn't, it's not a problem.
+     path_is_valid() goes through the VFS stat callback, which reports
+     existence as a bitmask and makes no promise about errno - the value
+     read here would be whatever the frontend's stat implementation
+     happened to leave behind, so it cannot be used to tell a missing file
+     from a real failure. Absence was already the non-error case, so treat
+     every negative answer as "no config file to read". */
+  if( !path_is_valid( path ) )
     return 0;
-#else
-    if( errno == ENOENT ) {
-      return 0;
-    } else {
-      ui_error( UI_ERROR_ERROR, "couldn't stat '%s': %s", path,
-		strerror( errno ) );
-      return 1;
-    }
-#endif
-  }
 
   error = utils_read_file( path, &file );
   if( error ) {
