@@ -152,7 +152,7 @@ joystick_register_startup( void )
   };
   startup_manager_register( STARTUP_MANAGER_MODULE_JOYSTICK, dependencies,
                             ARRAY_SIZE( dependencies ), joystick_init,
-                            joystick_end, NULL );
+                            NULL, joystick_end );
 }
 
 int

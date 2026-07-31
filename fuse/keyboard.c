@@ -319,7 +319,7 @@ keyboard_register_startup( void )
   };
   startup_manager_register( STARTUP_MANAGER_MODULE_KEYBOARD, dependencies,
                             ARRAY_SIZE( dependencies ), keyboard_init,
-                            keyboard_end, NULL );
+                            NULL, keyboard_end );
 }
 
 libspectrum_byte
