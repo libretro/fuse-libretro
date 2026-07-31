@@ -2615,6 +2615,8 @@ void retro_unload_game(void)
    snapshot_size = 0;
    
    free(tape_data);
+   tape_data = NULL;
+   tape_size = 0;
 }
 
 unsigned retro_get_region(void)
