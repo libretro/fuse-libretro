@@ -95,7 +95,7 @@ static const entry_t* find_entry(const char *path)
    static entry_t tape;
    
    int i;
-   size_t len = strlen(path);
+   const char *base, *slash;
    
    // * signals us to load the tape data
    if (path[0] == '*')
@@ -106,18 +106,24 @@ static const entry_t* find_entry(const char *path)
       return &tape;
    }
    
+   /* Compare the basename exactly. This used to be a suffix match against
+      the whole path, which served a baked-in asset to any file whose name
+      merely ended with an asset name: an M3U entry called "my48.rom", or a
+      disk image called "disk-128-0.rom", got the built-in ROM instead of
+      the user's file. Matching the basename keeps both the bare names fuse
+      looks up ("48.rom") and any directory-prefixed form resolving to the
+      built-in copy, without claiming files that only share a tail. */
+   base = path;
+   
+   if ((slash = strrchr(base, '/')) != NULL)
+      base = slash + 1;
+   
+   if ((slash = strrchr(base, '\\')) != NULL)
+      base = slash + 1;
+   
    for (i = 0; i < sizeof(mem_entries) / sizeof(mem_entries[0]); i++)
    {
-      size_t len2 = strlen(mem_entries[i].name);
-
-      /* Suffix match. Skip entries whose name is longer than the path:
-         path + len - len2 would point before the start of the buffer, and
-         reading from it is out of bounds (asset names run up to 17 chars,
-         so a short path like "/48.rom" underflows on most of the table). */
-      if (len2 > len)
-         continue;
-
-      if (!strcmp(path + len - len2, mem_entries[i].name))
+      if (!strcmp(base, mem_entries[i].name))
       {
          return mem_entries + i;
       }
