@@ -304,8 +304,16 @@ utils_find_file_path( const char *filename, char *ret_path,
 #ifdef AMIGA
     bytes_written = snprintf( ret_path, PATH_MAX, "%s%s", ctx.path, filename );
 #else
-    bytes_written = snprintf( ret_path, PATH_MAX, "%s" FUSE_DIR_SEP_STR "%s",
-        ctx.path, filename );
+    /* Only separate the two components when there is a directory component
+       to separate. A build whose compat layer has no search directories to
+       offer (the libretro one hands back a single empty path, because its
+       assets are baked into the binary) would otherwise turn every lookup
+       into "<sep>name" - "\48.rom" on Windows - which is not the relative
+       name the caller asked for, reads as rooted at the current drive, and
+       goes on to be concatenated into whatever path the caller builds
+       next. */
+    bytes_written = snprintf( ret_path, PATH_MAX, "%s%s%s", ctx.path,
+        ctx.path[0] ? FUSE_DIR_SEP_STR : "", filename );
 #endif
     if( bytes_written < PATH_MAX && compat_file_exists(ret_path) ) return 0;
   }
