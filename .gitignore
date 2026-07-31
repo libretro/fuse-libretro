@@ -8,4 +8,3 @@ fuse/roms/*.h
 fuse/lib/compressed/*.h
 libspectrum/*.h
 version.c
-.vscode/pro-deployer.json
