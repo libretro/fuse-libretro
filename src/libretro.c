@@ -2428,7 +2428,11 @@ void retro_reset(void)
 size_t retro_serialize_size(void)
 {
    if (auto_size_savestate) {
-      snapshot_update();
+      if (snapshot_update())
+      {
+         log_cb(RETRO_LOG_ERROR, "Could not build snapshot\n");
+         return 0;
+      }
       return snapshot_size;
    }
    else
@@ -2461,7 +2465,14 @@ size_t retro_serialize_size(void)
 
 bool retro_serialize(void *data, size_t size)
 {
-   snapshot_update();
+   // snapshot_update() frees the buffer and zeroes the size when it cannot
+   // allocate or the SZX write fails. Ignoring that produced a state that
+   // was nothing but 0xFF padding and still reported success.
+   if (snapshot_update())
+   {
+      log_cb(RETRO_LOG_ERROR, "Could not build snapshot\n");
+      return false;
+   }
 
    if (auto_size_savestate)
    {
