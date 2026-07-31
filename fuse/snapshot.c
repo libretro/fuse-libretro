@@ -112,6 +112,13 @@ snapshot_copy_from( libspectrum_snap *snap )
 }
 
 #ifdef __LIBRETRO__
+/* Bytes allocated in snapshot_buffer. Kept apart from snapshot_size, which
+   is the length of the snapshot currently held in it: an SZX shrinks as
+   well as grows, and conflating the two made snapshot_size a high water
+   mark that retro_serialize() then copied in full, appending stale bytes
+   from a previous larger snapshot to every state written after a shrink. */
+static size_t snapshot_capacity = 0;
+
 int snapshot_update(void)
 {
 
@@ -135,7 +142,7 @@ int snapshot_update(void)
   error = libspectrum_snap_free(snap);
   if (error) return 1;
 
-  if (snapshot_size < length) {
+  if (snapshot_capacity < length || !snapshot_buffer) {
       void* new_buffer;
       new_buffer = realloc(snapshot_buffer, length);
 
@@ -144,13 +151,15 @@ int snapshot_update(void)
          free(snapshot_buffer);
          snapshot_buffer = NULL;
          snapshot_size = 0;
+         snapshot_capacity = 0;
          libspectrum_free(buffer);
          return 1;
       }
       snapshot_buffer = new_buffer;
-      snapshot_size = length;
+      snapshot_capacity = length;
    }
 
+  snapshot_size = length;
   memcpy(snapshot_buffer, buffer, length);
   libspectrum_free(buffer);
   return 0;
