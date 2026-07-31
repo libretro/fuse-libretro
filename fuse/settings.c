@@ -2737,6 +2737,14 @@ read_config_file( settings_info *settings )
 
   cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
 
+  /* A build whose compat layer has no config directory to offer (the
+     libretro one returns the empty string, because the core is configured
+     through core options and has no config file at all) would otherwise
+     compose "/" CONFIG_FILE_NAME and stat that on every load - a path
+     rooted at the current drive, for a file that by design never exists.
+     No directory means no config file. */
+  if( !*cfgdir ) return 0;
+
   snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
   /* See if the file exists; if it doesn't, it's not a problem.
@@ -3881,6 +3889,11 @@ settings_write_config( settings_info *settings )
   compat_fd doc;
 
   cfgdir = compat_get_config_path(); if( !cfgdir ) return 1;
+
+  /* See read_config_file(): with no config directory this would compose
+     "/" CONFIG_FILE_NAME and create it at the root of the current drive.
+     There is nowhere to save to, so don't. */
+  if( !*cfgdir ) return 0;
 
   snprintf( path, PATH_MAX, "%s/%s", cfgdir, CONFIG_FILE_NAME );
 
