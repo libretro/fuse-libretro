@@ -389,10 +389,21 @@ static int fuse_init(int argc, char **argv)
 
   fuse_show_copyright();
 
-  if( run_startup_manager( &argc, &argv ) ) return 1;
+  /* Everything between here and the scaler_select_id() below owns
+     start_scaler and has to release it before bailing out. machine_select_id()
+     is a path users reach: selecting a model whose ROMs are not installed
+     fails there, and a libretro core retries on the next content load rather
+     than exiting. */
+  if( run_startup_manager( &argc, &argv ) ) {
+    libspectrum_free( start_scaler );
+    return 1;
+  }
 
   error = machine_select_id( settings_current.start_machine );
-  if( error ) return error;
+  if( error ) {
+    libspectrum_free( start_scaler );
+    return error;
+  }
 
   error = scaler_select_id( start_scaler ); libspectrum_free( start_scaler );
   if( error ) return error;
