@@ -134,8 +134,14 @@ periph_activate_type( periph_type type, int active )
       port_register( type, ptr );
   } else {
     GSList *found;
-    while( ( found = g_slist_find_custom( ports, GINT_TO_POINTER( type ), find_by_type ) ) != NULL )
-      ports = g_slist_remove( ports, found->data );
+    while( ( found = g_slist_find_custom( ports, GINT_TO_POINTER( type ), find_by_type ) ) != NULL ) {
+      periph_port_private_t *port_private = found->data;
+      /* g_slist_remove() frees the list node, not the payload that
+         port_register() allocated for it, so the response has to go
+         separately or every deactivation leaks one per port. */
+      ports = g_slist_remove( ports, port_private );
+      libspectrum_free( port_private );
+    }
   }
 
   return 1;
