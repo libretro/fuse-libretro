@@ -1012,12 +1012,19 @@ generalised_data_edge( libspectrum_tape_generalised_data_block *block,
       if( ++state->symbols_through_run == block->pilot_repeats[ state->run ] ) {
 	state->symbols_through_run = 0;
 	if( ++state->run == table->symbols_in_block ) {
-	  state->state = LIBSPECTRUM_TAPE_STATE_DATA1;
-	  state->bits_through_byte = 0;
-	  state->bytes_through_stream = 0;
-	  state->symbols_through_stream = 0;
-	  state->current_byte = block->data[ 0 ];
-	  state->current_symbol = get_generalised_data_symbol( block, state );
+	  /* A data table with no symbols leaves data_table.symbols == NULL;
+	     entering DATA1 would then dereference a NULL symbol table (and
+	     block->data). Skip straight to the tail pause instead. */
+	  if( block->data_table.symbols == NULL || block->data == NULL ) {
+	    state->state = LIBSPECTRUM_TAPE_STATE_PAUSE;
+	  } else {
+	    state->state = LIBSPECTRUM_TAPE_STATE_DATA1;
+	    state->bits_through_byte = 0;
+	    state->bytes_through_stream = 0;
+	    state->symbols_through_stream = 0;
+	    state->current_byte = block->data[ 0 ];
+	    state->current_symbol = get_generalised_data_symbol( block, state );
+	  }
 	}
       }
     }
@@ -1025,6 +1032,14 @@ generalised_data_edge( libspectrum_tape_generalised_data_block *block,
 
   case LIBSPECTRUM_TAPE_STATE_DATA1:
     table = &( block->data_table );
+    /* Defend against a malformed block that reached DATA1 without a data
+       symbol table (see the PILOT transition above). */
+    if( table->symbols == NULL ) {
+      state->state = LIBSPECTRUM_TAPE_STATE_PAUSE;
+      *tstates = block->pause_tstates;
+      do_tail_pause( tstates, end_of_block, flags );
+      break;
+    }
     symbol = &( table->symbols[ state->current_symbol ] );
 
     set_tstates_and_flags( symbol, state->edges_through_symbol, tstates,

@@ -628,7 +628,8 @@ tzx_read_generalised_data( libspectrum_tape *tape,
   ptr2 = *ptr;
 
   table = libspectrum_tape_block_data_table( block );
-  libspectrum_tape_block_read_symbol_table( table, ptr, length );
+  error = libspectrum_tape_block_read_symbol_table( table, ptr, length );
+  if( error ) { libspectrum_tape_block_free( block ); return error; }
 
   length -= ptr2 - *ptr;
 
