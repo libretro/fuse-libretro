@@ -75,17 +75,24 @@ libspectrum_csw_read( libspectrum_tape *tape,
     if( length < 29 ) goto csw_short;
 
     csw_block->scale =
-      buffer[2]       |
-      buffer[3] <<  8 |
-      buffer[4] << 16 |
-      buffer[5] << 24;
+      (libspectrum_dword)buffer[2]       |
+      (libspectrum_dword)buffer[3] <<  8 |
+      (libspectrum_dword)buffer[4] << 16 |
+      (libspectrum_dword)buffer[5] << 24;
     compressed = buffer[10] - 1;
 
     if( compressed != 0 && compressed != 1 ) goto csw_bad_compress;
 
-    if( length < 29 - buffer[12] ) goto csw_short;
-    length -= 29 - buffer[12];
-    buffer += 29 + buffer[12];
+    /* buffer[12] is the header extension length, so the v2 header occupies
+       29 + buffer[12] bytes and that is what must be present and consumed.
+       The bounds check and the length decrement both used to subtract the
+       extension instead of adding it, while the pointer advance added it:
+       the buffer then ran 29 + ext bytes forward while length only dropped
+       by 29 - ext, leaving 2 * ext bytes of heap past the end of the file
+       described as tape data and copied into the block below. */
+    if( length < (size_t)29 + buffer[12] ) goto csw_short;
+    length -= (size_t)29 + buffer[12];
+    buffer += (size_t)29 + buffer[12];
 
     break;
 

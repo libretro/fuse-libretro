@@ -263,6 +263,10 @@ skip_gzip_header( const libspectrum_byte **gzptr, size_t *gzlength )
       return LIBSPECTRUM_ERROR_CORRUPT;
     }
 
+    /* The extra field was validated but never skipped, so any FNAME or
+       comment that followed was parsed out of the middle of it. */
+    (*gzptr) += length; (*gzlength) -= length;
+
   }
 
   if( flags & 0x08 ) {		/* original file name present */
@@ -283,8 +287,11 @@ skip_gzip_header( const libspectrum_byte **gzptr, size_t *gzlength )
       return LIBSPECTRUM_ERROR_CORRUPT;
     }
 
-    /* Could check the header CRC if we really wanted to */
-    (*gzptr) += 2; (*gzptr) -= 2;
+    /* Could check the header CRC if we really wanted to.
+       This used to read "(*gzptr) += 2; (*gzptr) -= 2;" - the second
+       statement decremented the pointer again instead of the length, so the
+       two CRC bytes were left in front of the deflate stream. */
+    (*gzptr) += 2; (*gzlength) -= 2;
   }
 
   return LIBSPECTRUM_ERROR_NONE;
@@ -294,7 +301,10 @@ static libspectrum_error
 skip_null_terminated_string( const libspectrum_byte **ptr, size_t *length,
 			     const char *name )
 {
-  while( **ptr && *length ) { (*ptr)++; (*length)--; }
+  /* Test the length before dereferencing: with the operands the other way
+     round, an unterminated string that ran exactly to the end of the buffer
+     read one byte past it before the loop noticed there was nothing left. */
+  while( *length && **ptr ) { (*ptr)++; (*length)--; }
 
   if( !( *length ) ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,

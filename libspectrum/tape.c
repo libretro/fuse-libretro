@@ -1108,10 +1108,11 @@ rle_pulse_edge( libspectrum_tape_rle_pulse_block *block,
       return LIBSPECTRUM_ERROR_LOGIC;
     }
 
-    *tstates = block->scale * ( block->data[ state->index + 1 ]       |
-			        block->data[ state->index + 2 ] << 8  |
-			        block->data[ state->index + 3 ] << 16 |
-			        block->data[ state->index + 4 ] << 24   );
+    *tstates = block->scale *
+      ( (libspectrum_dword)block->data[ state->index + 1 ]       |
+        (libspectrum_dword)block->data[ state->index + 2 ] << 8  |
+        (libspectrum_dword)block->data[ state->index + 3 ] << 16 |
+        (libspectrum_dword)block->data[ state->index + 4 ] << 24   );
     state->index += 5;
 
   }

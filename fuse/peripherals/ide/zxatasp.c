@@ -498,7 +498,7 @@ zxatasp_snapshot_enabled( libspectrum_snap *snap )
 static void
 zxatasp_from_snapshot( libspectrum_snap *snap )
 {
-  size_t i, page;
+  size_t i, page, pages;
 
   if( !libspectrum_snap_zxatasp_active( snap ) ) return;
 
@@ -517,7 +517,12 @@ zxatasp_from_snapshot( libspectrum_snap *snap )
     set_zxatasp_bank( page );
   }
 
-  for( i = 0; i < libspectrum_snap_zxatasp_pages( snap ); i++ )
+  /* See zxcf_from_snapshot(): the page count comes from the snapshot and
+     indexes both libspectrum's zxatasp_ram[] and our ZXATASPMEM[]. */
+  pages = libspectrum_snap_zxatasp_pages( snap );
+  if( pages > ZXATASP_PAGES ) pages = ZXATASP_PAGES;
+
+  for( i = 0; i < pages; i++ )
     if( libspectrum_snap_zxatasp_ram( snap, i ) )
       memcpy( ZXATASPMEM[ i ], libspectrum_snap_zxatasp_ram( snap, i ),
 	      ZXATASP_PAGE_LENGTH );

@@ -582,6 +582,13 @@ libspectrum_zip_read( struct libspectrum_zip *z, libspectrum_byte **buffer,
 
   if( file_crc != z->file_info.crc ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT, "ZIP CRC mismatch" );
+    /* Both branches of the switch above allocated *buffer. Returning an
+       error without releasing it leaked the whole decompressed member: the
+       caller has no way to know a buffer was produced on a failure path,
+       and libspectrum_zip_blind_read() just propagates the error. */
+    libspectrum_free( *buffer );
+    *buffer = NULL;
+    *size = 0;
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
 

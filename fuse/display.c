@@ -477,7 +477,13 @@ display_write_if_dirty_pentagon_16_col( int x, int y )
      mixing 16 colour mode with other modes so will assume that as long as
      we are in 16 colour mode the screen we draw is in that mode as it seems
      a shame to chuck more memory at supporting just this obscure mode */
-  last_chunk_detail = (data4 << 24) | (data3 << 16) | (data2 << 8) | data1;
+  /* data4 is a screen byte, so anything from 0x80 up overflows the sign bit
+     when promoted to int and shifted by 24. The other three shifts stay in
+     range, but cast them all for symmetry. */
+  last_chunk_detail = ((libspectrum_dword)data4 << 24) |
+                      ((libspectrum_dword)data3 << 16) |
+                      ((libspectrum_dword)data2 <<  8) |
+                       (libspectrum_dword)data1;
 
   /* And draw it if it is different to what was there last time */
   index = beam_x + beam_y * DISPLAY_SCREEN_WIDTH_COLS;

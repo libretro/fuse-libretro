@@ -148,10 +148,12 @@ decompress_block( libspectrum_byte *dest, const libspectrum_byte *src,
 static libspectrum_dword
 lsb2dword( const libspectrum_byte *mem )
 {
-  return ( mem[0] <<  0 ) |
-         ( mem[1] <<  8 ) |
-         ( mem[2] << 16 ) |
-         ( mem[3] << 24 );
+  /* Cast before shifting: libspectrum_byte promotes to int, so a top byte
+     of 0x80 or above shifted by 24 overflows the sign bit. */
+  return ( (libspectrum_dword)mem[0] <<  0 ) |
+         ( (libspectrum_dword)mem[1] <<  8 ) |
+         ( (libspectrum_dword)mem[2] << 16 ) |
+         ( (libspectrum_dword)mem[3] << 24 );
 } 
   
 static libspectrum_word
@@ -209,8 +211,13 @@ get_next_block( size_t *offset, const libspectrum_byte *buffer,
   int error;
   libspectrum_dword next_block;
 
-  /* Check we have enough data */
-  if( end - buffer < *offset || end - buffer - *offset < 8 ) {
+  /* Check we have enough data. This used to ask for 8 bytes, but the record
+     type below is read at *offset + 8 and 9, and read_rom_block() then goes
+     on to index as far as *offset + 16 before it does any checking of its
+     own. Demand the 10 bytes this function itself touches, and let
+     read_rom_block() check its own reach. */
+  if( (size_t)( end - buffer ) < *offset ||
+      (size_t)( end - buffer ) - *offset < 10 ) {
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_CORRUPT,
       "libspectrum_warajevo_read: not enough data in buffer"
@@ -232,7 +239,15 @@ get_next_block( size_t *offset, const libspectrum_byte *buffer,
     error = read_rom_block( tape, buffer, end, *offset );
   }
 
-  if( error ) { libspectrum_tape_free( tape ); return error; }
+  /* Do not free the tape here. It belongs to the caller: every other reader
+     in libspectrum just returns the error and lets libspectrum_tape_read()'s
+     caller clean up. Freeing it made the error path a double free for any
+     caller that then frees it itself, and in fuse it is worse than that -
+     fuse/tape.c holds the tape in a file-scope global allocated once during
+     init and never re-checked, so a malformed Warajevo tape left that global
+     dangling for the rest of the session. read_rom_block() and
+     read_raw_data() already release the partial block they allocated. */
+  if( error ) return error;
 
   /* Advance to the next block */
   *offset = next_block;
@@ -444,10 +459,37 @@ read_rom_block( libspectrum_tape *tape, const libspectrum_byte *ptr,
   libspectrum_word block_size;
   const libspectrum_byte *data; libspectrum_byte *block_data;
   size_t i, length;
+  size_t avail;
+
+  /* Everything below indexes off ptr + offset without checking: the
+     uncompressed path reads as far as offset + 10 before taking data from
+     offset + 11, and the compressed path reads the decompressed length and
+     block size at offset + 11..14. get_next_block() only guarantees 10
+     bytes, so validate the rest here before dereferencing. */
+  avail = (size_t)( end - ptr );
+
+  if( avail < offset || avail - offset < 11 ) {
+    libspectrum_free( block );
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "warajevo_read_rom_block: not enough data in buffer"
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
 
   size = lsb2word( ptr + offset + 8 );
 
   if( size == COMPRESSED_BLOCK ) {
+
+    if( avail - offset < 17 ) {
+      libspectrum_free( block );
+      libspectrum_print_error(
+        LIBSPECTRUM_ERROR_CORRUPT,
+        "warajevo_read_rom_block: not enough data in buffer"
+      );
+      return LIBSPECTRUM_ERROR_CORRUPT;
+    }
+
     /* Decompressed length + flag byte and checksum */
     length = lsb2word( ptr + offset + 11 ) + 2;
     block_size = lsb2word( ptr + offset + 13 );
@@ -514,6 +556,21 @@ read_raw_data( libspectrum_tape *tape, const libspectrum_byte *ptr,
   const libspectrum_byte *data = ptr + offset + 17;
   status_type status;
   size_t length, bit_length; libspectrum_byte *block_data;
+  size_t avail;
+
+  /* Same as read_rom_block(): the sizes below live at offset + 11..14 and
+     the payload starts at offset + 17, none of which get_next_block()'s
+     10-byte guarantee covers. */
+  avail = (size_t)( end - ptr );
+
+  if( avail < offset || avail - offset < 17 ) {
+    libspectrum_free( block );
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "warajevo_read_raw_data: not enough data in buffer"
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
 
   decompressed_size = lsb2word( ptr + offset + 11 );
   compressed_size = lsb2word( ptr + offset + 13 );

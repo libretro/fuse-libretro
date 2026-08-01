@@ -1550,6 +1550,21 @@ read_zxat_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
   libspectrum_snap_set_zxatasp_port_b( snap, **buffer ); (*buffer)++;
   libspectrum_snap_set_zxatasp_port_c( snap, **buffer ); (*buffer)++;
   libspectrum_snap_set_zxatasp_control( snap, **buffer ); (*buffer)++;
+
+  /* This is a raw byte from the file but indexes zxatasp_ram[], which has
+     SNAPSHOT_ZXATASP_PAGES entries. zxatasp_from_snapshot() walks 0 ..
+     pages-1 and memcpy()s through whatever pointer it finds, so a count
+     above the array size reads garbage pointers past the end of it and
+     copies a page through them into an equally out-of-range ZXATASPMEM
+     slot. read_atrp_chunk() already range-checks the page *index*; the
+     count needs the same treatment. */
+  if( **buffer > SNAPSHOT_ZXATASP_PAGES ) {
+    libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
+			     "%s:read_zxat_chunk: unknown page count %d",
+			     __FILE__, (int)**buffer );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
   libspectrum_snap_set_zxatasp_pages( snap, **buffer ); (*buffer)++;
   libspectrum_snap_set_zxatasp_current_page( snap, **buffer ); (*buffer)++;
 
@@ -1577,6 +1592,17 @@ read_zxcf_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
   libspectrum_snap_set_zxcf_upload( snap, flags & ZXSTZXCFF_UPLOAD );
 
   libspectrum_snap_set_zxcf_memctl( snap, **buffer ); (*buffer)++;
+
+  /* As in read_zxat_chunk(): a raw byte here indexes zxcf_ram[], which has
+     SNAPSHOT_ZXCF_PAGES entries, and zxcf_from_snapshot() memcpy()s a page
+     through every pointer it reads up to this count. */
+  if( **buffer > SNAPSHOT_ZXCF_PAGES ) {
+    libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
+			     "%s:read_zxcf_chunk: unknown page count %d",
+			     __FILE__, (int)**buffer );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
   libspectrum_snap_set_zxcf_pages( snap, **buffer ); (*buffer)++;
 
   return LIBSPECTRUM_ERROR_NONE;

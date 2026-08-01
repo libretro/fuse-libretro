@@ -298,6 +298,7 @@ static void
 zxcf_from_snapshot( libspectrum_snap *snap )
 {
   size_t i;
+  size_t pages;
 
   if( !libspectrum_snap_zxcf_active( snap ) ) return;
 
@@ -305,7 +306,13 @@ zxcf_from_snapshot( libspectrum_snap *snap )
 
   zxcf_memctl_write( 0x10bf, libspectrum_snap_zxcf_memctl( snap ) );
 
-  for( i = 0; i < libspectrum_snap_zxcf_pages( snap ); i++ )
+  /* Clamp as well as validating at the szx read: this walks both
+     libspectrum's zxcf_ram[] and our ZXCFMEM[], and a page count larger
+     than either would memcpy a page through an out-of-range pointer. */
+  pages = libspectrum_snap_zxcf_pages( snap );
+  if( pages > ZXCF_PAGES ) pages = ZXCF_PAGES;
+
+  for( i = 0; i < pages; i++ )
     if( libspectrum_snap_zxcf_ram( snap, i ) )
       memcpy( ZXCFMEM[ i ], libspectrum_snap_zxcf_ram( snap, i ),
 	      ZXCF_PAGE_LENGTH );

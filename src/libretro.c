@@ -65,7 +65,7 @@ static int spectrum_key_from_option(int option)
        option >= (int)(sizeof(spectrum_keys_map) / sizeof(spectrum_keys_map[0])))
       return INPUT_KEY_NONE;
 
-   return spectrum_key_from_option(option);
+   return spectrum_keys_map[option];
 }
 
 typedef struct
@@ -2551,8 +2551,12 @@ void retro_cheat_reset(void)
    {
       if (cheat->poke.bank == 8)
          writebyte_internal(cheat->poke.address, cheat->poke.restore);
-      else
+      else if (cheat->poke.bank < SPECTRUM_RAM_PAGES)
          RAM[cheat->poke.bank][cheat->poke.address & 0x3fff] = cheat->poke.restore;
+      /* else: nothing was poked, so there is nothing to restore.
+         retro_cheat_set() rejects out-of-range banks, but poke_t::bank is a
+         libspectrum_byte and so can still hold 65..255 - do not index RAM
+         with it on the strength of that. */
       
       next = cheat->next;
       free((void*)cheat);
@@ -2604,6 +2608,38 @@ void retro_cheat_set(unsigned index, bool b, const char* code)
             continue;
          }
 
+         /* bank and address come straight from the cheat text via strtol,
+            so neither is bounded by anything. RAM is [SPECTRUM_RAM_PAGES]
+            [0x4000]: an out-of-range bank indexed a byte at
+            bank * 0x4000 + (address & 0x3fff) past the start of RAM and
+            both read and wrote it, which is a controlled write into
+            whatever global follows (ASan caught bank=65 landing in
+            fuse/tape.c's rec_state). The address was also left unmasked on
+            the read side while the write masked it, so a large address
+            read far outside the page it wrote back to.
+
+            Bank 8 keeps its existing meaning of "ignore bank" and pokes
+            through the live memory map; writebyte_internal() takes a
+            libspectrum_word, so the address wraps to the Z80 address space
+            rather than running off anything. */
+         if (bank != 8 && bank >= SPECTRUM_RAM_PAGES)
+         {
+            log_cb(RETRO_LOG_WARN,
+                   "Ignoring cheat #%u: RAM bank %u out of range\n",
+                   index, bank);
+            continue;
+         }
+
+         if (original > 255)
+         {
+            log_cb(RETRO_LOG_WARN,
+                   "Ignoring cheat #%u: restore value %u out of range\n",
+                   index, original);
+            continue;
+         }
+
+         address &= 0xffff;
+
          cheat = (cheat_t*)calloc(1, sizeof(*cheat));
 
          if (cheat == NULL)
@@ -2621,10 +2657,15 @@ void retro_cheat_set(unsigned index, bool b, const char* code)
          }
          else
          {
+            /* Mask here rather than above: bank 8 pokes through the live
+               memory map and needs the full 16-bit Z80 address, while a
+               direct RAM page is only 0x4000 bytes wide. */
+            address &= 0x3fff;
+
             if (original == 0)
                original = RAM[ bank ][ address ];
             
-            RAM[bank][address & 0x3fff] = value;
+            RAM[bank][address] = value;
          }
 
          cheat->poke.bank = bank;

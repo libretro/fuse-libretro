@@ -115,8 +115,9 @@ static const libspectrum_byte fuller_box_flags = 0x44;
 static const libspectrum_byte melodik_flags = 0x04;
 
 static libspectrum_error
-read_header( const libspectrum_byte *buffer, libspectrum_snap *snap,
-	     const libspectrum_byte **data, int *version, int *compressed );
+read_header( const libspectrum_byte *buffer, size_t buffer_length,
+	     libspectrum_snap *snap, const libspectrum_byte **data,
+	     int *version, int *compressed );
 static libspectrum_error
 get_machine_type( libspectrum_snap *snap, libspectrum_byte type,
                   libspectrum_byte mgt_type, int version );
@@ -204,7 +205,8 @@ internal_z80_read( libspectrum_snap *snap,
   const libspectrum_byte *data;
   int version, compressed = 1;
 
-  error = read_header( buffer, snap, &data, &version, &compressed );
+  error = read_header( buffer, buffer_length, snap, &data, &version,
+		       &compressed );
   if( error != LIBSPECTRUM_ERROR_NONE ) return error;
 
   error = read_blocks( data, buffer_length - (data - buffer), snap,
@@ -220,13 +222,27 @@ internal_z80_read( libspectrum_snap *snap,
 }
 
 static libspectrum_error
-read_header( const libspectrum_byte *buffer, libspectrum_snap *snap,
-	     const libspectrum_byte **data, int *version, int *compressed )
+read_header( const libspectrum_byte *buffer, size_t buffer_length,
+	     libspectrum_snap *snap, const libspectrum_byte **data,
+	     int *version, int *compressed )
 {
   const libspectrum_byte *header = buffer;
   int capabilities;
   size_t i;
   libspectrum_error error;
+
+  /* This function used to take no length at all and index the header
+     unconditionally, so a short .z80 read off the end of the caller's
+     buffer - by up to 57 bytes on the v2/v3 path below. Nothing upstream
+     enforces a minimum: the file type is picked from the extension, so any
+     file named *.z80 reaches here at whatever size it happens to be. */
+  if( buffer_length < LIBSPECTRUM_Z80_HEADER_LENGTH ) {
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "libspectrum_read_z80_header: not enough data in buffer"
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
 
   libspectrum_snap_set_a  ( snap, header[ 0] );
   libspectrum_snap_set_f  ( snap, header[ 1] );
@@ -259,6 +275,15 @@ read_header( const libspectrum_byte *buffer, libspectrum_snap *snap,
     const libspectrum_byte *extra_header;
     libspectrum_dword quarter_tstates;
 
+    if( buffer_length < (size_t)LIBSPECTRUM_Z80_HEADER_LENGTH + 2 ) {
+      libspectrum_print_error(
+        LIBSPECTRUM_ERROR_CORRUPT,
+        "libspectrum_read_z80_header: not enough data for extended header "
+        "length"
+      );
+      return LIBSPECTRUM_ERROR_CORRUPT;
+    }
+
     extra_length = header[ LIBSPECTRUM_Z80_HEADER_LENGTH     ] +
                    header[ LIBSPECTRUM_Z80_HEADER_LENGTH + 1 ] * 0x100;
 
@@ -280,6 +305,19 @@ read_header( const libspectrum_byte *buffer, libspectrum_snap *snap,
       
     }
 
+    /* The extended header must actually be present in full: every field
+       read below is indexed off extra_header without any further checking,
+       and the switch above has already established that extra_length is one
+       of the three known sizes. */
+    if( buffer_length < (size_t)LIBSPECTRUM_Z80_HEADER_LENGTH + 2 +
+                        extra_length ) {
+      libspectrum_print_error(
+        LIBSPECTRUM_ERROR_CORRUPT,
+        "libspectrum_read_z80_header: not enough data for extended header"
+      );
+      return LIBSPECTRUM_ERROR_CORRUPT;
+    }
+
     extra_header = buffer + LIBSPECTRUM_Z80_HEADER_LENGTH + 2;
 
     error = get_joystick_type( snap,
@@ -291,10 +329,20 @@ read_header( const libspectrum_byte *buffer, libspectrum_snap *snap,
 
     libspectrum_snap_set_pc( snap, extra_header[0] + extra_header[1] * 0x100 );
 
-    error = get_machine_type( snap, extra_header[2], extra_header[51], *version );
+    /* extra_header[51] is the MGT type, which exists only from v3 onwards:
+       a v2 extended header is 23 bytes, so reading index 51 ran 29 bytes
+       past the end of it. get_machine_type() only consults this byte on the
+       v3 path, so v2 can pass a placeholder. */
+    error = get_machine_type( snap, extra_header[2],
+                              *version >= 3 ? extra_header[51] : 0,
+                              *version );
     if( error ) return error;
 
-    if( extra_header[27] && libspectrum_snap_plusd_active( snap ) ) {
+    /* Also v3-only: index 27 is past the end of a 23-byte v2 extended
+       header. libspectrum_snap_plusd_active() can only have been set from
+       the v3 MGT type above, so this is unreachable on v2 anyway. */
+    if( *version >= 3 && extra_header[27] &&
+        libspectrum_snap_plusd_active( snap ) ) {
       libspectrum_snap_set_plusd_paged( snap, 1 );
     }
 
@@ -1066,6 +1114,16 @@ read_v2_block( const libspectrum_byte *buffer, libspectrum_byte **block,
 	       const libspectrum_byte *end )
 {
   size_t length2;
+
+  /* read_blocks() only guarantees that buffer < end, so the three header
+     bytes below could reach up to two bytes past it. Every length check
+     further down is expressed relative to these values, so they have to be
+     validated before anything else. */
+  if( end - buffer < 3 ) {
+    libspectrum_print_error( LIBSPECTRUM_ERROR_CORRUPT,
+			     "read_v2_block: not enough data in buffer" );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
 
   length2 = buffer[0] + buffer[1] * 0x100;
   (*page) = buffer[2];

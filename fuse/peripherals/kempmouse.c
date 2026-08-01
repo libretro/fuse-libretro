@@ -69,6 +69,10 @@ static const periph_port_t kempmouse_ports[] = {
   { 0x0121, 0x0001, read_buttons, NULL },
   { 0x0521, 0x0101, read_x_pos, NULL },
   { 0x0521, 0x0501, read_y_pos, NULL },
+  /* periph_activate_type() walks this table until it sees a zero mask, so
+     without this entry it ran straight off the end into whatever global
+     followed and registered those as ports. */
+  { 0, 0, NULL, NULL },
 };
 
 static const periph_t kempmouse_periph = {
