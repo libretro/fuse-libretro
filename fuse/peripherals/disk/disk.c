@@ -1127,9 +1127,11 @@ ipf_emit_data( disk_t *d, int *pos, const libspectrum_byte *p,
          past the element. */
       for( i = 0; i + 1 < param; i += 2 ) {
         libspectrum_byte b = ipf_mfm_decode( p[i], p[i + 1] );
-        /* 0x4489 is the A1 sync pattern with its clock bit suppressed;
-           that missing clock is exactly what the clock bitmap records. */
-        int clock = ( p[i] == 0x44 && p[i + 1] == 0x89 );
+        /* 0x4489 and 0x5224 are the A1 and C2 sync patterns with their
+           clock bits suppressed; that missing clock is exactly what the
+           clock bitmap records. */
+        int clock = ( p[i] == 0x44 && p[i + 1] == 0x89 ) ||
+                    ( p[i] == 0x52 && p[i + 1] == 0x24 );
         if( ipf_put( d, pos, b, clock, 0 ) ) return 1;
       }
       p += param;
