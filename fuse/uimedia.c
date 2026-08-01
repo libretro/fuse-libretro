@@ -54,9 +54,23 @@ ui_media_drive_register( ui_media_drive_info_t *drive )
   return 0;
 }
 
+static void
+close_drive_disk( gpointer data, gpointer user_data GCC_UNUSED )
+{
+  ui_media_drive_info_t *drive = data;
+
+  if( drive->fdd ) disk_close( &drive->fdd->disk );
+}
+
 void
 ui_media_drive_end( void )
 {
+  /* Only ui_media_drive_do_eject() ever closed a disk, so one left in a
+     drive at shutdown had its image buffer abandoned - a megabyte or so
+     per +3 disk. Harmless in a process that is about to exit, but a
+     libretro core tears the machine down and rebuilds it every time
+     content is loaded. */
+  g_slist_foreach( registered_drives, close_drive_disk, NULL );
   g_slist_free( registered_drives );
   registered_drives = NULL;
 }
