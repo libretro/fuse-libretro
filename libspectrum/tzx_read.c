@@ -635,7 +635,11 @@ tzx_read_generalised_data( libspectrum_tape *tape,
 
   symbol_count2 = libspectrum_tape_generalised_data_symbol_table_symbols_in_table( table );
 
-  bits_per_symbol = ceil( log( symbol_count2 ) / M_LN2 );
+  /* ceil( log2( n ) ) bits are needed to select one of n symbols. Guard
+     against log( 0 ), which is undefined; an empty alphabet needs no bits
+     (and, per the symbol-table parameter parsing, implies no data symbols). */
+  bits_per_symbol = symbol_count2 ?
+    (int) ceil( log( symbol_count2 ) / M_LN2 ) : 0;
 
   libspectrum_tape_block_set_bits_per_data_symbol( block, bits_per_symbol );
 
