@@ -687,6 +687,7 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
     *libspectrum_class = LIBSPECTRUM_CLASS_COMPRESSED; return 0;
 
   case LIBSPECTRUM_ID_DISK_DSK:
+  case LIBSPECTRUM_ID_DISK_IPF:
   case LIBSPECTRUM_ID_DISK_CPC:
   case LIBSPECTRUM_ID_DISK_ECPC:
     *libspectrum_class = LIBSPECTRUM_CLASS_DISK_PLUS3; return 0;
@@ -739,7 +740,6 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
     *libspectrum_class = LIBSPECTRUM_CLASS_CARTRIDGE_IF2; return 0;
 
   case LIBSPECTRUM_ID_DISK_UDI:
-  case LIBSPECTRUM_ID_DISK_IPF:
   case LIBSPECTRUM_ID_DISK_FDI:
   case LIBSPECTRUM_ID_DISK_SAD:
   case LIBSPECTRUM_ID_DISK_TD0:

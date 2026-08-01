@@ -1844,13 +1844,35 @@ bool retro_load_game(const struct retro_game_info *info)
                autoload = 0;
             }
 
-            // If we have a .dsk image, check if it has more than 40 tracks (e.g. a 720KB disk image)
-            // .dsk file format: http://cpctech.cpc-live.com/docs/dsk.html
-            if (class == LIBSPECTRUM_CLASS_DISK_PLUS3 && ((uint8_t *)tape_data)[0x30] > 40)
+            // A 720KB image needs the drive switched to 80 tracks on the
+            // fly, since the default +3 drive is 40. Where the track count
+            // lives depends on the format, so probe each one properly
+            // rather than reading a fixed offset from whatever turned up
+            // as +3 disk content.
             {
-               // If yes, we need to change the drive type on the fly, as the default +3 drive only supports 40 tracks
-               settings_current.drive_plus3a_type = utils_safe_strdup("Double-sided 80 track");
-               specplus3_765_reset();
+               int tracks = 0;
+
+               if ((type == LIBSPECTRUM_ID_DISK_CPC ||
+                    type == LIBSPECTRUM_ID_DISK_ECPC) && tape_size > 0x30)
+               {
+                  // .dsk: http://cpctech.cpc-live.com/docs/dsk.html
+                  tracks = ((uint8_t *)tape_data)[0x30];
+               }
+               else if (type == LIBSPECTRUM_ID_DISK_IPF && tape_size >= 56 &&
+                        !memcmp((uint8_t *)tape_data + 12, "INFO", 4))
+               {
+                  // The INFO chunk follows the 12-byte CAPS header and
+                  // carries the highest cylinder number, counting from 0.
+                  const uint8_t *p = (uint8_t *)tape_data + 52;
+                  tracks = (int)(((unsigned)p[0] << 24) | ((unsigned)p[1] << 16) |
+                                 ((unsigned)p[2] <<  8) |  (unsigned)p[3]) + 1;
+               }
+
+               if (tracks > 40)
+               {
+                  settings_current.drive_plus3a_type = utils_safe_strdup("Double-sided 80 track");
+                  specplus3_765_reset();
+               }
             }
 
             /*
