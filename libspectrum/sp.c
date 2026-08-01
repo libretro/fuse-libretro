@@ -27,7 +27,14 @@
 
 #include "internals.h"
 
-static const size_t SP_HEADER_LENGTH = 37;
+/* Signature (2) + memory length (2) + start address (2) + 30 bytes of
+   registers + the flags word (2). This was 37, one short of what the code
+   below actually reads. */
+static const size_t SP_HEADER_LENGTH = 38;
+
+/* The .sp memory dump is addressed in Z80 terms, and only ever covers the
+   RAM above the ROM. */
+#define SP_RAM_START 0x4000
 
 libspectrum_error
 libspectrum_sp_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
@@ -64,6 +71,29 @@ libspectrum_sp_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
     libspectrum_print_error(
       LIBSPECTRUM_ERROR_CORRUPT,
       "libspectrum_sp_read: memory dump extends beyond 0xffff"
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
+  /* The dump is copied into a buffer that holds RAM only, so a start
+     address inside the ROM has nowhere to go. This was previously
+     unchecked, and the copy below indexed that buffer with the raw Z80
+     address rather than an offset from the start of RAM. */
+  if( start < SP_RAM_START ) {
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "libspectrum_sp_read: memory dump starts below 0x%04x", SP_RAM_START
+    );
+    return LIBSPECTRUM_ERROR_CORRUPT;
+  }
+
+  /* And the dump has to actually be in the file: only the header length was
+     checked before, so a short file copied whatever followed it in memory
+     into the emulated RAM. */
+  if( length - SP_HEADER_LENGTH < memory_length ) {
+    libspectrum_print_error(
+      LIBSPECTRUM_ERROR_CORRUPT,
+      "libspectrum_sp_read: not enough data for memory dump"
     );
     return LIBSPECTRUM_ERROR_CORRUPT;
   }
@@ -113,10 +143,13 @@ libspectrum_sp_read( libspectrum_snap *snap, const libspectrum_byte *buffer,
 			   ( flags & 0x08 ? 0 : ( flags & 0x02 ? 2 : 1 ) ) );
 
   /* Get me 48K of zero-ed memory and then copy in the bits that were
-     represented in the snap */
+     represented in the snap. This buffer covers 0x4000..0xffff, so the
+     dump's Z80 start address has to be rebased: indexing it with `start`
+     directly overflowed the buffer by up to 0x4000 bytes, which a
+     well-formed dump of the full 48K from 0x4000 hit exactly. */
   memory = libspectrum_new0( libspectrum_byte, 0xc000 );
 
-  memcpy( &memory[ start ], buffer, memory_length );
+  memcpy( &memory[ start - SP_RAM_START ], buffer, memory_length );
 
   error = libspectrum_split_to_48k_pages( snap, memory );
   if( error ) { libspectrum_free( memory ); return error; }

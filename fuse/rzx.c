@@ -279,12 +279,19 @@ int rzx_start_playback( const char *filename, int check_snapshot )
 
   rzx = libspectrum_rzx_alloc();
 
+  /* Each of the three failures below used to return without releasing the
+     rzx allocated just above, unlike the start_playback() path further
+     down. */
   error = utils_read_file( filename, &file );
-  if( error ) return error;
+  if( error ) {
+    libspectrum_rzx_free( rzx );
+    return error;
+  }
 
   libspec_error = libspectrum_rzx_read( rzx, file.buffer, file.length );
   if( libspec_error != LIBSPECTRUM_ERROR_NONE ) {
     utils_close_file( &file );
+    libspectrum_rzx_free( rzx );
     return libspec_error;
   }
 
@@ -295,7 +302,10 @@ int rzx_start_playback( const char *filename, int check_snapshot )
     /* We need to load an external snapshot. Could be skipped if the snapshot
        is preloaded from command line */
     error = utils_open_snap();
-    if( error ) return error;
+    if( error ) {
+      libspectrum_rzx_free( rzx );
+      return error;
+    }
   }
 
   error = start_playback( rzx );
@@ -318,7 +328,12 @@ rzx_start_playback_from_buffer( const unsigned char *buffer, size_t length )
   rzx = libspectrum_rzx_alloc();
 
   error = libspectrum_rzx_read( rzx, buffer, length );
-  if( error ) return error;
+  if( error ) {
+    /* Every other failure path below releases this; a recording that would
+       not parse at all was the one case that leaked it. */
+    libspectrum_rzx_free( rzx );
+    return error;
+  }
 
   snap = rzx_get_initial_snapshot();
   if( !snap ) {
