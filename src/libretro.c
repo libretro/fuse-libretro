@@ -1244,7 +1244,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_version = version;
    info->need_fullpath = false;
    info->block_extract = false;
-   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|sna|szx|zip|m3u";
+   info->valid_extensions = "tzx|tap|z80|rzx|scl|trd|dsk|dck|sna|szx|ipf|zip|m3u";
 }
 
 // Disk control interface (see the implementations and disk_control_ext_cb
@@ -1418,6 +1418,7 @@ static libspectrum_id_t identify_file_get_ext(const char* filename, const void* 
       case LIBSPECTRUM_ID_TAPE_PZX:       *ext = ".pzx"; break;
       case LIBSPECTRUM_ID_DISK_SCL:       *ext = ".scl"; break;
       case LIBSPECTRUM_ID_DISK_TRD:       *ext = ".trd"; break;
+      case LIBSPECTRUM_ID_DISK_IPF:       *ext = ".ipf"; break;
       case LIBSPECTRUM_ID_DISK_DSK:
       case LIBSPECTRUM_ID_DISK_CPC:
       case LIBSPECTRUM_ID_DISK_ECPC:      *ext = ".dsk"; break;
@@ -1434,14 +1435,6 @@ static libspectrum_id_t identify_file_get_ext(const char* filename, const void* 
 // the standard convention - RetroArch doesn't parse M3U content for the
 // core, so any subsequent load must be able to find these paths on the
 // real filesystem (see the direct-fopen fallback in compat_file_open()).
-static int content_is_ipf(const void* data, size_t size)
-{
-   // IPF images open with the CAPS chunk id. libspectrum has no signature
-   // for them, so libspectrum_identify_file() returns UNKNOWN and the TRD
-   // fallback below claims them.
-   return size >= 4 && memcmp(data, "CAPS", 4) == 0;
-}
-
 static void parse_m3u(const char* m3u_path, const char* data, size_t size)
 {
    char base_dir[MAX_DISK_PATH_LEN];
@@ -1505,29 +1498,6 @@ static void parse_m3u(const char* m3u_path, const char* data, size_t size)
             continue;
          memcpy(disk_image_paths[num_disk_images], base_dir, base_len);
          memcpy(disk_image_paths[num_disk_images] + base_len, entry, copy_len + 1);
-      }
-
-      // Drop entries the core cannot load. utils_open_file() would fail on
-      // an IPF anyway, but only after it had been counted as a disk and
-      // registered with the frontend's disk control, leaving a playlist
-      // slot that can never be inserted.
-      {
-         const char* path = disk_image_paths[num_disk_images];
-         RFILE* fp = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ,
-                                     RETRO_VFS_FILE_ACCESS_HINT_NONE);
-         if (fp)
-         {
-            char magic[4];
-            int64_t got = filestream_read(fp, magic, sizeof(magic));
-            filestream_close(fp);
-
-            if (got == (int64_t)sizeof(magic) && content_is_ipf(magic, sizeof(magic)))
-            {
-               log_cb(RETRO_LOG_ERROR,
-                      "Skipping unsupported IPF disk image: %s\n", path);
-               continue;
-            }
-         }
       }
 
       num_disk_images++;
@@ -1788,22 +1758,6 @@ bool retro_load_game(const struct retro_game_info *info)
          }
 
          memcpy(tape_data, info->data, tape_size);
-
-         // The TRD fallback in identify_file() claims anything libspectrum
-         // cannot name, so an IPF was being loaded as a raw TRD: the core
-         // reported success, switched to a Scorpion, failed to find its
-         // ROMs and left the user at a 48K BASIC prompt. Say so instead.
-         if (content_is_ipf(tape_data, tape_size))
-         {
-            log_cb(RETRO_LOG_ERROR,
-                   "IPF disk images are not supported by this core\n");
-            free(tape_data);
-            tape_data = NULL;
-            tape_size = 0;
-            fuse_init_called = 0;
-            fuse_end();
-            return false;
-         }
 
          const char* filename_load_game = info->path;
          int is_m3u = 0;

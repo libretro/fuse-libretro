@@ -71,6 +71,9 @@ typedef enum disk_type_t {
   /* Log disk structure (.log) */
   DISK_LOG,
 
+  /* SPS/CAPS preservation image (.ipf), read-only */
+  DISK_IPF,
+
   DISK_TYPE_LAST,
 } disk_type_t;
 

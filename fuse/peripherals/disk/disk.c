@@ -1023,6 +1023,329 @@ udi_compress_tracks( disk_t *d )
 }
 #endif			/* #ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION */
 
+/* IPF (Interchangeable Preservation Format) images, as produced by the
+   Software Preservation Society's CAPS tools.
+
+   The format stores a track as a list of blocks, each of which is a data
+   description followed by a gap. The data description is a stream of
+   elements holding either raw MFM cells (used for the address marks, whose
+   clock pattern is deliberately illegal) or already-decoded bytes that a
+   reader is expected to MFM-encode. That maps directly onto the byte-plus-
+   clock-mark representation used here, so no cell-level intermediate is
+   needed: a raw 0x4489 becomes 0xA1 with its clock bit set, and everything
+   else becomes itself.
+
+   Derived from the format description in MAME's src/lib/formats/ipf_dsk.cpp
+   by Olivier Galibert, BSD-3-Clause. */
+
+#define IPF_CHUNK_HEADER_LEN 12
+#define IPF_BLOCK_DESC_LEN 32
+
+typedef struct ipf_track_t {
+  libspectrum_dword cylinder, head;
+  libspectrum_dword size_cells, block_count;
+  const libspectrum_byte *data;         /* block descriptors + streams */
+  libspectrum_dword data_size;
+  int present;
+} ipf_track_t;
+
+#define IPF_MAX_TRACKS ( 2 * 84 )
+
+static libspectrum_dword
+ipf_be32( const libspectrum_byte *p )
+{
+  return ( (libspectrum_dword)p[0] << 24 ) | ( (libspectrum_dword)p[1] << 16 ) |
+         ( (libspectrum_dword)p[2] <<  8 ) |   (libspectrum_dword)p[3];
+}
+
+/* Read the big-endian value of `count' bytes that follows a stream element's
+   type byte, advancing the cursor. */
+static libspectrum_dword
+ipf_read_param( const libspectrum_byte **p, int count )
+{
+  libspectrum_dword v = 0;
+
+  while( count-- > 0 ) v = ( v << 8 ) | *(*p)++;
+
+  return v;
+}
+
+/* Decode 16 raw MFM cells into the byte a reader would recover: the data
+   bits are the odd-numbered cells, the even ones are clock. */
+static libspectrum_byte
+ipf_mfm_decode( libspectrum_byte hi, libspectrum_byte lo )
+{
+  libspectrum_word raw = ( (libspectrum_word)hi << 8 ) | lo;
+  libspectrum_byte out = 0;
+  int i;
+
+  for( i = 7; i >= 0; i-- )
+    out = ( out << 1 ) | ( ( raw >> ( 2 * i ) ) & 1 );
+
+  return out;
+}
+
+/* Append one byte to the track being built, tracking the write position so
+   a malformed image cannot run past the end of the buffer. */
+static int
+ipf_put( disk_t *d, int *pos, libspectrum_byte b, int clock, int weak )
+{
+  if( *pos >= d->bpt ) return 1;
+
+  d->track[ *pos ] = b;
+  if( clock ) bitmap_set( d->clocks, *pos );
+  if( weak )  bitmap_set( d->weak, *pos );
+  ( *pos )++;
+
+  return 0;
+}
+
+/* Walk a block's data description and emit the bytes it describes. */
+static int
+ipf_emit_data( disk_t *d, int *pos, const libspectrum_byte *p,
+               const libspectrum_byte *limit, int want )
+{
+  int start = *pos;
+
+  while( p < limit ) {
+    libspectrum_byte val = *p++;
+    int nb = val >> 5;
+    libspectrum_dword param;
+    libspectrum_dword i;
+
+    if( nb > limit - p ) return 1;
+    param = ipf_read_param( &p, nb );
+
+    switch( val & 0x1f ) {
+    case 0:                                     /* end of description */
+      return *pos - start != want;
+
+    case 1:                                     /* raw MFM cells */
+      if( param > (libspectrum_dword)( limit - p ) ) return 1;
+      /* Two raw bytes are 16 cells, i.e. one recovered byte. An odd
+         trailing byte cannot form one, so ignore it rather than read
+         past the element. */
+      for( i = 0; i + 1 < param; i += 2 ) {
+        libspectrum_byte b = ipf_mfm_decode( p[i], p[i + 1] );
+        /* 0x4489 is the A1 sync pattern with its clock bit suppressed;
+           that missing clock is exactly what the clock bitmap records. */
+        int clock = ( p[i] == 0x44 && p[i + 1] == 0x89 );
+        if( ipf_put( d, pos, b, clock, 0 ) ) return 1;
+      }
+      p += param;
+      break;
+
+    case 2:                                     /* decoded data bytes */
+    case 3:                                     /* decoded gap bytes */
+      if( param > (libspectrum_dword)( limit - p ) ) return 1;
+      for( i = 0; i < param; i++ )
+        if( ipf_put( d, pos, p[i], 0, 0 ) ) return 1;
+      p += param;
+      break;
+
+    case 5:                                     /* weak (fuzzy) bytes */
+      for( i = 0; i < param; i++ )
+        if( ipf_put( d, pos, 0x00, 0, 1 ) ) return 1;
+      break;
+
+    default:
+      return 1;
+    }
+  }
+
+  return 1;                                     /* ran out before the end */
+}
+
+/* Gap descriptions carry a repeating pattern and the length to repeat it
+   for. Only the pattern is interesting here - the length is already known
+   from the block descriptor - so pull out the first one and use its leading
+   byte as the fill. */
+static libspectrum_byte
+ipf_gap_pattern( const libspectrum_byte *p, const libspectrum_byte *limit )
+{
+  while( p < limit ) {
+    libspectrum_byte val = *p++;
+    int nb = val >> 5;
+    libspectrum_dword param;
+
+    if( nb > limit - p ) break;
+    param = ipf_read_param( &p, nb );
+
+    switch( val & 0x1f ) {
+    case 0:
+      return 0x4e;
+    case 1:                                     /* gap length, not needed */
+      break;
+    case 2:                                     /* pattern, in bits */
+      if( param == 0 || ( param + 7 ) / 8 > (libspectrum_dword)( limit - p ) )
+        return 0x4e;
+      return *p;
+    default:
+      return 0x4e;
+    }
+  }
+
+  return 0x4e;
+}
+
+static int
+open_ipf( buffer_t *buffer, disk_t *d )
+{
+  static const libspectrum_byte caps_magic[ IPF_CHUNK_HEADER_LEN ] = {
+    0x43, 0x41, 0x50, 0x53, 0x00, 0x00, 0x00, 0x0c, 0x1c, 0xd5, 0x73, 0xba
+  };
+  const libspectrum_byte *ipfbuf = buffer->file.buffer;
+  size_t length = buffer->file.length;
+  size_t off;
+  ipf_track_t *tracks;
+  libspectrum_dword min_cyl = 0, max_cyl = 0, min_head = 0, max_head = 0;
+  int have_info = 0, i, bpt = 0;
+  libspectrum_dword idx;
+
+  if( length < IPF_CHUNK_HEADER_LEN ||
+      memcmp( ipfbuf, caps_magic, IPF_CHUNK_HEADER_LEN ) )
+    return d->status = DISK_OPEN;
+
+  tracks = libspectrum_new0( ipf_track_t, IPF_MAX_TRACKS );
+
+  /* Pass one: collect the track descriptions. */
+  off = 0;
+  while( off + IPF_CHUNK_HEADER_LEN <= length ) {
+    libspectrum_dword clen = ipf_be32( ipfbuf + off + 4 );
+    size_t advance;
+
+    if( clen < IPF_CHUNK_HEADER_LEN || clen > length - off ) break;
+    advance = clen;
+
+    if( !memcmp( ipfbuf + off, "INFO", 4 ) ) {
+      if( clen < 76 ) break;
+      min_cyl  = ipf_be32( ipfbuf + off + 36 );
+      max_cyl  = ipf_be32( ipfbuf + off + 40 );
+      min_head = ipf_be32( ipfbuf + off + 44 );
+      max_head = ipf_be32( ipfbuf + off + 48 );
+      if( max_cyl < min_cyl || max_head < min_head ||
+          max_cyl >= 84 || max_head >= 2 )
+        break;
+      have_info = 1;
+    } else if( !memcmp( ipfbuf + off, "IMGE", 4 ) ) {
+      if( clen < 80 ) break;
+      idx = ipf_be32( ipfbuf + off + 64 );
+      if( idx >= IPF_MAX_TRACKS ) break;
+      tracks[ idx ].cylinder    = ipf_be32( ipfbuf + off + 12 );
+      tracks[ idx ].head        = ipf_be32( ipfbuf + off + 16 );
+      tracks[ idx ].size_cells  = ipf_be32( ipfbuf + off + 48 );
+      tracks[ idx ].block_count = ipf_be32( ipfbuf + off + 52 );
+    } else if( !memcmp( ipfbuf + off, "DATA", 4 ) ) {
+      libspectrum_dword dsize;
+
+      if( clen < 28 ) break;
+      dsize = ipf_be32( ipfbuf + off + 12 );
+      idx   = ipf_be32( ipfbuf + off + 24 );
+      if( idx >= IPF_MAX_TRACKS ) break;
+      if( dsize > length - off - clen ) break;
+      tracks[ idx ].data      = ipfbuf + off + clen;
+      tracks[ idx ].data_size = dsize;
+      advance = clen + dsize;
+    }
+
+    off += advance;
+  }
+
+  if( !have_info ) {
+    libspectrum_free( tracks );
+    return d->status = DISK_OPEN;
+  }
+
+  /* Work out the geometry and the longest track. */
+  for( i = 0; i < IPF_MAX_TRACKS; i++ ) {
+    libspectrum_dword tbpt;
+
+    if( !tracks[ i ].data || !tracks[ i ].block_count ) continue;
+    if( tracks[ i ].cylinder > max_cyl || tracks[ i ].head > max_head ) continue;
+    if( tracks[ i ].block_count > tracks[ i ].data_size / IPF_BLOCK_DESC_LEN )
+      continue;
+
+    tracks[ i ].present = 1;
+    tbpt = tracks[ i ].size_cells / 16;
+    if( tbpt > 12500 ) {
+      libspectrum_free( tracks );
+      return d->status = DISK_UNSUP;
+    }
+    if( (int)tbpt > bpt ) bpt = tbpt;
+  }
+
+  if( bpt == 0 ) {
+    libspectrum_free( tracks );
+    return d->status = DISK_GEOM;
+  }
+
+  d->sides = max_head - min_head + 1;
+  d->cylinders = max_cyl - min_cyl + 1;
+  GEOM_CHECK;
+  d->density = DISK_DENS_AUTO;
+  d->bpt = bpt;
+
+  if( disk_alloc( d ) != DISK_OK ) {
+    libspectrum_free( tracks );
+    return d->status;
+  }
+
+  /* Pass two: lay out each track. */
+  for( i = 0; i < IPF_MAX_TRACKS; i++ ) {
+    const libspectrum_byte *data, *dlimit;
+    libspectrum_dword b;
+    int pos = 0;
+
+    if( !tracks[ i ].present ) continue;
+
+    data   = tracks[ i ].data;
+    dlimit = data + tracks[ i ].data_size;
+
+    DISK_SET_TRACK( d, tracks[ i ].head - min_head,
+                       tracks[ i ].cylinder - min_cyl );
+
+    for( b = 0; b < tracks[ i ].block_count; b++ ) {
+      const libspectrum_byte *thead = data + IPF_BLOCK_DESC_LEN * b;
+      libspectrum_dword data_cells, gap_cells, gap_offset, data_offset;
+      libspectrum_dword gap_type, n;
+      libspectrum_byte pattern;
+
+      data_cells  = ipf_be32( thead      );
+      gap_cells   = ipf_be32( thead +  4 );
+      gap_offset  = ipf_be32( thead +  8 );
+      gap_type    = ipf_be32( thead + 20 );
+      data_offset = ipf_be32( thead + 28 );
+
+      if( data_offset >= tracks[ i ].data_size ) break;
+
+      if( ipf_emit_data( d, &pos, data + data_offset, dlimit,
+                         data_cells / 16 ) )
+        break;
+
+      /* Gaps hold no recoverable information, so only their length and
+         fill byte matter. */
+      if( gap_type == 0 )
+        pattern = (libspectrum_byte)ipf_be32( thead + 24 );
+      else if( gap_offset < tracks[ i ].data_size )
+        pattern = ipf_gap_pattern( data + gap_offset, dlimit );
+      else
+        pattern = 0x4e;
+
+      for( n = 0; n < gap_cells / 16; n++ )
+        if( ipf_put( d, &pos, pattern, 0, 0 ) ) break;
+    }
+
+    /* Anything the blocks did not cover is the tail of the track. */
+    while( pos < d->bpt )
+      if( ipf_put( d, &pos, 0x4e, 0, 0 ) ) break;
+  }
+
+  libspectrum_free( tracks );
+  d->dirty = 0;
+
+  return d->status = DISK_OK;
+}
+
 static int
 open_udi( buffer_t *buffer, disk_t *d )
 {
@@ -2272,6 +2595,10 @@ fprintf( stderr, "\n::::%s:::: ", filename );
   case LIBSPECTRUM_ID_DISK_UDI:
     d->type = DISK_UDI;
     open_udi( &buffer, d );
+    break;
+  case LIBSPECTRUM_ID_DISK_IPF:
+    d->type = DISK_IPF;
+    open_ipf( &buffer, d );
     break;
   case LIBSPECTRUM_ID_DISK_OPD:
     d->type = DISK_OPD;

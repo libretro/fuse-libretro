@@ -468,6 +468,10 @@ typedef enum libspectrum_id_t {
 
   LIBSPECTRUM_ID_SCREEN_SCR,		/* .scr screen file */
 
+  /* Below here, present only in this build */
+
+  LIBSPECTRUM_ID_DISK_IPF,		/* .ipf SPS/CAPS disk image */
+
   /* Below here, present only in 1.4.0 and later */
 
   LIBSPECTRUM_ID_SCREEN_MLT,		/* .mlt screen file */

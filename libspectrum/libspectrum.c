@@ -553,6 +553,7 @@ libspectrum_identify_file_raw( libspectrum_id_t *type, const char *filename,
       { LIBSPECTRUM_ID_DISK_IMG,      "img", 3, NULL,		    0, 0, 0 },
 
       { LIBSPECTRUM_ID_DISK_UDI,      "udi", 3, "UDI!",		    0, 4, 4 },
+      { LIBSPECTRUM_ID_DISK_IPF,      "ipf", 3, "CAPS",             0, 4, 4 },
       { LIBSPECTRUM_ID_DISK_ECPC,     "dsk", 3, "EXTENDED", 0, 8, 4 },
       { LIBSPECTRUM_ID_DISK_CPC,      "dsk", 3, "MV - CPC", 0, 8, 4 },
       { LIBSPECTRUM_ID_DISK_FDI,      "fdi", 3, "FDI",              0, 3, 4 },
@@ -738,6 +739,7 @@ libspectrum_identify_class( libspectrum_class_t *libspectrum_class,
     *libspectrum_class = LIBSPECTRUM_CLASS_CARTRIDGE_IF2; return 0;
 
   case LIBSPECTRUM_ID_DISK_UDI:
+  case LIBSPECTRUM_ID_DISK_IPF:
   case LIBSPECTRUM_ID_DISK_FDI:
   case LIBSPECTRUM_ID_DISK_SAD:
   case LIBSPECTRUM_ID_DISK_TD0:
