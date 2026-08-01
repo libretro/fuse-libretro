@@ -372,6 +372,10 @@ extern const int LIBSPECTRUM_BITS_IN_BYTE;
 char*
 libspectrum_safe_strdup( const char *src );
 
+size_t
+libspectrum_parse_dotted_version( const char *string, int *parts,
+                                  size_t count );
+
 /* glib replacement functions */
 
 #ifndef HAVE_LIB_GLIB		/* Only if we are using glib replacement */

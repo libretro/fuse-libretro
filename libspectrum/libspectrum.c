@@ -142,12 +142,8 @@ libspectrum_check_version( const char *version )
   int actual_version[4]   = { 0, 0, 0, 0 },
       required_version[4] = { 0, 0, 0, 0 };
 
-  sscanf( VERSION, "%d.%d.%d.%d",
-	  &actual_version[0], &actual_version[1],
-	  &actual_version[2], &actual_version[3] );
-  sscanf( version, "%d.%d.%d.%d",
-	  &required_version[0], &required_version[1],
-	  &required_version[2], &required_version[3] );
+  libspectrum_parse_dotted_version( VERSION, actual_version, 4 );
+  libspectrum_parse_dotted_version( version, required_version, 4 );
 
   for( i = 0; i < 4; i++ ) {
     

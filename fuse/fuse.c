@@ -423,6 +423,40 @@ static int fuse_init(int argc, char **argv)
   return 0;
 }
 
+/* Parse up to count dot-separated decimal components. Replaces an
+   sscanf( VERSION, "%u.%u.%u.%u" ): the scanf family pulls the whole
+   formatted-input machinery into statically linked builds, which is most of
+   the libretro targets, and it is locale-sensitive where this is not. */
+static size_t
+parse_dotted_version( const char *string, unsigned int *parts, size_t count )
+{
+  size_t found = 0;
+  const char *ptr = string;
+
+  if( !string || !parts ) return 0;
+
+  while( found < count ) {
+
+    unsigned int value = 0;
+    int digits = 0;
+
+    while( *ptr >= '0' && *ptr <= '9' ) {
+      /* The caller clamps to 0xff anyway; just do not wrap getting there */
+      if( value < 100000 ) value = value * 10 + ( *ptr - '0' );
+      ptr++; digits++;
+    }
+
+    if( !digits ) break;
+
+    parts[ found++ ] = value;
+
+    if( *ptr != '.' ) break;
+    ptr++;
+  }
+
+  return found;
+}
+
 static int
 creator_init( void *context )
 {
@@ -435,8 +469,7 @@ creator_init( void *context )
 
   const char *gcrypt_version;
 
-  sscanf( VERSION, "%u.%u.%u.%u",
-	  &version[0], &version[1], &version[2], &version[3] );
+  parse_dotted_version( VERSION, version, 4 );
 
   for( i=0; i<4; i++ ) if( version[i] > 0xff ) version[i] = 0xff;
 

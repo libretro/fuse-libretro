@@ -686,12 +686,13 @@ read_crtr_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 
     libspectrum = strstr( custom, libspectrum_string );
     if( libspectrum ) {
-      int matches, v1, v2, v3;
+      int v[3];
+      size_t matches;
       libspectrum += strlen( libspectrum_string );
-      matches = sscanf( libspectrum, "%d.%d.%d", &v1, &v2, &v3 );
+      matches = libspectrum_parse_dotted_version( libspectrum, v, 3 );
       if( matches == 3 ) {
-        if( v1 == 0 ) {
-          if( v2 < 5 || ( v2 == 5 && v3 == 0 ) ) {
+        if( v[0] == 0 ) {
+          if( v[1] < 5 || ( v[1] == 5 && v[2] == 0 ) ) {
             ctx->swap_af = 1;
           }
         }

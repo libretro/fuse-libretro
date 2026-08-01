@@ -83,3 +83,41 @@ libspectrum_safe_strdup( const char *src )
 
   return dest;
 }
+
+/* Parse up to `count` dot-separated decimal components from `string` into
+   `parts`, returning how many were found. Replaces sscanf( s, "%d.%d.%d" )
+   and friends: the scanf family drags the whole formatted-input machinery
+   into statically linked builds (measured at ~130K on glibc, and the
+   embedded libretro targets are exactly the ones that link statically), and
+   it is locale-sensitive where this is not. Components are unsigned; a
+   missing or non-numeric component stops the scan. */
+size_t
+libspectrum_parse_dotted_version( const char *string, int *parts,
+                                  size_t count )
+{
+  size_t found = 0;
+  const char *ptr = string;
+
+  if( !string || !parts ) return 0;
+
+  while( found < count ) {
+
+    int value = 0;
+    int digits = 0;
+
+    while( *ptr >= '0' && *ptr <= '9' ) {
+      /* Saturate rather than overflow on an absurdly long component */
+      if( value < 100000 ) value = value * 10 + ( *ptr - '0' );
+      ptr++; digits++;
+    }
+
+    if( !digits ) break;
+
+    parts[ found++ ] = value;
+
+    if( *ptr != '.' ) break;
+    ptr++;
+  }
+
+  return found;
+}

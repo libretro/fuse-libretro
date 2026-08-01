@@ -243,8 +243,11 @@ pokemem_read_trainer( const libspectrum_byte **ptr,
   while( cpos < end && ( *cpos != '\0' && *cpos != '\r' && *cpos != '\n' ) )
     cpos++;
 
-  /* trim trailing spaces */
-  clast = cpos;
+  /* trim trailing spaces. Start from the last character that is actually
+     part of the line: cpos is either the terminator or, for a line that
+     runs to the end of the file, one past the buffer - and the buffer is
+     allocated at exactly the file length, with no terminator of its own. */
+  clast = cpos - 1;
   while( clast >= *ptr && isspace( *clast ) )
     clast--;
 
@@ -266,15 +269,51 @@ pokemem_read_trainer( const libspectrum_byte **ptr,
   *ptr = cpos;
 }
 
+/* Read one decimal field of at most max_digits digits, skipping any leading
+   whitespace, and advance *pos past it. Returns 0 when no digit is found.
+   The pos/end pair is carried explicitly because the buffer being parsed is
+   the file contents, allocated at exactly the file length with no
+   terminator: this used to be an sscanf() straight off that buffer, which
+   had nothing to stop it running past the end on a trailing poke line. */
+static int
+pokemem_read_field( const libspectrum_byte **pos, const libspectrum_byte *end,
+                    int max_digits, int *out )
+{
+  const libspectrum_byte *p = *pos;
+  int value = 0, digits = 0;
+
+  while( p < end && ( *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' ) )
+    p++;
+
+  while( p < end && digits < max_digits && *p >= '0' && *p <= '9' ) {
+    value = value * 10 + ( *p - '0' );
+    p++; digits++;
+  }
+
+  if( !digits ) return 0;
+
+  *out = value;
+  *pos = p;
+
+  return 1;
+}
+
 static void
 pokemem_read_poke( const libspectrum_byte **ptr, const libspectrum_byte *end )
 {
-  int bank, address, value, restore;
-  int items;
+  int bank = 0, address = 0, value = 0, restore = 0;
+  int items = 0;
   const libspectrum_byte *cpos = *ptr;
 
-  items = sscanf( (const char *)cpos, "%1d %5d %3d %3d",
-                  &bank, &address, &value, &restore );
+  /* The field widths match the .pok format, and are what the sscanf() this
+     replaced used: bank is a single digit, address up to five, value and
+     restore up to three. Whitespace between fields includes newlines, so a
+     short line still draws its remaining numbers from the next one, exactly
+     as before. */
+  items += pokemem_read_field( &cpos, end, 1, &bank );
+  items += pokemem_read_field( &cpos, end, 5, &address );
+  items += pokemem_read_field( &cpos, end, 3, &value );
+  items += pokemem_read_field( &cpos, end, 3, &restore );
 
   /* skip data */
   pokemem_skip_line( ptr, end );
