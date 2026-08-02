@@ -2467,26 +2467,39 @@ size_t retro_serialize_size(void)
    }
    else
    {
-      /* Hack to keep all snapshots with a fixed size (double of normal snapshot size)*/
-      if (machine->id == LIBSPECTRUM_MACHINE_48       ||
-         machine->id == LIBSPECTRUM_MACHINE_48_NTSC   ||
-         machine->id == LIBSPECTRUM_MACHINE_TC2048    ||
-         machine->id == LIBSPECTRUM_MACHINE_16)
+      /* Hack to keep all snapshots with a fixed size (double of normal
+         snapshot size).
+
+         Keyed off machine_current, not the cached `machine`: that one only
+         ever tracks the fuse_machine core option, while content routinely
+         selects something else - a 128K or +3 snapshot switches the machine
+         on load, utils_open_file() promotes to TC2068 for a Timex
+         cartridge, and a +3 disk pulls in the +3. When the two disagreed
+         this returned the option's size for a larger machine's snapshot,
+         retro_serialize() then rejected every call with "Snapshot size is
+         larger than fixed size", and savestates and rewind silently did
+         nothing. */
+      libspectrum_machine id = machine_current->machine;
+
+      if (id == LIBSPECTRUM_MACHINE_48       ||
+         id == LIBSPECTRUM_MACHINE_48_NTSC   ||
+         id == LIBSPECTRUM_MACHINE_TC2048    ||
+         id == LIBSPECTRUM_MACHINE_16)
          return 2 * 64 * 1024;
-      else if (machine->id == LIBSPECTRUM_MACHINE_128 ||
-         machine->id == LIBSPECTRUM_MACHINE_PLUS2     ||
-         machine->id == LIBSPECTRUM_MACHINE_PLUS2A    ||
-         machine->id == LIBSPECTRUM_MACHINE_PLUS3     ||
-         machine->id == LIBSPECTRUM_MACHINE_PLUS3E    ||
-         machine->id == LIBSPECTRUM_MACHINE_TC2068    ||
-         machine->id == LIBSPECTRUM_MACHINE_TS2068    ||
-         machine->id == LIBSPECTRUM_MACHINE_TS2068    ||
-         machine->id == LIBSPECTRUM_MACHINE_SE        ||
-         machine->id == LIBSPECTRUM_MACHINE_PENT)
+      else if (id == LIBSPECTRUM_MACHINE_128 ||
+         id == LIBSPECTRUM_MACHINE_PLUS2     ||
+         id == LIBSPECTRUM_MACHINE_PLUS2A    ||
+         id == LIBSPECTRUM_MACHINE_PLUS3     ||
+         id == LIBSPECTRUM_MACHINE_PLUS3E    ||
+         id == LIBSPECTRUM_MACHINE_TC2068    ||
+         id == LIBSPECTRUM_MACHINE_TS2068    ||
+         id == LIBSPECTRUM_MACHINE_TS2068    ||
+         id == LIBSPECTRUM_MACHINE_SE        ||
+         id == LIBSPECTRUM_MACHINE_PENT)
          return 2 * 128 * 1024;
-      else if (machine->id == LIBSPECTRUM_MACHINE_SCORP)
+      else if (id == LIBSPECTRUM_MACHINE_SCORP)
          return 2 * 256 * 1024;
-      else if (machine->id == LIBSPECTRUM_MACHINE_PENT512)
+      else if (id == LIBSPECTRUM_MACHINE_PENT512)
          return 2 * 512 * 1024;
       else
          return 2 * 1024 * 1024;

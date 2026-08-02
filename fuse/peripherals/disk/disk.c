@@ -594,8 +594,19 @@ data_add( disk_t *d, buffer_t *buffer, unsigned char *data, int len, int ddam,
 /*------------------------------      data      ------------------------------*/
   if( start_data != NULL ) *start_data = d->i;	/* record data start position */
   if( buffer == NULL ) {
-    memcpy( d->track + d->i, data, len );
-    length = len;
+    /* Callers supply exactly one source: either a buffer to read from, or a
+       plain pointer with data == NULL meaning "none, autofill it". That
+       holds across every call site, but nothing here enforced it, and with
+       both absent this memcpy'd from NULL - which is what GCC reports when
+       it inlines the trackgen() path and cannot prove buffer is non-NULL.
+       Treat "no source at all" as no data available and let the autofill
+       below deal with it. */
+    if( data == NULL ) {
+      length = 0;
+    } else {
+      memcpy( d->track + d->i, data, len );
+      length = len;
+    }
   } else {
     length = buffavail( buffer );
     if( length > len ) length = len;

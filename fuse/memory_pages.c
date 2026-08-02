@@ -655,10 +655,31 @@ memory_rom_to_snapshot( libspectrum_snap *snap )
   libspectrum_snap_set_custom_rom_pages( snap, current_rom_num );
 }
 
+static size_t
+memory_ram_pages_used( void )
+{
+  int capabilities =
+    libspectrum_machine_capabilities( machine_current->machine );
+
+  /* Mirrors the page sets libspectrum's own writers emit. The 16K and 48K
+     machines only use pages 5, 2 and 0, and the 128-style machines 0-7, so
+     eight covers everything below the paged-memory capabilities. */
+  if( capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_PENT1024_MEMORY )
+    return 64;
+  if( capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_PENT512_MEMORY )
+    return 32;
+  if( capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_SCORP_MEMORY )
+    return 16;
+  if( capabilities & LIBSPECTRUM_MACHINE_CAPABILITY_SE_MEMORY )
+    return 9;
+
+  return 8;
+}
+
 static void
 memory_to_snapshot( libspectrum_snap *snap )
 {
-  size_t i;
+  size_t i, pages;
   libspectrum_byte *buffer;
 
   libspectrum_snap_set_out_128_memoryport( snap,
@@ -666,14 +687,22 @@ memory_to_snapshot( libspectrum_snap *snap )
   libspectrum_snap_set_out_plus3_memoryport( snap,
 					     machine_current->ram.last_byte2 );
 
-  for( i = 0; i < 64; i++ ) {
-    if( RAM[i] != NULL ) {
+  /* This used to copy all 64 pages, guarded by "if( RAM[i] != NULL )" - but
+     RAM is a two-dimensional array, so RAM[i] is the address of a row and
+     never NULL, and the guard did nothing. Every snapshot therefore
+     allocated and memcpy'd a megabyte of RAM regardless of the machine,
+     most of which the writers then dropped: both the szx and .z80 page
+     writers derive their page set from the machine capabilities and skip
+     anything the snapshot does not carry. On the libretro side that cost is
+     paid on the rewind path, once per frame. */
+  pages = memory_ram_pages_used();
 
-      buffer = libspectrum_new( libspectrum_byte, 0x4000 );
+  for( i = 0; i < pages; i++ ) {
 
-      memcpy( buffer, RAM[i], 0x4000 );
-      libspectrum_snap_set_pages( snap, i, buffer );
-    }
+    buffer = libspectrum_new( libspectrum_byte, 0x4000 );
+
+    memcpy( buffer, RAM[i], 0x4000 );
+    libspectrum_snap_set_pages( snap, i, buffer );
   }
 
   memory_rom_to_snapshot( snap );
