@@ -57,6 +57,9 @@ extern void* snapshot_buffer;
 extern size_t snapshot_size;
 extern void* tape_data;
 extern size_t tape_size;
+/* The synthetic "*.ext" name the core hands to utils_open_file() to stand
+   for the loaded content. Empty when no content is loaded. */
+extern char tape_wildcard[32];
 extern int joymap[16];
 extern keysyms_map_t keysyms_map[];
 extern uint16_t *palette;

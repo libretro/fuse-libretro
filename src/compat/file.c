@@ -97,9 +97,20 @@ static const entry_t* find_entry(const char *path)
    int i;
    const char *base, *slash;
    
-   // * signals us to load the tape data
+   /* The core stands the loaded content in for a real file by handing
+      utils_open_file() a synthetic name of the form "*.ext", recorded in
+      tape_wildcard. Match that name exactly rather than any path merely
+      beginning with '*': fuse looks for a sidecar poke file by swapping the
+      caller's extension for ".pok", so a probe for "*.pok" used to match
+      here and report that a poke file existed. Nothing in this frontend
+      parses it today, but it would have handed the content to the .pok
+      parser as its own poke file. Sidecar lookups against the real paths an
+      M3U supplies are unaffected - those do not start with '*'. */
    if (path[0] == '*')
    {
+      if (!tape_data || !tape_wildcard[0] || strcmp(path, tape_wildcard))
+         return NULL;
+
       tape.name = NULL;
       tape.ptr = (const unsigned char*)tape_data;
       tape.size = tape_size;

@@ -295,6 +295,7 @@ void*  snapshot_buffer;
 size_t snapshot_size;
 void* tape_data;
 size_t tape_size;
+char tape_wildcard[32];
 int joymap[16];
 uint16_t *palette = palettes[PALETTE_FUSE];
 
@@ -1830,6 +1831,10 @@ bool retro_load_game(const struct retro_game_info *info)
             snprintf(filename, sizeof(filename), "*%s", ext);
             filename[sizeof(filename) - 1] = 0;
 
+            /* Record it so find_entry() can match this exact name rather
+               than any path that merely starts with '*'. */
+            snprintf(tape_wildcard, sizeof(tape_wildcard), "%s", filename);
+
             /*
             ** Deal with a number of special cases to make experience smoother
             */
@@ -1903,6 +1908,7 @@ bool retro_load_game(const struct retro_game_info *info)
          // Load the _BASIC.z80 content to boot to BASIC
          tape_data = NULL;
          tape_size = 0;
+         tape_wildcard[0] = 0;
          num_disk_images = 0;
          current_disk_index = 0;
          disk_tray_ejected = false;
@@ -2435,6 +2441,7 @@ void retro_reset(void)
 
    snprintf(filename, sizeof(filename), "*%s", ext);
    filename[sizeof(filename) - 1] = 0;
+   snprintf(tape_wildcard, sizeof(tape_wildcard), "%s", filename);
 
    fuse_emulation_pause();
    utils_open_file(filename, 1, &type);
@@ -2703,6 +2710,7 @@ void retro_unload_game(void)
    free(tape_data);
    tape_data = NULL;
    tape_size = 0;
+   tape_wildcard[0] = 0;
 }
 
 unsigned retro_get_region(void)
