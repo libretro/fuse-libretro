@@ -33,6 +33,7 @@
 #include "machine.h"
 #include "movie.h"
 #include "options.h"
+#include "peripherals/sound/sp0256.h"
 #include "settings.h"
 #include "sound.h"
 #include "tape.h"
@@ -112,6 +113,8 @@ Blip_Synth *ts_ay_a_synth_r = NULL, *ts_ay_b_synth_r = NULL, *ts_ay_c_synth_r = 
 Blip_Synth *left_specdrum_synth = NULL, *right_specdrum_synth = NULL;
 
 Blip_Synth *left_covox_synth = NULL, *right_covox_synth = NULL;
+
+Blip_Synth *left_sp0256_synth = NULL, *right_sp0256_synth = NULL;
 
 struct speaker_type_tag
 {
@@ -323,6 +326,12 @@ sound_init( const char *device )
   blip_synth_set_output( left_specdrum_synth, left_buf );
   blip_synth_set_treble_eq( left_specdrum_synth, treble );
 
+  left_sp0256_synth = new_Blip_Synth();
+  blip_synth_set_volume( left_sp0256_synth,
+                         sound_get_volume( settings_current.volume_uspeech ) );
+  blip_synth_set_output( left_sp0256_synth, left_buf );
+  blip_synth_set_treble_eq( left_sp0256_synth, treble );
+
   left_covox_synth = new_Blip_Synth();
   blip_synth_set_volume( left_covox_synth,
                          sound_get_volume( settings_current.volume_covox ) );
@@ -335,6 +344,12 @@ sound_init( const char *device )
                            sound_get_volume( settings_current.volume_specdrum ) );
     blip_synth_set_output( right_specdrum_synth, right_buf );
     blip_synth_set_treble_eq( right_specdrum_synth, treble );
+
+    right_sp0256_synth = new_Blip_Synth();
+    blip_synth_set_volume( right_sp0256_synth,
+                           sound_get_volume( settings_current.volume_uspeech ) );
+    blip_synth_set_output( right_sp0256_synth, right_buf );
+    blip_synth_set_treble_eq( right_sp0256_synth, treble );
 
     right_covox_synth = new_Blip_Synth();
     blip_synth_set_volume( right_covox_synth,
@@ -407,6 +422,9 @@ sound_end( void )
 
     delete_Blip_Synth( &left_covox_synth );
     delete_Blip_Synth( &right_covox_synth );
+
+    delete_Blip_Synth( &left_sp0256_synth );
+    delete_Blip_Synth( &right_sp0256_synth );
 
     delete_Blip_Buffer( &left_buf );
     delete_Blip_Buffer( &right_buf );
@@ -721,6 +739,22 @@ sound_specdrum_write( libspectrum_word port GCC_UNUSED, libspectrum_byte val )
 }
 
 /*
+ * sound_sp0256_write - very simple routine
+ * as the output is already a digitized waveform
+ */
+void
+sound_sp0256_write( libspectrum_dword at_tstates, libspectrum_signed_word val )
+{
+  if( !sound_enabled )
+    return;
+
+  blip_synth_update( left_sp0256_synth, at_tstates, val );
+  if( right_sp0256_synth ) {
+    blip_synth_update( right_sp0256_synth, at_tstates, val );
+  }
+}
+
+/*
  * sound_covox_write - very simple routine
  * as the output is already a digitized waveform
  */
@@ -744,6 +778,10 @@ sound_frame( void )
 
   if( !sound_enabled )
     return;
+
+  /* Let the SP0256 catch up to the end of the frame before the buffers are
+     closed off, so any speech generated during it lands in this frame. */
+  sp0256_do_frame();
 
   /* overlay AY sound */
   sound_ay_overlay( 0 );

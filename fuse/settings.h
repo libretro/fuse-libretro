@@ -208,6 +208,7 @@ typedef struct settings_info {
   char *rom_scorpion_1;
   char *rom_scorpion_2;
   char *rom_scorpion_3;
+  char *rom_sp0256;
   char *rom_spec_se_0;
   char *rom_spec_se_1;
   char *rom_speccyboot;
@@ -218,6 +219,7 @@ typedef struct settings_info {
   char *rom_ts2068_1;
   char *rom_ttx2000s;
   char *rom_usource;
+  char *rom_uspeech;
    int rs232_handshake;
   char *rs232_rx;
   char *rs232_tx;
@@ -260,10 +262,12 @@ typedef struct settings_info {
    int ttx2000s;
    int unittests;
    int usource;
+   int uspeech;
    int volume_ay;
    int volume_beeper;
    int volume_covox;
    int volume_specdrum;
+   int volume_uspeech;
    int writable_roms;
    int z80_is_cmos;
    int zxatasp_active;

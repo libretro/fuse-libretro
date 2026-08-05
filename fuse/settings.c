@@ -253,6 +253,7 @@ settings_info settings_default = {
   /* rom_scorpion_1 */ (char *)"256s-1.rom",
   /* rom_scorpion_2 */ (char *)"256s-2.rom",
   /* rom_scorpion_3 */ (char *)"256s-3.rom",
+  /* rom_sp0256 */ (char *)"sp0256-al2.bin",
   /* rom_spec_se_0 */ (char *)"se-0.rom",
   /* rom_spec_se_1 */ (char *)"se-1.rom",
   /* rom_speccyboot */ (char *)"speccyboot-1.4.rom",
@@ -263,6 +264,7 @@ settings_info settings_default = {
   /* rom_ts2068_1 */ (char *)"tc2068-1.rom",
   /* rom_ttx2000s */ (char *)"ttx2000s.rom",
   /* rom_usource */ (char *)"usource.rom",
+  /* rom_uspeech */ (char *)"uspeech.rom",
   /* rs232_handshake */ 0,
   /* rs232_rx */ (char *)NULL,
   /* rs232_tx */ (char *)NULL,
@@ -305,10 +307,12 @@ settings_info settings_default = {
   /* ttx2000s */ 0,
   /* unittests */ 0,
   /* usource */ 0,
+  /* uspeech */ 0,
   /* volume_ay */ 100,
   /* volume_beeper */ 100,
   /* volume_covox */ 100,
   /* volume_specdrum */ 100,
+  /* volume_uspeech */ 50,
   /* writable_roms */ 0,
   /* z80_is_cmos */ 0,
   /* zxatasp_active */ 0,
@@ -1752,6 +1756,14 @@ parse_xml( xmlDocPtr doc, settings_info *settings )
         xmlFree( xmlstring );
       }
     } else
+    if( !strcmp( (const char*)node->name, "romsp0256" ) ) {
+      xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
+      if( xmlstring ) {
+        libspectrum_free( settings->rom_sp0256 );
+        settings->rom_sp0256 = utils_safe_strdup( (char*)xmlstring );
+        xmlFree( xmlstring );
+      }
+    } else
     if( !strcmp( (const char*)node->name, "romspecse0" ) ) {
       xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
       if( xmlstring ) {
@@ -1829,6 +1841,14 @@ parse_xml( xmlDocPtr doc, settings_info *settings )
       if( xmlstring ) {
         libspectrum_free( settings->rom_usource );
         settings->rom_usource = utils_safe_strdup( (char*)xmlstring );
+        xmlFree( xmlstring );
+      }
+    } else
+    if( !strcmp( (const char*)node->name, "romuspeech" ) ) {
+      xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
+      if( xmlstring ) {
+        libspectrum_free( settings->rom_uspeech );
+        settings->rom_uspeech = utils_safe_strdup( (char*)xmlstring );
         xmlFree( xmlstring );
       }
     } else
@@ -2148,6 +2168,13 @@ parse_xml( xmlDocPtr doc, settings_info *settings )
         xmlFree( xmlstring );
       }
     } else
+    if( !strcmp( (const char*)node->name, "uspeech" ) ) {
+      xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
+      if( xmlstring ) {
+        settings->uspeech = atoi( (char*)xmlstring );
+        xmlFree( xmlstring );
+      }
+    } else
     if( !strcmp( (const char*)node->name, "volumeay" ) ) {
       xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
       if( xmlstring ) {
@@ -2173,6 +2200,13 @@ parse_xml( xmlDocPtr doc, settings_info *settings )
       xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
       if( xmlstring ) {
         settings->volume_specdrum = atoi( (char*)xmlstring );
+        xmlFree( xmlstring );
+      }
+    } else
+    if( !strcmp( (const char*)node->name, "volumeuspeech" ) ) {
+      xmlstring = xmlNodeListGetString( doc, node->xmlChildrenNode, 1 );
+      if( xmlstring ) {
+        settings->volume_uspeech = atoi( (char*)xmlstring );
         xmlFree( xmlstring );
       }
     } else
@@ -2610,6 +2644,8 @@ settings_write_config( settings_info *settings )
     xmlNewTextChild( root, NULL, (const xmlChar*)"romscorpion2", (const xmlChar*)settings->rom_scorpion_2 );
   if( settings->rom_scorpion_3 )
     xmlNewTextChild( root, NULL, (const xmlChar*)"romscorpion3", (const xmlChar*)settings->rom_scorpion_3 );
+  if( settings->rom_sp0256 )
+    xmlNewTextChild( root, NULL, (const xmlChar*)"romsp0256", (const xmlChar*)settings->rom_sp0256 );
   if( settings->rom_spec_se_0 )
     xmlNewTextChild( root, NULL, (const xmlChar*)"romspecse0", (const xmlChar*)settings->rom_spec_se_0 );
   if( settings->rom_spec_se_1 )
@@ -2630,6 +2666,8 @@ settings_write_config( settings_info *settings )
     xmlNewTextChild( root, NULL, (const xmlChar*)"romttx2000s", (const xmlChar*)settings->rom_ttx2000s );
   if( settings->rom_usource )
     xmlNewTextChild( root, NULL, (const xmlChar*)"romusource", (const xmlChar*)settings->rom_usource );
+  if( settings->rom_uspeech )
+    xmlNewTextChild( root, NULL, (const xmlChar*)"romuspeech", (const xmlChar*)settings->rom_uspeech );
   xmlNewTextChild( root, NULL, (const xmlChar*)"rs232handshake", (const xmlChar*)(settings->rs232_handshake ? "1" : "0") );
   if( settings->rs232_rx )
     xmlNewTextChild( root, NULL, (const xmlChar*)"rs232rx", (const xmlChar*)settings->rs232_rx );
@@ -2696,6 +2734,7 @@ settings_write_config( settings_info *settings )
   xmlNewTextChild( root, NULL, (const xmlChar*)"ttx2000s", (const xmlChar*)(settings->ttx2000s ? "1" : "0") );
   xmlNewTextChild( root, NULL, (const xmlChar*)"unittests", (const xmlChar*)(settings->unittests ? "1" : "0") );
   xmlNewTextChild( root, NULL, (const xmlChar*)"usource", (const xmlChar*)(settings->usource ? "1" : "0") );
+  xmlNewTextChild( root, NULL, (const xmlChar*)"uspeech", (const xmlChar*)(settings->uspeech ? "1" : "0") );
   snprintf( buffer, 80, "%d", settings->volume_ay );
   xmlNewTextChild( root, NULL, (const xmlChar*)"volumeay", (const xmlChar*)buffer );
   snprintf( buffer, 80, "%d", settings->volume_beeper );
@@ -2704,6 +2743,8 @@ settings_write_config( settings_info *settings )
   xmlNewTextChild( root, NULL, (const xmlChar*)"volumecovox", (const xmlChar*)buffer );
   snprintf( buffer, 80, "%d", settings->volume_specdrum );
   xmlNewTextChild( root, NULL, (const xmlChar*)"volumespecdrum", (const xmlChar*)buffer );
+  snprintf( buffer, 80, "%d", settings->volume_uspeech );
+  xmlNewTextChild( root, NULL, (const xmlChar*)"volumeuspeech", (const xmlChar*)buffer );
   xmlNewTextChild( root, NULL, (const xmlChar*)"writableroms", (const xmlChar*)(settings->writable_roms ? "1" : "0") );
   xmlNewTextChild( root, NULL, (const xmlChar*)"cmosz80", (const xmlChar*)(settings->z80_is_cmos ? "1" : "0") );
   xmlNewTextChild( root, NULL, (const xmlChar*)"zxatasp", (const xmlChar*)(settings->zxatasp_active ? "1" : "0") );
@@ -3523,6 +3564,10 @@ settings_var( settings_info *settings, unsigned char *name, unsigned char *last,
     *val_char = &settings->rom_scorpion_3;
     return 0;
   }
+  if( n == 9 && !strncmp( (const char *)name, "romsp0256", n ) ) {
+    *val_char = &settings->rom_sp0256;
+    return 0;
+  }
   if( n == 10 && !strncmp( (const char *)name, "romspecse0", n ) ) {
     *val_char = &settings->rom_spec_se_0;
     return 0;
@@ -3561,6 +3606,10 @@ settings_var( settings_info *settings, unsigned char *name, unsigned char *last,
   }
   if( n == 10 && !strncmp( (const char *)name, "romusource", n ) ) {
     *val_char = &settings->rom_usource;
+    return 0;
+  }
+  if( n == 10 && !strncmp( (const char *)name, "romuspeech", n ) ) {
+    *val_char = &settings->rom_uspeech;
     return 0;
   }
   if( n == 14 && !strncmp( (const char *)name, "rs232handshake", n ) ) {
@@ -3735,6 +3784,10 @@ settings_var( settings_info *settings, unsigned char *name, unsigned char *last,
     *val_int = &settings->usource;
     return 0;
   }
+  if( n == 7 && !strncmp( (const char *)name, "uspeech", n ) ) {
+    *val_int = &settings->uspeech;
+    return 0;
+  }
   if( n == 8 && !strncmp( (const char *)name, "volumeay", n ) ) {
     *val_int = &settings->volume_ay;
     return 0;
@@ -3749,6 +3802,10 @@ settings_var( settings_info *settings, unsigned char *name, unsigned char *last,
   }
   if( n == 14 && !strncmp( (const char *)name, "volumespecdrum", n ) ) {
     *val_int = &settings->volume_specdrum;
+    return 0;
+  }
+  if( n == 13 && !strncmp( (const char *)name, "volumeuspeech", n ) ) {
+    *val_int = &settings->volume_uspeech;
     return 0;
   }
   if( n == 12 && !strncmp( (const char *)name, "writableroms", n ) ) {
@@ -4442,6 +4499,9 @@ settings_write_config( settings_info *settings )
   if( settings_string_write( doc, "romscorpion3",
                              settings->rom_scorpion_3 ) )
     goto error;
+  if( settings_string_write( doc, "romsp0256",
+                             settings->rom_sp0256 ) )
+    goto error;
   if( settings_string_write( doc, "romspecse0",
                              settings->rom_spec_se_0 ) )
     goto error;
@@ -4471,6 +4531,9 @@ settings_write_config( settings_info *settings )
     goto error;
   if( settings_string_write( doc, "romusource",
                              settings->rom_usource ) )
+    goto error;
+  if( settings_string_write( doc, "romuspeech",
+                             settings->rom_uspeech ) )
     goto error;
   if( settings_boolean_write( doc, "rs232handshake",
                               settings->rs232_handshake ) )
@@ -4598,6 +4661,9 @@ settings_write_config( settings_info *settings )
   if( settings_boolean_write( doc, "usource",
                               settings->usource ) )
     goto error;
+  if( settings_boolean_write( doc, "uspeech",
+                              settings->uspeech ) )
+    goto error;
   if( settings_numeric_write( doc, "volumeay",
                               settings->volume_ay ) )
     goto error;
@@ -4609,6 +4675,9 @@ settings_write_config( settings_info *settings )
     goto error;
   if( settings_numeric_write( doc, "volumespecdrum",
                               settings->volume_specdrum ) )
+    goto error;
+  if( settings_numeric_write( doc, "volumeuspeech",
+                              settings->volume_uspeech ) )
     goto error;
   if( settings_boolean_write( doc, "writableroms",
                               settings->writable_roms ) )
@@ -4898,33 +4967,35 @@ settings_command_line( settings_info *settings, int *first_arg,
     { "rom-scorpion-1", 1, NULL, 382 },
     { "rom-scorpion-2", 1, NULL, 383 },
     { "rom-scorpion-3", 1, NULL, 384 },
-    { "rom-spec-se-0", 1, NULL, 385 },
-    { "rom-spec-se-1", 1, NULL, 386 },
-    { "rom-speccyboot", 1, NULL, 387 },
-    { "rom-tc2048", 1, NULL, 388 },
-    { "rom-tc2068-0", 1, NULL, 389 },
-    { "rom-tc2068-1", 1, NULL, 390 },
-    { "rom-ts2068-0", 1, NULL, 391 },
-    { "rom-ts2068-1", 1, NULL, 392 },
-    { "rom-ttx2000s", 1, NULL, 393 },
-    { "rom-usource", 1, NULL, 394 },
+    { "rom-sp0256", 1, NULL, 385 },
+    { "rom-spec-se-0", 1, NULL, 386 },
+    { "rom-spec-se-1", 1, NULL, 387 },
+    { "rom-speccyboot", 1, NULL, 388 },
+    { "rom-tc2048", 1, NULL, 389 },
+    { "rom-tc2068-0", 1, NULL, 390 },
+    { "rom-tc2068-1", 1, NULL, 391 },
+    { "rom-ts2068-0", 1, NULL, 392 },
+    { "rom-ts2068-1", 1, NULL, 393 },
+    { "rom-ttx2000s", 1, NULL, 394 },
+    { "rom-usource", 1, NULL, 395 },
+    { "rom-uspeech", 1, NULL, 396 },
     {    "rs232-handshake", 0, &(settings->rs232_handshake), 1 },
     { "no-rs232-handshake", 0, &(settings->rs232_handshake), 0 },
-    { "rs232-rx", 1, NULL, 395 },
-    { "rs232-tx", 1, NULL, 396 },
+    { "rs232-rx", 1, NULL, 397 },
+    { "rs232-tx", 1, NULL, 398 },
     {    "rzx-autosaves", 0, &(settings->rzx_autosaves), 1 },
     { "no-rzx-autosaves", 0, &(settings->rzx_autosaves), 0 },
     {    "compress-rzx", 0, &(settings->rzx_compression), 1 },
     { "no-compress-rzx", 0, &(settings->rzx_compression), 0 },
-    { "sdl-fullscreen-mode", 1, NULL, 397 },
+    { "sdl-fullscreen-mode", 1, NULL, 399 },
     {    "simpleide", 0, &(settings->simpleide_active), 1 },
     { "no-simpleide", 0, &(settings->simpleide_active), 0 },
-    { "simpleide-masterfile", 1, NULL, 398 },
-    { "simpleide-slavefile", 1, NULL, 399 },
+    { "simpleide-masterfile", 1, NULL, 400 },
+    { "simpleide-slavefile", 1, NULL, 401 },
     {    "slt", 0, &(settings->slt_traps), 1 },
     { "no-slt", 0, &(settings->slt_traps), 0 },
     { "snapshot", 1, NULL, 's' },
-    { "snet", 1, NULL, 401 },
+    { "snet", 1, NULL, 403 },
     {    "sound", 0, &(settings->sound), 1 },
     { "no-sound", 0, &(settings->sound), 0 },
     { "sound-device", 1, NULL, 'd' },
@@ -4933,10 +5004,10 @@ settings_command_line( settings_info *settings, int *first_arg,
     { "sound-freq", 1, NULL, 'f' },
     {    "loading-sound", 0, &(settings->sound_load), 1 },
     { "no-loading-sound", 0, &(settings->sound_load), 0 },
-    { "speaker-type", 1, NULL, 402 },
+    { "speaker-type", 1, NULL, 404 },
     {    "speccyboot", 0, &(settings->speccyboot), 1 },
     { "no-speccyboot", 0, &(settings->speccyboot), 0 },
-    { "speccyboot-tap", 1, NULL, 403 },
+    { "speccyboot-tap", 1, NULL, 405 },
     {    "specdrum", 0, &(settings->specdrum), 1 },
     { "no-specdrum", 0, &(settings->specdrum), 0 },
     {    "spectranet", 0, &(settings->spectranet), 1 },
@@ -4947,51 +5018,54 @@ settings_command_line( settings_info *settings, int *first_arg,
     { "graphics-filter", 1, NULL, 'g' },
     {    "statusbar", 0, &(settings->statusbar), 1 },
     { "no-statusbar", 0, &(settings->statusbar), 0 },
-    { "separation", 1, NULL, 404 },
+    { "separation", 1, NULL, 406 },
     {    "strict-aspect-hint", 0, &(settings->strict_aspect_hint), 1 },
     { "no-strict-aspect-hint", 0, &(settings->strict_aspect_hint), 0 },
-    { "svga-modes", 1, NULL, 405 },
+    { "svga-modes", 1, NULL, 407 },
     { "tape", 1, NULL, 't' },
     {    "traps", 0, &(settings->tape_traps), 1 },
     { "no-traps", 0, &(settings->tape_traps), 0 },
-    { "teletext-addr-1", 1, NULL, 406 },
-    { "teletext-addr-2", 1, NULL, 407 },
-    { "teletext-addr-3", 1, NULL, 408 },
-    { "teletext-addr-4", 1, NULL, 409 },
-    { "teletext-port-1", 1, NULL, 410 },
-    { "teletext-port-2", 1, NULL, 411 },
-    { "teletext-port-3", 1, NULL, 412 },
-    { "teletext-port-4", 1, NULL, 413 },
+    { "teletext-addr-1", 1, NULL, 408 },
+    { "teletext-addr-2", 1, NULL, 409 },
+    { "teletext-addr-3", 1, NULL, 410 },
+    { "teletext-addr-4", 1, NULL, 411 },
+    { "teletext-port-1", 1, NULL, 412 },
+    { "teletext-port-2", 1, NULL, 413 },
+    { "teletext-port-3", 1, NULL, 414 },
+    { "teletext-port-4", 1, NULL, 415 },
     {    "ttx2000s", 0, &(settings->ttx2000s), 1 },
     { "no-ttx2000s", 0, &(settings->ttx2000s), 0 },
     {    "unittests", 0, &(settings->unittests), 1 },
     { "no-unittests", 0, &(settings->unittests), 0 },
     {    "usource", 0, &(settings->usource), 1 },
     { "no-usource", 0, &(settings->usource), 0 },
-    { "volume-ay", 1, NULL, 414 },
-    { "volume-beeper", 1, NULL, 415 },
-    { "volume-covox", 1, NULL, 416 },
-    { "volume-specdrum", 1, NULL, 417 },
+    {    "uspeech", 0, &(settings->uspeech), 1 },
+    { "no-uspeech", 0, &(settings->uspeech), 0 },
+    { "volume-ay", 1, NULL, 416 },
+    { "volume-beeper", 1, NULL, 417 },
+    { "volume-covox", 1, NULL, 418 },
+    { "volume-specdrum", 1, NULL, 419 },
+    { "volume-uspeech", 1, NULL, 420 },
     {    "writable-roms", 0, &(settings->writable_roms), 1 },
     { "no-writable-roms", 0, &(settings->writable_roms), 0 },
     {    "cmos-z80", 0, &(settings->z80_is_cmos), 1 },
     { "no-cmos-z80", 0, &(settings->z80_is_cmos), 0 },
     {    "zxatasp", 0, &(settings->zxatasp_active), 1 },
     { "no-zxatasp", 0, &(settings->zxatasp_active), 0 },
-    { "zxatasp-masterfile", 1, NULL, 418 },
-    { "zxatasp-slavefile", 1, NULL, 419 },
+    { "zxatasp-masterfile", 1, NULL, 421 },
+    { "zxatasp-slavefile", 1, NULL, 422 },
     {    "zxatasp-upload", 0, &(settings->zxatasp_upload), 1 },
     { "no-zxatasp-upload", 0, &(settings->zxatasp_upload), 0 },
     {    "zxatasp-write-protect", 0, &(settings->zxatasp_wp), 1 },
     { "no-zxatasp-write-protect", 0, &(settings->zxatasp_wp), 0 },
     {    "zxcf", 0, &(settings->zxcf_active), 1 },
     { "no-zxcf", 0, &(settings->zxcf_active), 0 },
-    { "zxcf-cffile", 1, NULL, 420 },
+    { "zxcf-cffile", 1, NULL, 423 },
     {    "zxcf-upload", 0, &(settings->zxcf_upload), 1 },
     { "no-zxcf-upload", 0, &(settings->zxcf_upload), 0 },
     {    "zxmmc", 0, &(settings->zxmmc_enabled), 1 },
     { "no-zxmmc", 0, &(settings->zxmmc_enabled), 0 },
-    { "zxmmc-file", 1, NULL, 421 },
+    { "zxmmc-file", 1, NULL, 424 },
     {    "zxprinter", 0, &(settings->zxprinter), 1 },
     { "no-zxprinter", 0, &(settings->zxprinter), 0 },
 #line 631"settings.pl"
@@ -5152,48 +5226,51 @@ settings_command_line( settings_info *settings, int *first_arg,
     case 382: settings_set_string( &settings->rom_scorpion_1, optarg ); break;
     case 383: settings_set_string( &settings->rom_scorpion_2, optarg ); break;
     case 384: settings_set_string( &settings->rom_scorpion_3, optarg ); break;
-    case 385: settings_set_string( &settings->rom_spec_se_0, optarg ); break;
-    case 386: settings_set_string( &settings->rom_spec_se_1, optarg ); break;
-    case 387: settings_set_string( &settings->rom_speccyboot, optarg ); break;
-    case 388: settings_set_string( &settings->rom_tc2048, optarg ); break;
-    case 389: settings_set_string( &settings->rom_tc2068_0, optarg ); break;
-    case 390: settings_set_string( &settings->rom_tc2068_1, optarg ); break;
-    case 391: settings_set_string( &settings->rom_ts2068_0, optarg ); break;
-    case 392: settings_set_string( &settings->rom_ts2068_1, optarg ); break;
-    case 393: settings_set_string( &settings->rom_ttx2000s, optarg ); break;
-    case 394: settings_set_string( &settings->rom_usource, optarg ); break;
-    case 395: settings_set_string( &settings->rs232_rx, optarg ); break;
-    case 396: settings_set_string( &settings->rs232_tx, optarg ); break;
-    case 397: settings_set_string( &settings->sdl_fullscreen_mode, optarg ); break;
-    case 398: settings_set_string( &settings->simpleide_master_file, optarg ); break;
-    case 399: settings_set_string( &settings->simpleide_slave_file, optarg ); break;
+    case 385: settings_set_string( &settings->rom_sp0256, optarg ); break;
+    case 386: settings_set_string( &settings->rom_spec_se_0, optarg ); break;
+    case 387: settings_set_string( &settings->rom_spec_se_1, optarg ); break;
+    case 388: settings_set_string( &settings->rom_speccyboot, optarg ); break;
+    case 389: settings_set_string( &settings->rom_tc2048, optarg ); break;
+    case 390: settings_set_string( &settings->rom_tc2068_0, optarg ); break;
+    case 391: settings_set_string( &settings->rom_tc2068_1, optarg ); break;
+    case 392: settings_set_string( &settings->rom_ts2068_0, optarg ); break;
+    case 393: settings_set_string( &settings->rom_ts2068_1, optarg ); break;
+    case 394: settings_set_string( &settings->rom_ttx2000s, optarg ); break;
+    case 395: settings_set_string( &settings->rom_usource, optarg ); break;
+    case 396: settings_set_string( &settings->rom_uspeech, optarg ); break;
+    case 397: settings_set_string( &settings->rs232_rx, optarg ); break;
+    case 398: settings_set_string( &settings->rs232_tx, optarg ); break;
+    case 399: settings_set_string( &settings->sdl_fullscreen_mode, optarg ); break;
+    case 400: settings_set_string( &settings->simpleide_master_file, optarg ); break;
+    case 401: settings_set_string( &settings->simpleide_slave_file, optarg ); break;
     case 's': settings_set_string( &settings->snapshot, optarg ); break;
-    case 401: settings_set_string( &settings->snet, optarg ); break;
+    case 403: settings_set_string( &settings->snet, optarg ); break;
     case 'd': settings_set_string( &settings->sound_device, optarg ); break;
     case 'f': settings->sound_freq = atoi( optarg ); break;
-    case 402: settings_set_string( &settings->speaker_type, optarg ); break;
-    case 403: settings_set_string( &settings->speccyboot_tap, optarg ); break;
+    case 404: settings_set_string( &settings->speaker_type, optarg ); break;
+    case 405: settings_set_string( &settings->speccyboot_tap, optarg ); break;
     case 'm': settings_set_string( &settings->start_machine, optarg ); break;
     case 'g': settings_set_string( &settings->start_scaler_mode, optarg ); break;
-    case 404: settings_set_string( &settings->stereo_ay, optarg ); break;
-    case 405: settings_set_string( &settings->svga_modes, optarg ); break;
+    case 406: settings_set_string( &settings->stereo_ay, optarg ); break;
+    case 407: settings_set_string( &settings->svga_modes, optarg ); break;
     case 't': settings_set_string( &settings->tape_file, optarg ); break;
-    case 406: settings_set_string( &settings->teletext_addr_1, optarg ); break;
-    case 407: settings_set_string( &settings->teletext_addr_2, optarg ); break;
-    case 408: settings_set_string( &settings->teletext_addr_3, optarg ); break;
-    case 409: settings_set_string( &settings->teletext_addr_4, optarg ); break;
-    case 410: settings->teletext_port_1 = atoi( optarg ); break;
-    case 411: settings->teletext_port_2 = atoi( optarg ); break;
-    case 412: settings->teletext_port_3 = atoi( optarg ); break;
-    case 413: settings->teletext_port_4 = atoi( optarg ); break;
-    case 414: settings->volume_ay = atoi( optarg ); break;
-    case 415: settings->volume_beeper = atoi( optarg ); break;
-    case 416: settings->volume_covox = atoi( optarg ); break;
-    case 417: settings->volume_specdrum = atoi( optarg ); break;
-    case 418: settings_set_string( &settings->zxatasp_master_file, optarg ); break;
-    case 419: settings_set_string( &settings->zxatasp_slave_file, optarg ); break;
-    case 420: settings_set_string( &settings->zxcf_pri_file, optarg ); break;
-    case 421: settings_set_string( &settings->zxmmc_file, optarg ); break;
+    case 408: settings_set_string( &settings->teletext_addr_1, optarg ); break;
+    case 409: settings_set_string( &settings->teletext_addr_2, optarg ); break;
+    case 410: settings_set_string( &settings->teletext_addr_3, optarg ); break;
+    case 411: settings_set_string( &settings->teletext_addr_4, optarg ); break;
+    case 412: settings->teletext_port_1 = atoi( optarg ); break;
+    case 413: settings->teletext_port_2 = atoi( optarg ); break;
+    case 414: settings->teletext_port_3 = atoi( optarg ); break;
+    case 415: settings->teletext_port_4 = atoi( optarg ); break;
+    case 416: settings->volume_ay = atoi( optarg ); break;
+    case 417: settings->volume_beeper = atoi( optarg ); break;
+    case 418: settings->volume_covox = atoi( optarg ); break;
+    case 419: settings->volume_specdrum = atoi( optarg ); break;
+    case 420: settings->volume_uspeech = atoi( optarg ); break;
+    case 421: settings_set_string( &settings->zxatasp_master_file, optarg ); break;
+    case 422: settings_set_string( &settings->zxatasp_slave_file, optarg ); break;
+    case 423: settings_set_string( &settings->zxcf_pri_file, optarg ); break;
+    case 424: settings_set_string( &settings->zxmmc_file, optarg ); break;
 #line 681"settings.pl"
 
     case 'h': settings->show_help = 1; break;
@@ -5658,6 +5735,10 @@ settings_copy_internal( settings_info *dest, settings_info *src )
   if( src->rom_scorpion_3 ) {
     dest->rom_scorpion_3 = utils_safe_strdup( src->rom_scorpion_3 );
   }
+  dest->rom_sp0256 = NULL;
+  if( src->rom_sp0256 ) {
+    dest->rom_sp0256 = utils_safe_strdup( src->rom_sp0256 );
+  }
   dest->rom_spec_se_0 = NULL;
   if( src->rom_spec_se_0 ) {
     dest->rom_spec_se_0 = utils_safe_strdup( src->rom_spec_se_0 );
@@ -5697,6 +5778,10 @@ settings_copy_internal( settings_info *dest, settings_info *src )
   dest->rom_usource = NULL;
   if( src->rom_usource ) {
     dest->rom_usource = utils_safe_strdup( src->rom_usource );
+  }
+  dest->rom_uspeech = NULL;
+  if( src->rom_uspeech ) {
+    dest->rom_uspeech = utils_safe_strdup( src->rom_uspeech );
   }
   dest->rs232_handshake = src->rs232_handshake;
   dest->rs232_rx = NULL;
@@ -5797,10 +5882,12 @@ settings_copy_internal( settings_info *dest, settings_info *src )
   dest->ttx2000s = src->ttx2000s;
   dest->unittests = src->unittests;
   dest->usource = src->usource;
+  dest->uspeech = src->uspeech;
   dest->volume_ay = src->volume_ay;
   dest->volume_beeper = src->volume_beeper;
   dest->volume_covox = src->volume_covox;
   dest->volume_specdrum = src->volume_specdrum;
+  dest->volume_uspeech = src->volume_uspeech;
   dest->writable_roms = src->writable_roms;
   dest->z80_is_cmos = src->z80_is_cmos;
   dest->zxatasp_active = src->zxatasp_active;
@@ -6003,6 +6090,7 @@ settings_free( settings_info *settings )
   if( settings->rom_scorpion_1 ) { libspectrum_free( settings->rom_scorpion_1 ); settings->rom_scorpion_1 = NULL; }
   if( settings->rom_scorpion_2 ) { libspectrum_free( settings->rom_scorpion_2 ); settings->rom_scorpion_2 = NULL; }
   if( settings->rom_scorpion_3 ) { libspectrum_free( settings->rom_scorpion_3 ); settings->rom_scorpion_3 = NULL; }
+  if( settings->rom_sp0256 ) { libspectrum_free( settings->rom_sp0256 ); settings->rom_sp0256 = NULL; }
   if( settings->rom_spec_se_0 ) { libspectrum_free( settings->rom_spec_se_0 ); settings->rom_spec_se_0 = NULL; }
   if( settings->rom_spec_se_1 ) { libspectrum_free( settings->rom_spec_se_1 ); settings->rom_spec_se_1 = NULL; }
   if( settings->rom_speccyboot ) { libspectrum_free( settings->rom_speccyboot ); settings->rom_speccyboot = NULL; }
@@ -6013,6 +6101,7 @@ settings_free( settings_info *settings )
   if( settings->rom_ts2068_1 ) { libspectrum_free( settings->rom_ts2068_1 ); settings->rom_ts2068_1 = NULL; }
   if( settings->rom_ttx2000s ) { libspectrum_free( settings->rom_ttx2000s ); settings->rom_ttx2000s = NULL; }
   if( settings->rom_usource ) { libspectrum_free( settings->rom_usource ); settings->rom_usource = NULL; }
+  if( settings->rom_uspeech ) { libspectrum_free( settings->rom_uspeech ); settings->rom_uspeech = NULL; }
   if( settings->rs232_rx ) { libspectrum_free( settings->rs232_rx ); settings->rs232_rx = NULL; }
   if( settings->rs232_tx ) { libspectrum_free( settings->rs232_tx ); settings->rs232_tx = NULL; }
   if( settings->sdl_fullscreen_mode ) { libspectrum_free( settings->sdl_fullscreen_mode ); settings->sdl_fullscreen_mode = NULL; }

@@ -285,6 +285,11 @@ disk_ask_merge, boolean, 1
 
 debugger_command, string, NULL
 
+uspeech, boolean, 0
+rom_uspeech, string, "uspeech.rom"
+rom_sp0256, string, "sp0256-al2.bin"
+volume_uspeech, numeric, 50
+
 teletext_addr_1, string, "127.0.0.1"
 teletext_addr_2, string, "127.0.0.1"
 teletext_addr_3, string, "127.0.0.1"

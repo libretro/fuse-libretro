@@ -109,6 +109,8 @@ SOURCES_C += $(CORE_DIR)/fuse/peripherals/multiface.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/ttx2000s.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/usource.c
 SOURCES_C += $(CORE_DIR)/fuse/peripherals/covox.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/sound/sp0256.c
+SOURCES_C += $(CORE_DIR)/fuse/peripherals/sound/uspeech.c
 
 SOURCES_C += $(CORE_DIR)/fuse/pokefinder/pokefinder.c
 SOURCES_C += $(CORE_DIR)/fuse/pokefinder/pokemem.c
