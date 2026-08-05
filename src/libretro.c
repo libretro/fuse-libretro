@@ -296,6 +296,12 @@ static char initial_disk_path_hint[MAX_DISK_PATH_LEN];
 // allow access to variables declared here
 double total_time_ms;
 retro_environment_t env_cb;
+
+/* The frontend's system directory, or "" when it offers none. Fuse looks for
+   auxiliary files it does not have baked in - currently the two Currah
+   uSpeech ROMs, which cannot be distributed with the core - by bare name,
+   and compat_get_next_path() offers this as a search location. */
+char system_dir[PATH_MAX] = "";
 retro_log_printf_t log_cb = dummy_log;
 retro_audio_sample_batch_t audio_cb;
 retro_input_state_t input_state_cb;
@@ -1404,6 +1410,25 @@ void retro_set_environment(retro_environment_t cb)
    struct retro_vfs_interface_info vfs_iface_info;
 
    env_cb = cb;
+
+   /* Ask once, here rather than in retro_init(), because the frontend is
+      required to answer this before retro_init() and Fuse resolves ROM
+      paths during fuse_init(). A frontend that declines, or hands back
+      NULL, leaves system_dir empty and every lookup falls back to the
+      baked-in assets exactly as before. */
+   {
+      const char *dir = NULL;
+
+      if (cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir && *dir)
+      {
+         strncpy(system_dir, dir, sizeof(system_dir) - 1);
+         system_dir[sizeof(system_dir) - 1] = 0;
+      }
+      else
+      {
+         system_dir[0] = 0;
+      }
+   }
 
    /* Hand the frontend's VFS to libretro-common's filestream layer, which
       every file access in this core goes through. Ask for the newest

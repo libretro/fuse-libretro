@@ -35,6 +35,7 @@
 // From the core
 extern double total_time_ms;
 extern retro_environment_t env_cb;
+extern char system_dir[PATH_MAX];
 extern retro_log_printf_t log_cb;
 extern retro_audio_sample_batch_t audio_cb;
 extern retro_input_state_t input_state_cb;
