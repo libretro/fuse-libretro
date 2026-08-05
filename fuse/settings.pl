@@ -96,11 +96,17 @@ print hashline( __LINE__ ), << 'CODE';
 #include "utils.h"
 
 /* The name of our configuration file */
-#ifdef WIN32
+#if defined (WIN32) || defined (__PS3__)
 #define CONFIG_FILE_NAME "fuse.cfg"
 #else				/* #ifdef WIN32 */
 #define CONFIG_FILE_NAME ".fuserc"
 #endif				/* #ifdef WIN32 */
+
+/* This core is configured entirely through libretro core options and never
+   parses a command line, so there is no getopt_long() to call. Stub it out
+   rather than dragging in a getopt implementation that can only ever return
+   "no more options". */
+#define getopt_long(argc, argv, optstring, longopts, longindex) (-1)
 
 /* The current settings of options, etc */
 settings_info settings_current;
@@ -147,8 +153,15 @@ settings_init( int *first_arg, int argc, char **argv )
   error = read_config_file( &settings_current );
   if( error ) return error;
 
-  error = settings_command_line( &settings_current, first_arg, argc, argv );
-  if( error ) return error;
+  /* With getopt_long() stubbed out above, settings_command_line() can only
+     walk off the end of an empty argv; skip it entirely when the frontend
+     passed nothing to parse. */
+  if( argc > 1 ) {
+    error = settings_command_line( &settings_current, first_arg, argc, argv );
+    if( error ) return error;
+  } else {
+    *first_arg = 1;
+  }
 
   return 0;
 }
