@@ -252,6 +252,7 @@ static int sound_needs_reinit = 0;
    user's option is authoritative over that. */
 static int opt_fuller = 0;
 static int opt_melodik = 0;
+static int opt_issue2 = 0;
 
 /* Mirrors of the user's current selections for the options that sound_init()
    reads, so update_variables() can tell a real change from a re-read.
@@ -594,6 +595,16 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
          { NULL, NULL }
       },
       "100"
+   },
+   {
+      "fuse_issue2",
+      "Issue 2 Keyboard",
+      NULL,
+      "Emulate an Issue 2 Spectrum, which returns a different value for the unused bits of the keyboard port. A handful of 48K titles (Rasputin and others) only respond to the keyboard on an Issue 2 machine. No effect on 128K and later models.",
+      NULL,
+      "system",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
    },
    {
       "fuse_size_border",
@@ -980,6 +991,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_turbosound", "TurboSound (2x AY-8910); disabled|enabled" },
+   { "fuse_issue2", "Issue 2 Keyboard; disabled|enabled" },
    { "fuse_fuller_box", "Fuller Box; disabled|enabled" },
    { "fuse_melodik", "Melodik; disabled|enabled" },
    { "fuse_volume_ay", "AY Volume; " VOLUME_LEVELS },
@@ -1257,6 +1269,7 @@ int update_variables(int force)
 
    opt_fuller  = coreopt(env_cb, core_vars, "fuse_fuller_box", NULL) == 1;
    opt_melodik = coreopt(env_cb, core_vars, "fuse_melodik", NULL) == 1;
+   opt_issue2  = coreopt(env_cb, core_vars, "fuse_issue2", NULL) == 1;
 
    sync_periph_from_ports_and_options();
 
@@ -2478,11 +2491,12 @@ void retro_deinit(void)
 //
 // None of this is emulated machine state, so it must be re-applied after a
 // snapshot/rewind restore too: kempmouse_snapshot_enabled(),
-// fuller_enabled_snapshot() and melodik_enabled_snapshot() all overwrite the
-// corresponding settings_current fields with whatever was true at the moment
-// that particular state was captured (e.g. still off, if rewound back to
-// before the mouse was ever connected), which can otherwise leave a
-// peripheral disabled even though the frontend has it wired up right now.
+// fuller_enabled_snapshot(), melodik_enabled_snapshot() and
+// ula_from_snapshot() all overwrite the corresponding settings_current
+// fields with whatever was true at the moment that particular state was
+// captured (e.g. still off, if rewound back to before the mouse was ever
+// connected), which can otherwise leave a peripheral disabled even though
+// the frontend has it wired up right now.
 static void sync_periph_from_ports_and_options(void)
 {
    unsigned p;
@@ -2496,6 +2510,11 @@ static void sync_periph_from_ports_and_options(void)
       else if (input_devices[p] == RETRO_DEVICE_FULLER_JOYSTICK)
          fuller = 1;
    }
+
+   // Issue 2 only changes what ula_write() latches for the unused keyboard
+   // bits; no port (de)registration is involved, so it never needs a
+   // peripheral update.
+   settings_current.issue2 = opt_issue2;
 
    if (settings_current.kempston_mouse != kempston_mouse ||
        settings_current.fuller != fuller ||
