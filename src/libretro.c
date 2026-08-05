@@ -248,10 +248,23 @@ static int sound_needs_reinit = 0;
 /* Mirrors of the user's current selections for the peripheral options. These
    have to be kept separately from settings_current because Fuse re-derives
    the corresponding settings from whatever a loaded snapshot happened to
-   record (fuller_enabled_snapshot(), melodik_enabled_snapshot()), and the
-   user's option is authoritative over that. */
+   record (fuller_enabled_snapshot(), melodik_enabled_snapshot(),
+   uspeech_enabled_snapshot()), and the user's option is authoritative over
+   that. */
 static int opt_fuller = 0;
 static int opt_melodik = 0;
+static int opt_uspeech = 0;
+
+/* The last uspeech value this core actually pushed into settings_current.
+   uspeech_reset() turns the setting back off by itself when either of the
+   two ROMs it needs is missing, which is the intended degradation - the
+   option is on, the hardware cannot come up, so it stays down. Comparing the
+   option against settings_current directly would read that as a difference
+   and push the option straight back in, forcing a fresh hard reset every
+   time and leaving the two permanently disagreeing. Compare against what we
+   last wrote instead, so Fuse's refusal stands until the user actually
+   changes the option. */
+static int applied_uspeech = 0;
 static int opt_issue2 = 0;
 
 /* Mirrors of the user's current selections for the options that sound_init()
@@ -732,6 +745,16 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
       "disabled"
    },
    {
+      "fuse_uspeech",
+      "Currah uSpeech",
+      NULL,
+      "Emulate the Currah uSpeech allophone speech synthesiser. Requires two ROM images the core cannot distribute, 'uspeech.rom' and 'sp0256-al2.bin', placed in the frontend's system directory; without them the option has no effect. Changing this resets the machine.",
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
       "fuse_melodik",
       "Melodik",
       NULL,
@@ -1000,6 +1023,7 @@ static const struct retro_variable core_vars[] =
    { "fuse_issue2", "Issue 2 Keyboard; disabled|enabled" },
    { "fuse_fuller_box", "Fuller Box; disabled|enabled" },
    { "fuse_melodik", "Melodik; disabled|enabled" },
+   { "fuse_uspeech", "Currah uSpeech; disabled|enabled" },
    { "fuse_volume_ay", "AY Volume; " VOLUME_LEVELS },
    { "fuse_volume_beeper", "Beeper Volume; " VOLUME_LEVELS },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
@@ -1275,6 +1299,7 @@ int update_variables(int force)
 
    opt_fuller  = coreopt(env_cb, core_vars, "fuse_fuller_box", NULL) == 1;
    opt_melodik = coreopt(env_cb, core_vars, "fuse_melodik", NULL) == 1;
+   opt_uspeech = coreopt(env_cb, core_vars, "fuse_uspeech", NULL) == 1;
    opt_issue2  = coreopt(env_cb, core_vars, "fuse_issue2", NULL) == 1;
 
    sync_periph_from_ports_and_options();
@@ -2516,9 +2541,9 @@ void retro_deinit(void)
 //
 // None of this is emulated machine state, so it must be re-applied after a
 // snapshot/rewind restore too: kempmouse_snapshot_enabled(),
-// fuller_enabled_snapshot(), melodik_enabled_snapshot() and
-// ula_from_snapshot() all overwrite the corresponding settings_current
-// fields with whatever was true at the moment that particular state was
+// fuller_enabled_snapshot(), melodik_enabled_snapshot(),
+// uspeech_enabled_snapshot() and ula_from_snapshot() all overwrite the
+// corresponding settings_current fields with whatever was true at the moment that particular state was
 // captured (e.g. still off, if rewound back to before the mouse was ever
 // connected), which can otherwise leave a peripheral disabled even though
 // the frontend has it wired up right now.
@@ -2541,13 +2566,26 @@ static void sync_periph_from_ports_and_options(void)
    // peripheral update.
    settings_current.issue2 = opt_issue2;
 
+   // uSpeech is assigned unconditionally, like Issue 2, because
+   // uspeech_enabled_snapshot() copies the setting straight out of a loaded
+   // snapshot and would otherwise leave it reading enabled after restoring a
+   // state captured while it was on, even with the option since turned off.
+   // Arming the peripheral update is a separate question: uspeech_reset()
+   // clears the setting by itself when either of the two ROMs it needs is
+   // missing, and treating that as a difference would push the option back
+   // in and force a fresh hard reset every time. Compare against what was
+   // last applied so that refusal stands until the user changes the option.
+   settings_current.uspeech = opt_uspeech;
+
    if (settings_current.kempston_mouse != kempston_mouse ||
        settings_current.fuller != fuller ||
-       settings_current.melodik != opt_melodik)
+       settings_current.melodik != opt_melodik ||
+       applied_uspeech != opt_uspeech)
    {
       settings_current.kempston_mouse = kempston_mouse;
       settings_current.fuller = fuller;
       settings_current.melodik = opt_melodik;
+      applied_uspeech = opt_uspeech;
 
       // See the comment in retro_set_controller_port_device(): defer the
       // actual peripheral update to the top of retro_run() rather than
