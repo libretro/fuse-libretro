@@ -4,6 +4,7 @@
 
 #include <coreopt.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -249,6 +250,8 @@ static int sound_needs_reinit = 0;
    -1 means "not read yet", so the first pass never looks like a change. */
 static int opt_speaker_type = -1;
 static int opt_stereo_ay = -1;
+static int opt_volume_ay = -1;
+static int opt_volume_beeper = -1;
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -466,6 +469,25 @@ keysyms_map_t keysyms_map[] = {
    { "disabled", NULL }, \
    { NULL, NULL }
 
+/* Keep in sync with CORE_OPTION_VALUE_LIST_VOLUME below: the legacy
+   retro_variable strings have to offer exactly the same values, because
+   that is the list coreopt() matches the frontend's answer against. */
+#define VOLUME_LEVELS "100|90|80|70|60|50|40|30|20|10|0"
+
+#define CORE_OPTION_VALUE_LIST_VOLUME \
+   { "100", NULL }, \
+   { "90", NULL }, \
+   { "80", NULL }, \
+   { "70", NULL }, \
+   { "60", NULL }, \
+   { "50", NULL }, \
+   { "40", NULL }, \
+   { "30", NULL }, \
+   { "20", NULL }, \
+   { "10", NULL }, \
+   { "0", NULL }, \
+   { NULL, NULL }
+
 #define CORE_OPTION_VALUE_LIST_SPECTRUM_KEYS \
    { "<none>", NULL }, \
    { "0", NULL }, \
@@ -673,6 +695,26 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
       "audio",
       { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
       "disabled"
+   },
+   {
+      "fuse_volume_ay",
+      "AY Volume",
+      NULL,
+      "Relative volume of the AY-3-8912 chip, so AY music can be turned down without losing beeper effects (or the other way round).",
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_VOLUME },
+      "100"
+   },
+   {
+      "fuse_volume_beeper",
+      "Beeper Volume",
+      NULL,
+      "Relative volume of the ULA beeper.",
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_VOLUME },
+      "100"
    },
    {
       "fuse_key_ovrlay_transp",
@@ -910,6 +952,8 @@ static const struct retro_variable core_vars[] =
    { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_turbosound", "TurboSound (2x AY-8910); disabled|enabled" },
+   { "fuse_volume_ay", "AY Volume; " VOLUME_LEVELS },
+   { "fuse_volume_beeper", "Beeper Volume; " VOLUME_LEVELS },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
    { "fuse_key_hold_time", "Time to Release Key in ms; 500|1000|100|300" },
    { "fuse_display_joystick_type", "Display joystick type at startup; disabled|enabled" },
@@ -1153,6 +1197,32 @@ int update_variables(int force)
          sound_needs_reinit = 1;
 
       opt_stereo_ay = option;
+   }
+
+   {
+      const char* value;
+      int option = coreopt(env_cb, core_vars, "fuse_volume_ay", &value);
+      int volume = option >= 0 ? atoi(value) : 100;
+
+      settings_current.volume_ay = volume;
+
+      if (opt_volume_ay != -1 && opt_volume_ay != volume)
+         sound_needs_reinit = 1;
+
+      opt_volume_ay = volume;
+   }
+
+   {
+      const char* value;
+      int option = coreopt(env_cb, core_vars, "fuse_volume_beeper", &value);
+      int volume = option >= 0 ? atoi(value) : 100;
+
+      settings_current.volume_beeper = volume;
+
+      if (opt_volume_beeper != -1 && opt_volume_beeper != volume)
+         sound_needs_reinit = 1;
+
+      opt_volume_beeper = volume;
    }
 
    keyb_transparent = coreopt(env_cb, core_vars, "fuse_key_ovrlay_transp", NULL) != 1;
@@ -2199,14 +2269,12 @@ void retro_run(void)
 
    if (sound_needs_reinit)
    {
-      // Speaker type and AY stereo separation are only ever read by
-      // sound_init(), which builds the Blip_Buffers and Blip_Synths from
+      // Volume, speaker type and AY stereo separation are only ever read
+      // by sound_init(), which builds the Blip_Buffers and Blip_Synths from
       // them - writing settings_current alone changes nothing until sound is
-      // torn down and rebuilt, so until now changing either of these in the
-      // frontend did nothing at all until the next content load. Do it here,
-      // at a frame boundary, rather than inside update_variables(), which
-      // also runs from settings_init() before there is any sound to
-      // reinitialise.
+      // torn down and rebuilt. Do it here, at a frame boundary, rather than
+      // inside update_variables(), which also runs from settings_init()
+      // before there is any sound to reinitialise.
       //
       // sound_unpause() deliberately declines while a fastload is in
       // progress; leave the flag armed so the new settings get picked up
