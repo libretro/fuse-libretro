@@ -240,10 +240,18 @@ static int show_joystick_type_at_startup;
 static int show_emulation_speed_at_startup;
 static int display_joystick_type;
 static int display_emulation_speed;
-static int kempston_mouse_needs_periph_update = 0;
-static void sync_kempston_mouse_from_ports(void);
+static int periph_needs_update = 0;
+static void sync_periph_from_ports_and_options(void);
 
 static int sound_needs_reinit = 0;
+
+/* Mirrors of the user's current selections for the peripheral options. These
+   have to be kept separately from settings_current because Fuse re-derives
+   the corresponding settings from whatever a loaded snapshot happened to
+   record (fuller_enabled_snapshot(), melodik_enabled_snapshot()), and the
+   user's option is authoritative over that. */
+static int opt_fuller = 0;
+static int opt_melodik = 0;
 
 /* Mirrors of the user's current selections for the options that sound_init()
    reads, so update_variables() can tell a real change from a re-read.
@@ -697,6 +705,26 @@ static struct retro_core_option_v2_definition core_option_definitions[] = {
       "disabled"
    },
    {
+      "fuse_fuller_box",
+      "Fuller Box",
+      NULL,
+      "Emulate the Fuller Box AY-3-8912 audio interface (ports 0x3f/0x5f) and its joystick port. Leave disabled for plain 48K titles: some of them poke those ports and will play AY music that no unexpanded Spectrum could produce. Selecting the Fuller joystick on a controller port enables the box regardless of this setting. Changing this resets the machine.",
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
+      "fuse_melodik",
+      "Melodik",
+      NULL,
+      "Emulate the Melodik AY-3-8912 audio interface, which decodes the 128K AY ports (0xfffd/0xbffd) on a 48K machine. Changing this resets the machine.",
+      NULL,
+      "audio",
+      { CORE_OPTION_VALUE_LIST_ENABLED_DISABLED },
+      "disabled"
+   },
+   {
       "fuse_volume_ay",
       "AY Volume",
       NULL,
@@ -952,6 +980,8 @@ static const struct retro_variable core_vars[] =
    { "fuse_speaker_type", "Speaker Type; tv speaker|beeper|unfiltered" },
    { "fuse_ay_stereo_separation", "AY Stereo Separation; none|acb|abc" },
    { "fuse_turbosound", "TurboSound (2x AY-8910); disabled|enabled" },
+   { "fuse_fuller_box", "Fuller Box; disabled|enabled" },
+   { "fuse_melodik", "Melodik; disabled|enabled" },
    { "fuse_volume_ay", "AY Volume; " VOLUME_LEVELS },
    { "fuse_volume_beeper", "Beeper Volume; " VOLUME_LEVELS },
    { "fuse_key_ovrlay_transp", "Transparent Keyboard Overlay; enabled|disabled" },
@@ -1224,6 +1254,11 @@ int update_variables(int force)
 
       opt_volume_beeper = volume;
    }
+
+   opt_fuller  = coreopt(env_cb, core_vars, "fuse_fuller_box", NULL) == 1;
+   opt_melodik = coreopt(env_cb, core_vars, "fuse_melodik", NULL) == 1;
+
+   sync_periph_from_ports_and_options();
 
    keyb_transparent = coreopt(env_cb, core_vars, "fuse_key_ovrlay_transp", NULL) != 1;
 
@@ -2050,7 +2085,7 @@ bool retro_load_game(const struct retro_game_info *info)
       // still 0); likewise, loading snapshot content re-derives the flag
       // from the file via kempmouse_snapshot_enabled(). Port wiring is
       // frontend state, not machine state - see retro_unserialize().
-      sync_kempston_mouse_from_ports();
+      sync_periph_from_ports_and_options();
 
       return true;
    }
@@ -2261,10 +2296,15 @@ void retro_run(void)
 {
    bool updated = false;
 
-   if (kempston_mouse_needs_periph_update)
+   if (periph_needs_update)
    {
-      kempston_mouse_needs_periph_update = 0;
-      periph_update();
+      periph_needs_update = 0;
+      // periph_posthook() rather than periph_update(): the Fuller Box and
+      // Melodik both declare hard_reset, and plugging or unplugging a real
+      // one is not something the running machine survives. periph_posthook()
+      // only resets when a peripheral that needs it actually changed, so the
+      // Kempston Mouse path through here still behaves as it did.
+      periph_posthook();
    }
 
    if (sound_needs_reinit)
@@ -2426,38 +2466,50 @@ void retro_deinit(void)
    }
 }
 
+// Re-derive every Fuse peripheral setting whose authoritative value lives
+// outside the emulated machine: live frontend port wiring, and core options.
+//
 // Kempston Mouse is a single peripheral, not per-port; enable it in Fuse
 // whenever any port is currently configured as a mouse, disable it
-// otherwise. This reflects live frontend port wiring, not emulated
-// machine state, so it must be re-applied after a snapshot/rewind restore
-// too - the snapshot's own kempston_mouse_active flag only reflects
-// whatever was true at the moment that particular state was captured
-// (e.g. still off, if rewound back to before the mouse was ever
-// connected), which can otherwise leave the peripheral disabled even
-// though the frontend still has a mouse wired to a port right now.
-static void sync_kempston_mouse_from_ports(void)
+// otherwise. The Fuller Box is the same shape of problem in reverse - its
+// joystick port (0x7f) and its AY (0x3f/0x5f) are one periph_t, so wiring a
+// Fuller joystick to a port has to switch the whole box on regardless of
+// the fuse_fuller_box option.
+//
+// None of this is emulated machine state, so it must be re-applied after a
+// snapshot/rewind restore too: kempmouse_snapshot_enabled(),
+// fuller_enabled_snapshot() and melodik_enabled_snapshot() all overwrite the
+// corresponding settings_current fields with whatever was true at the moment
+// that particular state was captured (e.g. still off, if rewound back to
+// before the mouse was ever connected), which can otherwise leave a
+// peripheral disabled even though the frontend has it wired up right now.
+static void sync_periph_from_ports_and_options(void)
 {
    unsigned p;
    int kempston_mouse = 0;
+   int fuller = opt_fuller;
 
    for (p = 0; p < MAX_PADS; p++)
    {
       if (input_devices[p] == RETRO_DEVICE_KEMPSTON_MOUSE)
-      {
          kempston_mouse = 1;
-         break;
-      }
+      else if (input_devices[p] == RETRO_DEVICE_FULLER_JOYSTICK)
+         fuller = 1;
    }
 
-   if (settings_current.kempston_mouse != kempston_mouse)
+   if (settings_current.kempston_mouse != kempston_mouse ||
+       settings_current.fuller != fuller ||
+       settings_current.melodik != opt_melodik)
    {
       settings_current.kempston_mouse = kempston_mouse;
+      settings_current.fuller = fuller;
+      settings_current.melodik = opt_melodik;
 
       // See the comment in retro_set_controller_port_device(): defer the
-      // actual periph_update() to the top of retro_run() rather than
+      // actual peripheral update to the top of retro_run() rather than
       // calling it here synchronously.
       if (fuse_init_called)
-         kempston_mouse_needs_periph_update = 1;
+         periph_needs_update = 1;
    }
 }
 
@@ -2517,7 +2569,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
    // unscheduled, so retro_run()'s "wait until some_audio" loop spins
    // forever and the frontend hangs. Defer to the top of retro_run()
    // instead, exactly like UPDATE_MACHINE (model changes) already does.
-   sync_kempston_mouse_from_ports();
+   sync_periph_from_ports_and_options();
 }
 
 void retro_reset(void)
@@ -2546,7 +2598,7 @@ void retro_reset(void)
          machine_reset(1);
       }
 
-      sync_kempston_mouse_from_ports();
+      sync_periph_from_ports_and_options();
       return;
    }
 
@@ -2565,7 +2617,7 @@ void retro_reset(void)
    // snapshot_copy_from() and re-derived settings_current.kempston_mouse
    // from the file, exactly like retro_unserialize() - re-apply the live
    // controller-port wiring here too.
-   sync_kempston_mouse_from_ports();
+   sync_periph_from_ports_and_options();
 }
 
 size_t retro_serialize_size(void)
@@ -2670,7 +2722,7 @@ bool retro_unserialize(const void *data, size_t size)
    // every restore (rewind or manual load) rather than leaving whatever
    // the snapshot happened to say.
    if (ok)
-      sync_kempston_mouse_from_ports();
+      sync_periph_from_ports_and_options();
 
    return ok;
 }
