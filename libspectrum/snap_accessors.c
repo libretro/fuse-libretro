@@ -79,9 +79,9 @@ struct libspectrum_snap {
   libspectrum_byte out_plus3_memoryport;	/* Used for both the +3's and the Scorpion's 0x1ffd port */
   libspectrum_byte out_ay_registerport;
   libspectrum_byte ay_registers[ 16 ];
-
 #ifdef __LIBRETRO__
-  /* TurboSound: second AY-3-8912 chip */
+
+  /* TurboSound: second AY-3-8912 chip (fuse-libretro only) */
   int turbosound_active;
   libspectrum_byte out_ay2_registerport;
   libspectrum_byte ay2_registers[ 16 ];
@@ -249,6 +249,10 @@ struct libspectrum_snap {
   libspectrum_byte* usource_rom[1];
   size_t usource_rom_length[1];	/* Length of the ROM */
 
+  /* uSpeech emulation */
+  int uspeech_active;
+  int uspeech_paged;
+
   /* DISCiPLE emulation */
   int disciple_active;
   int disciple_paged;
@@ -375,9 +379,9 @@ libspectrum_snap_alloc( void )
   libspectrum_snap_set_out_ay_registerport( snap, 0x0e );
   for( i = 0; i < 16; i++ )
     libspectrum_snap_set_ay_registers( snap, i, 0 );
-
 #ifdef __LIBRETRO__
-  /* TurboSound: second AY-3-8912 chip */
+
+  /* TurboSound: second AY-3-8912 chip (fuse-libretro only) */
   libspectrum_snap_set_turbosound_active( snap, 0 );
   libspectrum_snap_set_out_ay2_registerport( snap, 0 );
   for( i = 0; i < 16; i++ )
@@ -556,6 +560,10 @@ libspectrum_snap_alloc( void )
   libspectrum_snap_set_usource_rom( snap, 0, NULL );
   libspectrum_snap_set_usource_rom_length( snap, 0, 0 );
 
+  /* uSpeech emulation */
+  libspectrum_snap_set_uspeech_active( snap, 0 );
+  libspectrum_snap_set_uspeech_paged( snap, 0 );
+
   /* DISCiPLE emulation */
   libspectrum_snap_set_disciple_active( snap, 0 );
   libspectrum_snap_set_disciple_paged( snap, 0 );
@@ -634,6 +642,8 @@ libspectrum_snap_free( libspectrum_snap *snap )
   for( i = 0; i < SNAPSHOT_SLT_PAGES; i++ )
     libspectrum_free( libspectrum_snap_slt( snap, i ) );
   libspectrum_free( libspectrum_snap_slt_screen( snap ) );
+#ifdef __LIBRETRO__
+#endif
 
   libspectrum_free( libspectrum_snap_interface1_rom( snap, 0 ) );
 
@@ -1155,7 +1165,6 @@ libspectrum_snap_set_ay_registers( libspectrum_snap *snap, int idx, libspectrum_
 {
   snap->ay_registers[idx] = ay_registers;
 }
-
 #ifdef __LIBRETRO__
 
 int
@@ -1205,8 +1214,7 @@ libspectrum_snap_set_out_ay2_active_chip( libspectrum_snap *snap, libspectrum_by
 {
   snap->out_ay2_active_chip = out_ay2_active_chip;
 }
-
-#endif /* #ifdef __LIBRETRO__ */
+#endif
 
 libspectrum_byte
 libspectrum_snap_out_scld_hsr( libspectrum_snap *snap )
@@ -2610,6 +2618,30 @@ void
 libspectrum_snap_set_usource_rom_length( libspectrum_snap *snap, int idx, size_t usource_rom_length )
 {
   snap->usource_rom_length[idx] = usource_rom_length;
+}
+
+int
+libspectrum_snap_uspeech_active( libspectrum_snap *snap )
+{
+  return snap->uspeech_active;
+}
+
+void
+libspectrum_snap_set_uspeech_active( libspectrum_snap *snap, int uspeech_active )
+{
+  snap->uspeech_active = uspeech_active;
+}
+
+int
+libspectrum_snap_uspeech_paged( libspectrum_snap *snap )
+{
+  return snap->uspeech_paged;
+}
+
+void
+libspectrum_snap_set_uspeech_paged( libspectrum_snap *snap, int uspeech_paged )
+{
+  snap->uspeech_paged = uspeech_paged;
 }
 
 int

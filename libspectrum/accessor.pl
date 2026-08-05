@@ -41,8 +41,17 @@ while(<>) {
 
     my $item = { };
 
+    # Preprocessor guard around a run of fields, written as
+    #   %ifdef SYMBOL
+    #   ...
+    #   %endif
+    # in snap_accessors.txt. Emitted verbatim into every generated section,
+    # so a field set that only exists in some builds stays expressible in the
+    # input file instead of being hand-patched into the output.
+    if( /^\s*%(ifdef|endif)\s*(\S*)/ ) {
+      $item->{guard} = ( $1 eq "ifdef" ) ? "#ifdef $2\n" : "#endif\n";
     # Leading C comment
-    if( /^\s*\/\*/ ) {
+    } elsif( /^\s*\/\*/ ) {
       $item->{section_comment} = $_;
     } else {
        # Trailing C comment
@@ -140,6 +149,8 @@ CODE
 foreach my $item ( @accessors ) {
   next if $item->{section_comment};
 
+  if( $item->{guard} ) { print $item->{guard}; next; }
+
   if( $item->{indexed} ) {
     dump_accessor_indexed( $item->{type}, $item->{name} );
   } else {
@@ -150,6 +161,8 @@ foreach my $item ( @accessors ) {
 sub dump_accessor_declaration ($) {
 
   my( $item ) = @_;
+
+  if( $item->{guard} ) { print $item->{guard}; return; }
 
   if( $item->{section_comment} ) {
     print "\n  ", $item->{section_comment};
@@ -174,6 +187,8 @@ sub dump_accessor_declaration ($) {
 sub dump_accessor_initialisation ($) {
 
   my( $item ) = @_;
+
+  if( $item->{guard} ) { print $item->{guard}; return; }
 
   if( $item->{section_comment} ) {
     print "\n  ", $item->{section_comment};
@@ -205,6 +220,8 @@ my $new_section = 0;
 sub dump_accessor_free ($) {
 
   my( $item ) = @_;
+
+  if( $item->{guard} ) { print $item->{guard}; return; }
 
   if( $item->{section_comment} ) {
     $new_section = 1;

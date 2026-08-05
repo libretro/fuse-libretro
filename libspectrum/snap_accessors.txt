@@ -80,11 +80,13 @@ libspectrum_byte out_plus3_memoryport 0 0x08 /* Used for both the +3's and the S
 libspectrum_byte out_ay_registerport 0 0x0e
 libspectrum_byte ay_registers 16
 
+%ifdef __LIBRETRO__
 /* TurboSound: second AY-3-8912 chip (fuse-libretro only) */
 int turbosound_active
 libspectrum_byte out_ay2_registerport
 libspectrum_byte ay2_registers 16
 libspectrum_byte out_ay2_active_chip
+%endif
 
 /* Timex-specific bits */
 libspectrum_byte out_scld_hsr
@@ -246,6 +248,10 @@ int usource_paged
 int usource_custom_rom
 libspectrum_byte* usource_rom 1
 size_t usource_rom_length 1     /* Length of the ROM */
+
+/* uSpeech emulation */
+int uspeech_active
+int uspeech_paged
 
 /* DISCiPLE emulation */
 int disciple_active

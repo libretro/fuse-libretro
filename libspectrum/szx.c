@@ -350,6 +350,9 @@ write_mfce_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
 static void
 write_zmmc_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
 		  libspectrum_snap *snap );
+static void
+write_uspe_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
+		  libspectrum_snap *snap );
 
 #ifdef HAVE_ZLIB_H
 
@@ -2524,6 +2527,29 @@ read_zmmc_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
 }
 
 static libspectrum_error
+read_uspe_chunk( libspectrum_snap *snap, libspectrum_word version GCC_UNUSED,
+                 const libspectrum_byte **buffer,
+                 const libspectrum_byte *end GCC_UNUSED, size_t data_length,
+                 szx_context *ctx GCC_UNUSED )
+{
+  libspectrum_byte paged;
+
+  if( data_length != 1 ) {
+    libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
+                             "%s:read_uspe_chunk: unknown length %lu",
+                             __FILE__, (unsigned long)data_length );
+    return LIBSPECTRUM_ERROR_UNKNOWN;
+  }
+
+  paged = *(*buffer)++;
+
+  libspectrum_snap_set_uspeech_paged( snap, paged );
+  libspectrum_snap_set_uspeech_active( snap, 1 );
+
+  return LIBSPECTRUM_ERROR_NONE;
+}
+
+static libspectrum_error
 skip_chunk( libspectrum_snap *snap GCC_UNUSED,
 	    libspectrum_word version GCC_UNUSED,
 	    const libspectrum_byte **buffer,
@@ -2584,7 +2610,7 @@ static struct read_chunk_t read_chunks[] = {
   { ZXSTBID_SPECTRANETFLASHPAGE, read_snef_chunk },
   { ZXSTBID_SPECTRANETRAMPAGE,   read_sner_chunk },
   { ZXSTBID_TIMEXREGS,	         read_scld_chunk },
-  { ZXSTBID_USPEECH,	         skip_chunk      },
+  { ZXSTBID_USPEECH,	         read_uspe_chunk },
   { ZXSTBID_Z80REGS,	         read_z80r_chunk },
   { ZXSTBID_ZXATASPRAMPAGE,      read_atrp_chunk },
   { ZXSTBID_ZXATASP,	         read_zxat_chunk },
@@ -3050,6 +3076,10 @@ libspectrum_szx_write( libspectrum_buffer *buffer, int *out_flags,
 
   if( libspectrum_snap_zxmmc_active( snap ) ) {
     write_zmmc_chunk( buffer, block_data, snap );
+  }
+
+  if( libspectrum_snap_uspeech_active( snap ) ) {
+    write_uspe_chunk( buffer, block_data, snap );
   }
 
   libspectrum_buffer_free( block_data );
@@ -4309,6 +4339,16 @@ write_zmmc_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
                   libspectrum_snap *snap )
 {
   write_chunk( buffer, ZXSTBID_ZXMMC, NULL );
+}
+
+static void
+write_uspe_chunk( libspectrum_buffer *buffer, libspectrum_buffer *data,
+                  libspectrum_snap *snap )
+{
+  libspectrum_buffer_write_byte( data,
+                                 libspectrum_snap_uspeech_paged( snap ) );
+
+  write_chunk( buffer, ZXSTBID_USPEECH, data );
 }
 
 static void
