@@ -24,6 +24,8 @@
 #include <peripherals/disk/disciple.h>
 #include <pokefinder/pokemem.h>
 #include <periph.h>
+#include <sound.h>
+#include <timer/timer.h>
 
 #include "ui/uimedia.h"
 
@@ -239,6 +241,14 @@ static int display_joystick_type;
 static int display_emulation_speed;
 static int kempston_mouse_needs_periph_update = 0;
 static void sync_kempston_mouse_from_ports(void);
+
+static int sound_needs_reinit = 0;
+
+/* Mirrors of the user's current selections for the options that sound_init()
+   reads, so update_variables() can tell a real change from a re-read.
+   -1 means "not read yet", so the first pass never looks like a change. */
+static int opt_speaker_type = -1;
+static int opt_stereo_ay = -1;
 
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
@@ -1113,6 +1123,7 @@ int update_variables(int force)
 
    {
       int option = coreopt(env_cb, core_vars, "fuse_speaker_type", NULL);
+      option += option < 0;
 
       if (settings_current.speaker_type)
       {
@@ -1120,10 +1131,16 @@ int update_variables(int force)
       }
 
       settings_current.speaker_type = utils_safe_strdup(option == 1 ? "Beeper" : option == 2 ? "Unfiltered" : "TV speaker");
+
+      if (opt_speaker_type != -1 && opt_speaker_type != option)
+         sound_needs_reinit = 1;
+
+      opt_speaker_type = option;
    }
 
    {
       int option = coreopt(env_cb, core_vars, "fuse_ay_stereo_separation", NULL);
+      option += option < 0;
 
       if (settings_current.stereo_ay)
       {
@@ -1131,6 +1148,11 @@ int update_variables(int force)
       }
 
       settings_current.stereo_ay = utils_safe_strdup(option == 1 ? "ACB" : option == 2 ? "ABC" : "None");
+
+      if (opt_stereo_ay != -1 && opt_stereo_ay != option)
+         sound_needs_reinit = 1;
+
+      opt_stereo_ay = option;
    }
 
    keyb_transparent = coreopt(env_cb, core_vars, "fuse_key_ovrlay_transp", NULL) != 1;
@@ -2173,6 +2195,29 @@ void retro_run(void)
    {
       kempston_mouse_needs_periph_update = 0;
       periph_update();
+   }
+
+   if (sound_needs_reinit)
+   {
+      // Speaker type and AY stereo separation are only ever read by
+      // sound_init(), which builds the Blip_Buffers and Blip_Synths from
+      // them - writing settings_current alone changes nothing until sound is
+      // torn down and rebuilt, so until now changing either of these in the
+      // frontend did nothing at all until the next content load. Do it here,
+      // at a frame boundary, rather than inside update_variables(), which
+      // also runs from settings_init() before there is any sound to
+      // reinitialise.
+      //
+      // sound_unpause() deliberately declines while a fastload is in
+      // progress; leave the flag armed so the new settings get picked up
+      // either on the next frame or by timer_stop_fastloading(), whichever
+      // comes first.
+      if (!(settings_current.fastload && timer_fastloading_active()))
+      {
+         sound_needs_reinit = 0;
+         sound_pause();
+         sound_unpause();
+      }
    }
 
    if (display_joystick_type == TRUE)
