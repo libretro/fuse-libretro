@@ -54,6 +54,8 @@ extern unsigned keyb_x;
 extern unsigned keyb_y;
 extern bool joyp_state[MAX_PADS][16];
 extern bool keyb_state[RETROK_LAST];
+extern bool kb_cb_state[RETROK_LAST];
+extern bool kb_cb_active;
 extern void* snapshot_buffer;
 extern size_t snapshot_size;
 extern void* tape_data;

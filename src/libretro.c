@@ -351,6 +351,19 @@ unsigned keyb_x;
 unsigned keyb_y;
 bool joyp_state[MAX_PADS][16];
 bool keyb_state[RETROK_LAST];
+
+bool kb_cb_state[RETROK_LAST];
+bool kb_cb_active = false;
+
+static void RETRO_CALLCONV keyboard_event_cb(bool down, unsigned keycode, uint32_t character, uint16_t mod)
+{
+   (void)character;
+   (void)mod;
+
+   if (keycode < RETROK_LAST)
+      kb_cb_state[keycode] = down;
+}
+
 void*  snapshot_buffer;
 size_t snapshot_size;
 void* tape_data;
@@ -1509,9 +1522,12 @@ void retro_set_environment(retro_environment_t cb)
       { NULL, 0 }
    };
 
+   static const struct retro_keyboard_callback kb_callback = { keyboard_event_cb };
+
    bool yes = true;
    unsigned core_options_version = 0;
    cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &yes);
+   kb_cb_active = cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void*)&kb_callback);
 
    if (cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version) &&
        core_options_version >= 2)
@@ -2120,6 +2136,7 @@ bool retro_load_game(const struct retro_game_info *info)
    env_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
    memset(joyp_state, 0, sizeof(joyp_state));
    memset(keyb_state, 0, sizeof(keyb_state));
+   memset(kb_cb_state, 0, sizeof(kb_cb_state));
    hard_width = hard_height = soft_width = soft_height = 0;
    select_pressed = keyb_overlay = 0;
    keyb_x = keyb_y = 0;

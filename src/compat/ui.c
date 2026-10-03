@@ -241,43 +241,49 @@ int ui_event(void)
          }
       }
       
+      // The keyboard belongs to the machine, not to a controller port, so
+      // read it one time per frame from a single source.
+      unsigned kb_port = 0;
+
       for (port = 0; port < MAX_PADS; port++)
       {
-         unsigned device = input_devices[port];
-         
-         if (device == RETRO_DEVICE_SPECTRUM_KEYBOARD)
+         if (input_devices[port] == RETRO_DEVICE_SPECTRUM_KEYBOARD)
          {
-            for (id = 0; keysyms_map[id].ui; id++)
+            kb_port = port;
+            break;
+         }
+      }
+
+      for (id = 0; keysyms_map[id].ui; id++)
+      {
+         unsigned ui = keysyms_map[id].ui;
+         is_down = kb_cb_active ? kb_cb_state[ui]
+                                : input_state_cb(kb_port, RETRO_DEVICE_KEYBOARD, 0, ui);
+
+         if (is_down)
+         {
+            if (!keyb_state[ui])
             {
-               unsigned ui = keysyms_map[id].ui;
-               is_down = input_state_cb(port, RETRO_DEVICE_KEYBOARD, 0, ui);
-               
-               if (is_down)
-               {
-                  if (!keyb_state[ui])
-                  {
-                     keyb_state[ui] = true;
-                 
-                     fuse_event.type = INPUT_EVENT_KEYPRESS;
-                     fuse_event.types.key.native_key = keysyms_map[id].fuse;
-                     fuse_event.types.key.spectrum_key = keysyms_map[id].fuse;
-              
-                     input_event(&fuse_event);
-                  }
-               }
-               else
-               {
-                  if (keyb_state[ui])
-                  {
-                     keyb_state[ui] = false;
-                 
-                     fuse_event.type = INPUT_EVENT_KEYRELEASE;
-                     fuse_event.types.key.native_key = keysyms_map[id].fuse;
-                     fuse_event.types.key.spectrum_key = keysyms_map[id].fuse;
-              
-                     input_event(&fuse_event);
-                  }
-               }
+               keyb_state[ui] = true;
+
+               fuse_event.type = INPUT_EVENT_KEYPRESS;
+               fuse_event.types.key.native_key = keysyms_map[id].fuse;
+               fuse_event.types.key.spectrum_key = keysyms_map[id].fuse;
+
+               input_event(&fuse_event);
+            }
+         }
+         else
+         {
+            if (keyb_state[ui])
+            {
+               keyb_state[ui] = false;
+
+               fuse_event.type = INPUT_EVENT_KEYRELEASE;
+               fuse_event.types.key.native_key = keysyms_map[id].fuse;
+               fuse_event.types.key.spectrum_key = keysyms_map[id].fuse;
+
+               input_event(&fuse_event);
             }
          }
       }
