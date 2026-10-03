@@ -1512,6 +1512,7 @@ void retro_set_environment(retro_environment_t cb)
    bool yes = true;
    unsigned core_options_version = 0;
    cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &yes);
+   cb(RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS, &yes);
 
    if (cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version) &&
        core_options_version >= 2)
@@ -2408,18 +2409,40 @@ bool retro_load_game(const struct retro_game_info *info)
          if1_mdr_writeprotect( i, 0 );
       }
 
-      // Set up memory map interface
-      struct retro_memory_descriptor desc[MEMORY_PAGES_IN_64K];
+      // Set up memory map interface.
+      //
+      // The descriptors show the physical RAM banks at fixed addresses.
+      // They do not show the paged 64K view of the Z80.
+      //
+      // Do not build descriptors from memory_map_read[]. Each paging
+      // operation writes new values into that array. On a 128K machine,
+      // the descriptor is stale after the game writes to port 0x7FFD.
+      // Consumers such as RetroAchievements read the descriptor pointers
+      // one time at load. They do not read them again. The static RAM[][]
+      // array keeps the same address for the life of the process. This is
+      // true across resets, machine changes and snapshot loads. Thus
+      // these descriptors stay correct.
+      //
+      // The bank order and the addresses agree with the RetroAchievements
+      // ZX Spectrum memory map (rcheevos src/rcheevos/consoleinfo.c).
+      // Banks 5, 2 and 0 go at 0x4000, 0x8000 and 0xC000. This is the usual
+      // 48K layout. It is also what a 128K machine has at boot. Banks 1, 3,
+      // 4, 6 and 7 follow, above the CPU address space. With this layout,
+      // paging never moves an address. A byte in bank n always has the same
+      // descriptor address. The bank that the game has at 0xC000 does
+      // not change this. On 16K and 48K machines, the unused banks read
+      // as empty RAM.
+      static const int bank_order[] = { 5, 2, 0, 1, 3, 4, 6, 7 };
+      struct retro_memory_descriptor desc[sizeof(bank_order) / sizeof(bank_order[0])];
       memset(desc, 0, sizeof(desc));
 
-      for (i = 0; i < MEMORY_PAGES_IN_64K; i++)
+      for (i = 0; i < (int)(sizeof(bank_order) / sizeof(bank_order[0])); i++)
       {
-         desc[i].start  = i * MEMORY_PAGE_SIZE;
-         desc[i].len    = MEMORY_PAGE_SIZE;
-         desc[i].select = 0;
-         desc[i].ptr    = memory_map_read[i].page;
+         desc[i].start = 0x4000 + (size_t)i * 0x4000;
+         desc[i].len   = 0x4000;
+         desc[i].ptr   = RAM[bank_order[i]];
       }
-      struct retro_memory_map memory_map = {desc, MEMORY_PAGES_IN_64K};
+      struct retro_memory_map memory_map = {desc, sizeof(bank_order) / sizeof(bank_order[0])};
 
       env_cb(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, &memory_map);
 
